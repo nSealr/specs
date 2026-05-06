@@ -19,9 +19,16 @@ companion implementation must agree on:
 - `schemas/`: JSON schemas and machine-readable validation artifacts.
 - `examples/`: sample requests, signed events, and failure cases.
 
-## License Plan
+## Quality Baseline
 
-Specifications and test vectors should use permissive/open terms suitable for
-interoperability, preferably CC0 for vectors and a documentation license for
-explanatory text.
+Run the repository verification loop with:
 
+```sh
+make ci
+```
+
+## License
+
+Specifications, schemas, examples, fixtures, and test vectors are released
+under CC0-1.0 unless a file says otherwise. Future helper scripts may use MIT
+when code-specific licensing is useful.
