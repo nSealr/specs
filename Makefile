@@ -1,19 +1,22 @@
 .PHONY: setup test lint audit docs ci
 
 setup:
-	@echo "No setup required for specs baseline."
+	python3 -m pip install --disable-pip-version-check --user -r requirements.txt
 
 test:
 	python3 scripts/verify_repo.py
+	python3 scripts/verify_specs.py
 
 lint:
 	python3 scripts/verify_repo.py
+	python3 scripts/verify_specs.py
 
 audit:
 	python3 scripts/verify_repo.py
+	python3 scripts/verify_specs.py
 
 docs:
 	python3 scripts/verify_repo.py
+	python3 scripts/verify_specs.py
 
 ci: setup test lint audit docs
-

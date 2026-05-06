@@ -10,7 +10,8 @@ make ci
 ```
 
 The baseline check verifies required files, directory layout, README license
-section, CI workflow, and license marker.
+section, CI workflow, license marker, schemas, examples, and cryptographic
+fixtures.
 
 ## Required M1 Tests
 
@@ -20,8 +21,13 @@ section, CI workflow, and license marker.
 - BIP-340 signatures verify against deterministic test keys.
 - QR envelope roundtrips preserve the request payload exactly.
 
+## Fixture Verification
+
+`scripts/verify_specs.py` computes NIP-01 event ids from canonical serialized
+events and verifies committed BIP-340 signatures using libsecp256k1 bindings.
+It also checks that invalid request examples remain rejected.
+
 ## Completion Standard
 
 Spec changes are not complete until examples, schemas, fixtures, and docs are
 updated together.
-

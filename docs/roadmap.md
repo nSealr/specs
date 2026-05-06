@@ -9,6 +9,8 @@
 - JSON schemas.
 - Deterministic Nostr/BIP-340 fixtures.
 
+Status: active.
+
 ## M3: Transport Contracts
 
 - Serial frame draft.
@@ -20,4 +22,3 @@
 - NIP-46 mapping.
 - Smartcard/APDU contract.
 - Firmware conformance vectors.
-
