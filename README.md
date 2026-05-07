@@ -23,7 +23,9 @@ companion implementation must agree on:
 - Serial frame v0.
 - Smartcard APDU v0.
 - Deterministic Nostr/BIP-340 fixtures.
-- Transport and device vectors shared by companion and firmware implementations.
+- Trusted event review vectors for display-oriented signer flows.
+- Transport, device, review, and smartcard vectors shared by implementation
+  repositories.
 
 ## Initial Layout
 

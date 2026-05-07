@@ -10,6 +10,8 @@ signer implementation.
 - Define QR, serial, USB, and smartcard envelope semantics before
   implementation repositories depend on them.
 - Publish deterministic fixtures for NIP-01 event ids and BIP-340 signatures.
+- Publish deterministic trusted-review vectors for event details that hardware
+  displays must render before approval.
 - Keep schemas and examples usable by independent implementations.
 
 ## Non-Responsibilities
@@ -22,4 +24,3 @@ signer implementation.
 
 All signer lines must consume this repository instead of creating divergent
 wire formats, event fixtures, or verification rules.
-
