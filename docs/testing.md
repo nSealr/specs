@@ -49,7 +49,9 @@ fixtures.
 - NIP-46 decrypted payload vectors preserve `get_public_key`, `sign_event`, and
   local `ping` mapping between NIP-46 JSON-RPC-like messages and NostrSeal
   request/response payloads, plus `connect` parsing into policy-review intents
-  without `ack` or permission grants.
+  without `ack` or permission grants. Non-`connect` vectors also carry the
+  derived permission requirement and positive/negative permission-check
+  decisions.
 - NIP-46 vector discovery tests ensure every `vectors/nip46/*.json` file is
   included in conformance verification.
 - Smartcard APDU vectors preserve command bytes, response bytes, and signature
@@ -71,7 +73,8 @@ It also checks that every review-transcript vector matches the deterministic
 frame/button/decision sequence expected from QR signer review adapters.
 It also checks that every NIP-46 decrypted payload vector maps to the expected
 NostrSeal request, local response, signer response payload, or `connect`
-policy-review intent.
+policy-review intent, and that every non-`connect` NIP-46 vector has matching
+permission requirements and permission-check decisions.
 
 ## Completion Standard
 

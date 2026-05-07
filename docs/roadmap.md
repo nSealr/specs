@@ -14,13 +14,15 @@
 - QR review transcript vectors for display/button adapter acceptance tests.
 - NIP-46 decrypted payload bridge and `connect` policy-review intent vectors
   for companion conformance tests.
+- NIP-46 permission requirement and permission-check decision vectors for
+  explicit policy-matching conformance.
 - JSON schemas.
 - Deterministic Nostr/BIP-340 fixtures.
 
 Status: active. The first ESP32-S3 scaffold capability vector,
 display-oriented review-screen, QR review transcript, NIP-46 decrypted payload
-bridge vectors, and NIP-46 `connect` policy-review intent vector are
-implemented.
+bridge vectors, NIP-46 `connect` policy-review intent vector, and explicit
+NIP-46 permission policy vectors are implemented.
 
 ## M3: Transport Contracts
 

@@ -626,6 +626,82 @@ def check_nip46_connect_intent(vector_path: str, vector: dict, message: dict, er
     for forbidden in ("nostrseal_request", "nostrseal_response", "response_message", "local_response_message"):
         if forbidden in vector:
             errors.append(f"{vector_path}: connect must not include {forbidden}")
+    for forbidden in ("permission_requirement", "permission_checks"):
+        if forbidden in vector:
+            errors.append(f"{vector_path}: connect must not include {forbidden}")
+
+
+def normalized_nip46_permission(vector_path: str, value: object, errors: list[str]) -> dict | None:
+    if not isinstance(value, dict):
+        errors.append(f"{vector_path}: permission entries must be objects")
+        return None
+    method = value.get("method")
+    if not isinstance(method, str) or method not in NIP46_PERMISSION_METHODS:
+        errors.append(f"{vector_path}: permission method is invalid")
+        return None
+    if method == "sign_event":
+        if "parameter" not in value:
+            if set(value) != {"method"}:
+                errors.append(f"{vector_path}: broad sign_event permission must only include method")
+                return None
+            return {"method": method}
+        parameter = value.get("parameter")
+        event_kind = value.get("event_kind")
+        if (
+            set(value) != {"method", "parameter", "event_kind"}
+            or not isinstance(parameter, str)
+            or not parameter.isdigit()
+            or not isinstance(event_kind, int)
+            or event_kind != int(parameter)
+        ):
+            errors.append(f"{vector_path}: sign_event permission parameter must match event_kind")
+            return None
+        return {"method": method, "parameter": parameter, "event_kind": event_kind}
+    if set(value) != {"method"}:
+        errors.append(f"{vector_path}: non-sign_event permission must only include method")
+        return None
+    return {"method": method}
+
+
+def nip46_permission_matches_requirement(permission: dict, requirement: dict) -> bool:
+    if permission.get("method") != requirement.get("method"):
+        return False
+    if requirement.get("method") != "sign_event":
+        return "parameter" not in permission
+    if "parameter" not in permission:
+        return True
+    return permission.get("event_kind") == requirement.get("event_kind")
+
+
+def check_nip46_permission_policy(vector_path: str, vector: dict, expected_requirement: dict, errors: list[str]) -> None:
+    requirement = normalized_nip46_permission(vector_path, vector.get("permission_requirement"), errors)
+    if requirement != expected_requirement:
+        errors.append(f"{vector_path}: permission_requirement mismatch")
+
+    checks = vector.get("permission_checks")
+    if not isinstance(checks, list) or not checks:
+        errors.append(f"{vector_path}: permission_checks must be a non-empty list")
+        return
+    for index, check in enumerate(checks):
+        if not isinstance(check, dict):
+            errors.append(f"{vector_path}: permission_checks[{index}] must be an object")
+            continue
+        granted = check.get("granted_permissions")
+        if not isinstance(granted, list):
+            errors.append(f"{vector_path}: permission_checks[{index}].granted_permissions must be a list")
+            continue
+        granted_permissions = [
+            permission
+            for permission in (
+                normalized_nip46_permission(vector_path, permission, errors) for permission in granted
+            )
+            if permission is not None
+        ]
+        expected_permitted = any(
+            nip46_permission_matches_requirement(permission, expected_requirement) for permission in granted_permissions
+        )
+        if check.get("permitted") is not expected_permitted:
+            errors.append(f"{vector_path}: permission_checks[{index}].permitted mismatch")
 
 
 def check_nip46_request_message(vector_path: str, message: object, errors: list[str]) -> dict | None:
@@ -686,6 +762,7 @@ def check_nip46_vector(rel: str, errors: list[str]) -> None:
             errors.append(f"{vector_path}: ping must not include NostrSeal request/response")
         if vector.get("local_response_message") != {"id": request_id, "result": "pong"}:
             errors.append(f"{vector_path}: local_response_message mismatch")
+        check_nip46_permission_policy(vector_path, vector, {"method": "ping"}, errors)
         return
 
     if method == "connect":
@@ -704,6 +781,8 @@ def check_nip46_vector(rel: str, errors: list[str]) -> None:
 
     if method == "get_public_key" and params:
         errors.append(f"{vector_path}: get_public_key params must be empty")
+    if method == "get_public_key":
+        check_nip46_permission_policy(vector_path, vector, {"method": "get_public_key"}, errors)
     if method == "sign_event":
         if len(params) != 1:
             errors.append(f"{vector_path}: sign_event must have one JSON string param")
@@ -715,6 +794,19 @@ def check_nip46_vector(rel: str, errors: list[str]) -> None:
             else:
                 if event_template != nostrseal_request.get("params", {}).get("event_template"):
                     errors.append(f"{vector_path}: sign_event param must match NostrSeal event_template")
+                if not isinstance(event_template, dict) or not isinstance(event_template.get("kind"), int):
+                    errors.append(f"{vector_path}: sign_event event kind is invalid")
+                else:
+                    check_nip46_permission_policy(
+                        vector_path,
+                        vector,
+                        {
+                            "method": "sign_event",
+                            "parameter": str(event_template["kind"]),
+                            "event_kind": event_template["kind"],
+                        },
+                        errors,
+                    )
 
     nostrseal_response = vector.get("nostrseal_response")
     if not isinstance(nostrseal_response, dict):

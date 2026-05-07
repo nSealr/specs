@@ -32,7 +32,8 @@ companion implementation must agree on:
 - QR review transcript vectors that bind raw QR input, displayed frames,
   physical-style button sequences, terminal decisions, and approval-gate state.
 - NIP-46 decrypted payload bridge vectors for `get_public_key`, `sign_event`,
-  local `ping`, response mapping, and `connect` policy-review intents.
+  local `ping`, response mapping, `connect` policy-review intents, and
+  explicit permission requirement/check decisions.
 - Review edge-case vectors for unknown kinds, empty content, long content,
   event references, and high tag counts.
 - Transport, device, review, review-screen, review-display-frame,
