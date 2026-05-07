@@ -157,6 +157,64 @@ def check_response_shape(path: Path, value: dict, errors: list[str]) -> None:
         errors.append(f"{path}: ok must be true or false")
 
 
+def expected_review(template: dict) -> dict:
+    kind_names = {
+        0: "Metadata",
+        1: "Short Text Note",
+        3: "Contacts",
+        6: "Repost",
+        7: "Reaction",
+        9735: "Zap Receipt",
+    }
+    content = template["content"]
+    tags = template["tags"]
+    tag_summary = []
+    for tag in tags:
+        if not tag:
+            continue
+        name = tag[0]
+        value = tag[1] if len(tag) > 1 else ""
+        if len(value) > 8 and name in {"p", "e"}:
+            value = f"{value[:8]}..."
+        tag_summary.append(f"{name}: {value}" if value else name)
+    warnings = []
+    if template["kind"] not in kind_names:
+        warnings.append("Unknown event kind.")
+    if len(content) > 280:
+        warnings.append("Long content.")
+    if not content:
+        warnings.append("Empty content.")
+    if any(tag and tag[0] == "p" for tag in tags):
+        warnings.append("Event includes pubkey mentions.")
+    if any(tag and tag[0] == "e" for tag in tags):
+        warnings.append("Event references other events.")
+    if len(tags) > 8:
+        warnings.append("Many tags.")
+    return {
+        "kind": template["kind"],
+        "kind_name": kind_names.get(template["kind"], "Unknown"),
+        "created_at": template["created_at"],
+        "content_preview": content if len(content) <= 120 else f"{content[:120]}...",
+        "content_length": len(content),
+        "tag_count": len(tags),
+        "tag_summary": tag_summary,
+        "warnings": warnings,
+    }
+
+
+def check_review_vector(rel: str, request: dict, errors: list[str]) -> None:
+    vector = load_required_json(f"vectors/review/{rel}.json", errors)
+    if vector is None:
+        return
+    expected = expected_review(request["params"]["event_template"])
+    if vector.get("name") != rel:
+        errors.append(f"vectors/review/{rel}.json: name mismatch")
+    if vector.get("request") != request:
+        errors.append(f"vectors/review/{rel}.json: request mismatch")
+    if vector.get("review") != expected:
+        errors.append(f"vectors/review/{rel}.json: review mismatch")
+
+
 def main() -> int:
     errors: list[str] = []
 
@@ -252,6 +310,7 @@ def main() -> int:
             errors.append(f"examples/request-{rel}.json: does not match vector request")
         if response != vector["response"]:
             errors.append(f"examples/response-{rel}.json: does not match vector response")
+        check_review_vector(rel, request, errors)
 
     qr_request = load_json("examples/request-kind-1-basic.json")
     qr_vector = load_required_json("vectors/transports/qr-envelope-kind-1-basic.json", errors)
