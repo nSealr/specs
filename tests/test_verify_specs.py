@@ -38,7 +38,7 @@ class VerifySpecsTests(unittest.TestCase):
     def test_nip46_vector_names_are_discovered_from_directory(self) -> None:
         self.assertEqual(
             nip46_vector_names(),
-            ["get-public-key", "ping", "sign-event-kind-1-basic"],
+            ["get-public-key", "ping", "sign-event-kind-1-basic", "sign-event-user-rejected"],
         )
 
 
