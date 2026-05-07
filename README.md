@@ -23,6 +23,7 @@ companion implementation must agree on:
 - Serial frame v0.
 - Smartcard APDU v0.
 - Deterministic Nostr/BIP-340 fixtures.
+- Canonical NIP-06 account `0` mnemonic derivation test vector.
 - Trusted event review vectors for display-oriented signer flows.
 - Review edge-case vectors for unknown kinds, empty content, long content,
   event references, and high tag counts.

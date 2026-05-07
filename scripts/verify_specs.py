@@ -79,6 +79,21 @@ def verify_schnorr(pubkey_hex: str, msg_hex: str, sig_hex: str) -> bool:
     return bool(verified)
 
 
+def xonly_pubkey_from_secret(secret_key_hex: str) -> str | None:
+    if not HEX32_RE.fullmatch(secret_key_hex):
+        return None
+    private_key = secp256k1.PrivateKey(bytes.fromhex(secret_key_hex), raw=True)
+    out = secp256k1.ffi.new("unsigned char [32]")
+    ok = secp256k1.lib.secp256k1_xonly_pubkey_serialize(
+        secp256k1.secp256k1_ctx,
+        out,
+        private_key.pubkey.xonly_pubkey,
+    )
+    if ok != 1:
+        return None
+    return bytes(secp256k1.ffi.buffer(out, 32)).hex()
+
+
 def check_request_shape(path: Path, value: dict, errors: list[str]) -> None:
     if value.get("version") != 1:
         errors.append(f"{path}: version must be 1")
@@ -298,6 +313,18 @@ def main() -> int:
     key = load_json("vectors/keys/test-key-1.json")
     if not HEX32_RE.fullmatch(key.get("public_key", "")):
         errors.append("vectors/keys/test-key-1.json: invalid public_key")
+    if xonly_pubkey_from_secret(key.get("secret_key", "")) != key.get("public_key"):
+        errors.append("vectors/keys/test-key-1.json: public_key mismatch")
+    nip06_key = load_required_json("vectors/keys/nip06-account-0-leader.json", errors)
+    if nip06_key is not None:
+        if nip06_key.get("source") != "nostr-protocol/nips 06.md test vector":
+            errors.append("vectors/keys/nip06-account-0-leader.json: source mismatch")
+        if nip06_key.get("path") != "m/44'/1237'/0'/0/0":
+            errors.append("vectors/keys/nip06-account-0-leader.json: path mismatch")
+        if nip06_key.get("account") != 0:
+            errors.append("vectors/keys/nip06-account-0-leader.json: account mismatch")
+        if xonly_pubkey_from_secret(nip06_key.get("secret_key", "")) != nip06_key.get("public_key"):
+            errors.append("vectors/keys/nip06-account-0-leader.json: public_key mismatch")
     if public_key_response is not None:
         response_public_key = public_key_response.get("result", {}).get("public_key")
         if response_public_key != key.get("public_key"):

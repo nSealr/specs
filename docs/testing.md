@@ -17,6 +17,8 @@ fixtures.
 
 - JSON schemas validate all valid examples.
 - Invalid examples fail for the expected reason.
+- NIP-06 mnemonic derivation vectors preserve canonical source metadata, path,
+  account, secret key, and public key.
 - NIP-01 event id fixtures match canonical serialization.
 - BIP-340 signatures verify against deterministic test keys.
 - QR envelope roundtrips preserve the request payload exactly.
