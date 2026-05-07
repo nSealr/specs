@@ -29,6 +29,21 @@ Unknown top-level fields are invalid in v0.
 
 ## Methods
 
+### `get_capabilities`
+
+Returns the signer's active protocol, method, transport, and safety flags. This
+is the first request a companion should send to a directly connected device.
+
+Request:
+
+```json
+{
+  "version": 1,
+  "request_id": "req-capabilities-esp32-s3-scaffold",
+  "method": "get_capabilities"
+}
+```
+
 ### `get_public_key`
 
 Returns the signer's active x-only secp256k1 public key as lowercase hex.
@@ -75,4 +90,3 @@ The signer must:
 5. Return the complete signed event.
 
 The signer must reject templates that contain `id`, `pubkey`, or `sig`.
-

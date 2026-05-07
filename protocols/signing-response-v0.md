@@ -2,6 +2,34 @@
 
 Every response echoes the request version and request id.
 
+## Successful Capabilities Response
+
+```json
+{
+  "version": 1,
+  "request_id": "req-capabilities-esp32-s3-scaffold",
+  "ok": true,
+  "result": {
+    "capabilities": {
+      "device": {
+        "name": "NostrSeal ESP32-S3 USB Signer Scaffold",
+        "firmware": "nostrseal-esp32-s3-usb-signer",
+        "hardware": "esp32-s3-devkitc-1"
+      },
+      "protocols": ["nseal.signing.v0", "nseal.serial-frame.v0"],
+      "methods": ["get_capabilities", "get_public_key", "sign_event"],
+      "transports": ["usb-serial-jtag"],
+      "signing_enabled": false,
+      "requires_physical_approval": true
+    }
+  }
+}
+```
+
+`signing_enabled: false` means the device may advertise the future signing
+method while still rejecting `sign_event` until storage, trusted review, and
+physical approval gates are implemented.
+
 ## Successful Public Key Response
 
 ```json
@@ -59,4 +87,3 @@ The companion must verify:
 ```
 
 Error responses must not include `result`.
-

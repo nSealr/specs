@@ -9,6 +9,15 @@
       "properties": {
         "version": { "const": 1 },
         "request_id": { "$ref": "#/$defs/request_id" },
+        "method": { "const": "get_capabilities" }
+      },
+      "additionalProperties": false
+    },
+    {
+      "required": ["version", "request_id", "method"],
+      "properties": {
+        "version": { "const": 1 },
+        "request_id": { "$ref": "#/$defs/request_id" },
         "method": { "const": "get_public_key" }
       },
       "additionalProperties": false
@@ -57,4 +66,3 @@
     }
   }
 }
-

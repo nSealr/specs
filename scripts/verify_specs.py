@@ -85,8 +85,10 @@ def check_request_shape(path: Path, value: dict, errors: list[str]) -> None:
     if not isinstance(value.get("request_id"), str) or not value["request_id"]:
         errors.append(f"{path}: request_id must be a non-empty string")
     method = value.get("method")
-    if method not in {"get_public_key", "sign_event"}:
+    if method not in {"get_capabilities", "get_public_key", "sign_event"}:
         errors.append(f"{path}: unsupported method {method!r}")
+    if method == "get_capabilities" and "params" in value:
+        errors.append(f"{path}: get_capabilities must not include params in v0")
     if method == "get_public_key" and "params" in value:
         errors.append(f"{path}: get_public_key must not include params in v0")
     if method == "sign_event":
@@ -120,6 +122,18 @@ def check_response_shape(path: Path, value: dict, errors: list[str]) -> None:
             return
         if "public_key" in result and not HEX32_RE.fullmatch(result["public_key"]):
             errors.append(f"{path}: public_key must be 32-byte lowercase hex")
+        if "capabilities" in result:
+            capabilities = result["capabilities"]
+            if not isinstance(capabilities, dict):
+                errors.append(f"{path}: capabilities must be an object")
+                return
+            for field in ("device", "protocols", "methods", "transports"):
+                if field not in capabilities:
+                    errors.append(f"{path}: capabilities missing {field}")
+            if "signing_enabled" in capabilities and not isinstance(capabilities["signing_enabled"], bool):
+                errors.append(f"{path}: signing_enabled must be boolean")
+            if "requires_physical_approval" in capabilities and not isinstance(capabilities["requires_physical_approval"], bool):
+                errors.append(f"{path}: requires_physical_approval must be boolean")
         if "event" in result:
             event = result["event"]
             for field in ("id", "pubkey", "created_at", "kind", "tags", "content", "sig"):
@@ -159,6 +173,28 @@ def main() -> int:
 
     for path in sorted((ROOT / "examples").glob("response-*.json")):
         check_response_shape(path.relative_to(ROOT), load_json(str(path.relative_to(ROOT))), errors)
+
+    capability_request = load_required_json("examples/request-get-capabilities.json", errors)
+    capability_response = load_required_json("examples/response-get-capabilities-esp32-s3-scaffold.json", errors)
+    capability_vector = load_required_json("vectors/devices/esp32-s3-capabilities-scaffold.json", errors)
+    if capability_request is not None:
+        if capability_request.get("method") != "get_capabilities":
+            errors.append("examples/request-get-capabilities.json: method must be get_capabilities")
+    if capability_request is not None and capability_response is not None:
+        if capability_response.get("request_id") != capability_request.get("request_id"):
+            errors.append("examples/response-get-capabilities-esp32-s3-scaffold.json: request_id mismatch")
+        capabilities = capability_response.get("result", {}).get("capabilities", {})
+        if capabilities.get("signing_enabled") is not False:
+            errors.append("examples/response-get-capabilities-esp32-s3-scaffold.json: scaffold signing must be disabled")
+        if capabilities.get("requires_physical_approval") is not True:
+            errors.append("examples/response-get-capabilities-esp32-s3-scaffold.json: physical approval must be required")
+        if "sign_event" not in capabilities.get("methods", []):
+            errors.append("examples/response-get-capabilities-esp32-s3-scaffold.json: sign_event capability must be declared")
+    if capability_vector is not None and capability_request is not None and capability_response is not None:
+        if capability_vector.get("request") != capability_request:
+            errors.append("vectors/devices/esp32-s3-capabilities-scaffold.json: request mismatch")
+        if capability_vector.get("response") != capability_response:
+            errors.append("vectors/devices/esp32-s3-capabilities-scaffold.json: response mismatch")
 
     key = load_json("vectors/keys/test-key-1.json")
     if not HEX32_RE.fullmatch(key.get("public_key", "")):

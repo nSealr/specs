@@ -16,12 +16,13 @@ companion implementation must agree on:
 
 - Signing request protocol v0.
 - Signing response protocol v0.
+- Capability discovery request and ESP32-S3 scaffold response examples.
 - Error object v0.
 - QR envelope v0.
 - Serial frame v0.
 - Smartcard APDU v0.
 - Deterministic Nostr/BIP-340 fixtures.
-- Transport vectors shared by companion and firmware implementations.
+- Transport and device vectors shared by companion and firmware implementations.
 
 ## Initial Layout
 

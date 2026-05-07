@@ -8,10 +8,11 @@
 - QR envelope v0.
 - Serial frame v0.
 - Smartcard APDU v0.
+- Capability discovery request/response for scaffolded direct devices.
 - JSON schemas.
 - Deterministic Nostr/BIP-340 fixtures.
 
-Status: active.
+Status: active. The first ESP32-S3 scaffold capability vector is implemented.
 
 ## M3: Transport Contracts
 

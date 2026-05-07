@@ -12,6 +12,23 @@
         "ok": { "const": true },
         "result": {
           "type": "object",
+          "required": ["capabilities"],
+          "properties": {
+            "capabilities": { "$ref": "#/$defs/capabilities" }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "required": ["version", "request_id", "ok", "result"],
+      "properties": {
+        "version": { "const": 1 },
+        "request_id": { "$ref": "#/$defs/request_id" },
+        "ok": { "const": true },
+        "result": {
+          "type": "object",
           "required": ["public_key"],
           "properties": {
             "public_key": { "$ref": "#/$defs/hex32" }
@@ -57,6 +74,43 @@
       "type": "string",
       "pattern": "^[0-9a-f]{128}$"
     },
+    "capabilities": {
+      "type": "object",
+      "required": ["device", "protocols", "methods", "transports", "signing_enabled", "requires_physical_approval"],
+      "properties": {
+        "device": {
+          "type": "object",
+          "required": ["name", "firmware", "hardware"],
+          "properties": {
+            "name": { "type": "string", "minLength": 1 },
+            "firmware": { "type": "string", "minLength": 1 },
+            "hardware": { "type": "string", "minLength": 1 }
+          },
+          "additionalProperties": false
+        },
+        "protocols": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "methods": {
+          "type": "array",
+          "items": { "enum": ["get_capabilities", "get_public_key", "sign_event"] },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "transports": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "signing_enabled": { "type": "boolean" },
+        "requires_physical_approval": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    },
     "signed_event": {
       "type": "object",
       "required": ["id", "pubkey", "created_at", "kind", "tags", "content", "sig"],
@@ -79,4 +133,3 @@
     }
   }
 }
-

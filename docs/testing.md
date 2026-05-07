@@ -21,6 +21,8 @@ fixtures.
 - BIP-340 signatures verify against deterministic test keys.
 - QR envelope roundtrips preserve the request payload exactly.
 - Serial frame vectors preserve the request payload and checksum exactly.
+- Device capability vectors preserve request/response payloads and explicit
+  safety flags.
 - Smartcard APDU vectors preserve command bytes, response bytes, and signature
   verification requirements.
 
