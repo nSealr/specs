@@ -11,11 +11,12 @@
 - Capability discovery and disabled-signing request/response vectors for
   scaffolded direct devices.
 - Trusted review and review-screen vectors for display-oriented approval flows.
+- QR review transcript vectors for display/button adapter acceptance tests.
 - JSON schemas.
 - Deterministic Nostr/BIP-340 fixtures.
 
 Status: active. The first ESP32-S3 scaffold capability vector and
-display-oriented review-screen vectors are implemented.
+display-oriented review-screen and QR review transcript vectors are implemented.
 
 ## M3: Transport Contracts
 

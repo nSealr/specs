@@ -319,6 +319,10 @@ def review_screen_vector_names() -> list[str]:
     return sorted(path.stem for path in (ROOT / "vectors" / "review-screens").glob("*.json"))
 
 
+def review_transcript_vector_names() -> list[str]:
+    return sorted(path.stem for path in (ROOT / "vectors" / "review-transcripts").glob("*.json"))
+
+
 def check_review_screen_vector(rel: str, errors: list[str]) -> None:
     vector = load_required_json(f"vectors/review-screens/{rel}.json", errors)
     if vector is None:
@@ -339,6 +343,105 @@ def check_review_screen_vector(rel: str, errors: list[str]) -> None:
         errors.append(f"vectors/review-screens/{rel}.json: review mismatch")
     if vector.get("screen_review") != expected_screen:
         errors.append(f"vectors/review-screens/{rel}.json: screen_review mismatch")
+
+
+def frame_for_page(page: dict, page_index: int, total_pages: int) -> dict:
+    action_hint = "Next" if page["action"] == "next" else "Approve / Reject"
+    return {
+        "title": page["title"],
+        "page_indicator": f"Page {page_index + 1}/{total_pages}",
+        "body_lines": page["lines"],
+        "action_hint": action_hint,
+    }
+
+
+def expected_review_transcript(screen_review: dict, buttons: list[str], errors: list[str], rel: str) -> list[dict]:
+    pages = screen_review["pages"]
+    page_index = 0
+    terminal = False
+    transcript = []
+    for button in buttons:
+        if terminal:
+            errors.append(f"vectors/review-transcripts/{rel}.json: button after terminal decision")
+            break
+        if button not in {"next", "approve", "reject"}:
+            errors.append(f"vectors/review-transcripts/{rel}.json: unsupported button {button!r}")
+            break
+
+        frame = frame_for_page(pages[page_index], page_index, len(pages))
+        decision = None
+        approved = False
+        if button == "next":
+            if page_index + 1 < len(pages):
+                page_index += 1
+        elif button == "reject":
+            decision = False
+            terminal = True
+        else:
+            if page_index != len(pages) - 1:
+                errors.append(f"vectors/review-transcripts/{rel}.json: approval before final page")
+                break
+            decision = True
+            approved = True
+            terminal = True
+
+        transcript.append(
+            {
+                "frame": frame,
+                "button": button,
+                "decision": decision,
+                "approved_for_signing": approved,
+            }
+        )
+    return transcript
+
+
+def check_review_transcript_vector(rel: str, errors: list[str]) -> None:
+    vector = load_required_json(f"vectors/review-transcripts/{rel}.json", errors)
+    if vector is None:
+        return
+    if vector.get("name") != rel:
+        errors.append(f"vectors/review-transcripts/{rel}.json: name mismatch")
+    if vector.get("format") != "qr-review-transcript-v0":
+        errors.append(f"vectors/review-transcripts/{rel}.json: format mismatch")
+
+    source_vector_name = vector.get("source_vector")
+    if not isinstance(source_vector_name, str):
+        errors.append(f"vectors/review-transcripts/{rel}.json: source_vector must be a string")
+        return
+    source_vector = load_required_json(f"vectors/transports/{source_vector_name}.json", errors)
+    if source_vector is None:
+        return
+
+    screen_review_name = vector.get("screen_review_vector")
+    if not isinstance(screen_review_name, str):
+        errors.append(f"vectors/review-transcripts/{rel}.json: screen_review_vector must be a string")
+        return
+    screen_vector = load_required_json(f"vectors/review-screens/{screen_review_name}.json", errors)
+    if screen_vector is None:
+        return
+
+    request = vector.get("request")
+    if not isinstance(request, dict):
+        errors.append(f"vectors/review-transcripts/{rel}.json: request must be an object")
+        return
+    check_request_shape(Path(f"vectors/review-transcripts/{rel}.json"), request, errors)
+    if request != source_vector.get("decoded"):
+        errors.append(f"vectors/review-transcripts/{rel}.json: request must match source QR vector")
+    if request != screen_vector.get("request"):
+        errors.append(f"vectors/review-transcripts/{rel}.json: request must match review-screen vector")
+    if vector.get("qr_envelope") != source_vector.get("envelope"):
+        errors.append(f"vectors/review-transcripts/{rel}.json: qr_envelope mismatch")
+    if vector.get("approval_digest") != screen_vector.get("screen_review", {}).get("approval_digest"):
+        errors.append(f"vectors/review-transcripts/{rel}.json: approval_digest mismatch")
+
+    buttons = vector.get("buttons")
+    if not isinstance(buttons, list) or not all(isinstance(button, str) for button in buttons):
+        errors.append(f"vectors/review-transcripts/{rel}.json: buttons must be a string list")
+        return
+    expected = expected_review_transcript(screen_vector["screen_review"], buttons, errors, rel)
+    if vector.get("transcript") != expected:
+        errors.append(f"vectors/review-transcripts/{rel}.json: transcript mismatch")
 
 
 def main() -> int:
@@ -454,6 +557,9 @@ def main() -> int:
 
     for rel in review_screen_vector_names():
         check_review_screen_vector(rel, errors)
+
+    for rel in review_transcript_vector_names():
+        check_review_transcript_vector(rel, errors)
 
     qr_request = load_json("examples/request-kind-1-basic.json")
     qr_vector = load_required_json("vectors/transports/qr-envelope-kind-1-basic.json", errors)

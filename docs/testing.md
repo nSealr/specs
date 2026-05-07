@@ -35,6 +35,12 @@ fixtures.
   action, and request-bound approval digests.
 - Review-screen vector discovery tests ensure every
   `vectors/review-screens/*.json` file is included in conformance verification.
+- QR review transcript vectors preserve the raw QR envelope, source request,
+  approval digest, displayed frame before each physical-style input, terminal
+  decision, and approval-gate state.
+- QR review transcript discovery tests ensure every
+  `vectors/review-transcripts/*.json` file is included in conformance
+  verification.
 - Smartcard APDU vectors preserve command bytes, response bytes, and signature
   verification requirements.
 
@@ -48,6 +54,8 @@ It also checks that every review vector file matches the deterministic review
 model used by Raspberry QR vault, companion, and future display firmware tests.
 It also checks that every review-screen vector matches the deterministic page
 model and approval-digest calculation used by signer approval flows.
+It also checks that every review-transcript vector matches the deterministic
+frame/button/decision sequence expected from QR signer review adapters.
 
 ## Completion Standard
 
