@@ -177,6 +177,9 @@ def main() -> int:
     capability_request = load_required_json("examples/request-get-capabilities.json", errors)
     capability_response = load_required_json("examples/response-get-capabilities-esp32-s3-scaffold.json", errors)
     capability_vector = load_required_json("vectors/devices/esp32-s3-capabilities-scaffold.json", errors)
+    public_key_request = load_required_json("examples/request-get-public-key.json", errors)
+    public_key_response = load_required_json("examples/response-get-public-key.json", errors)
+    public_key_vector = load_required_json("vectors/devices/esp32-s3-get-public-key-dev.json", errors)
     signing_disabled_response = load_required_json("examples/response-sign-event-disabled-esp32-s3-scaffold.json", errors)
     signing_disabled_vector = load_required_json("vectors/devices/esp32-s3-sign-event-disabled.json", errors)
     if capability_request is not None:
@@ -197,6 +200,17 @@ def main() -> int:
             errors.append("vectors/devices/esp32-s3-capabilities-scaffold.json: request mismatch")
         if capability_vector.get("response") != capability_response:
             errors.append("vectors/devices/esp32-s3-capabilities-scaffold.json: response mismatch")
+    if public_key_request is not None:
+        if public_key_request.get("method") != "get_public_key":
+            errors.append("examples/request-get-public-key.json: method must be get_public_key")
+    if public_key_request is not None and public_key_response is not None:
+        if public_key_response.get("request_id") != public_key_request.get("request_id"):
+            errors.append("examples/response-get-public-key.json: request_id mismatch")
+    if public_key_vector is not None and public_key_request is not None and public_key_response is not None:
+        if public_key_vector.get("request") != public_key_request:
+            errors.append("vectors/devices/esp32-s3-get-public-key-dev.json: request mismatch")
+        if public_key_vector.get("response") != public_key_response:
+            errors.append("vectors/devices/esp32-s3-get-public-key-dev.json: response mismatch")
     if signing_disabled_response is not None:
         if signing_disabled_response.get("ok") is not False:
             errors.append("examples/response-sign-event-disabled-esp32-s3-scaffold.json: ok must be false")
@@ -214,6 +228,10 @@ def main() -> int:
     key = load_json("vectors/keys/test-key-1.json")
     if not HEX32_RE.fullmatch(key.get("public_key", "")):
         errors.append("vectors/keys/test-key-1.json: invalid public_key")
+    if public_key_response is not None:
+        response_public_key = public_key_response.get("result", {}).get("public_key")
+        if response_public_key != key.get("public_key"):
+            errors.append("examples/response-get-public-key.json: public_key must match test-key-1")
 
     for rel in ("kind-1-basic", "kind-1-tags"):
         vector = load_json(f"vectors/events/{rel}.json")
