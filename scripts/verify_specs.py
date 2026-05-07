@@ -177,6 +177,8 @@ def main() -> int:
     capability_request = load_required_json("examples/request-get-capabilities.json", errors)
     capability_response = load_required_json("examples/response-get-capabilities-esp32-s3-scaffold.json", errors)
     capability_vector = load_required_json("vectors/devices/esp32-s3-capabilities-scaffold.json", errors)
+    signing_disabled_response = load_required_json("examples/response-sign-event-disabled-esp32-s3-scaffold.json", errors)
+    signing_disabled_vector = load_required_json("vectors/devices/esp32-s3-sign-event-disabled.json", errors)
     if capability_request is not None:
         if capability_request.get("method") != "get_capabilities":
             errors.append("examples/request-get-capabilities.json: method must be get_capabilities")
@@ -195,6 +197,19 @@ def main() -> int:
             errors.append("vectors/devices/esp32-s3-capabilities-scaffold.json: request mismatch")
         if capability_vector.get("response") != capability_response:
             errors.append("vectors/devices/esp32-s3-capabilities-scaffold.json: response mismatch")
+    if signing_disabled_response is not None:
+        if signing_disabled_response.get("ok") is not False:
+            errors.append("examples/response-sign-event-disabled-esp32-s3-scaffold.json: ok must be false")
+        error = signing_disabled_response.get("error", {})
+        if error.get("code") != "signing_disabled":
+            errors.append("examples/response-sign-event-disabled-esp32-s3-scaffold.json: code must be signing_disabled")
+        if error.get("retryable") is not False:
+            errors.append("examples/response-sign-event-disabled-esp32-s3-scaffold.json: retryable must be false")
+    if signing_disabled_vector is not None and signing_disabled_response is not None:
+        if signing_disabled_vector.get("request") != load_json("examples/request-kind-1-basic.json"):
+            errors.append("vectors/devices/esp32-s3-sign-event-disabled.json: request mismatch")
+        if signing_disabled_vector.get("response") != signing_disabled_response:
+            errors.append("vectors/devices/esp32-s3-sign-event-disabled.json: response mismatch")
 
     key = load_json("vectors/keys/test-key-1.json")
     if not HEX32_RE.fullmatch(key.get("public_key", "")):

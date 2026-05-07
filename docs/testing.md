@@ -23,6 +23,8 @@ fixtures.
 - Serial frame vectors preserve the request payload and checksum exactly.
 - Device capability vectors preserve request/response payloads and explicit
   safety flags.
+- Device scaffold rejection vectors prove disabled signing returns a protocol
+  error instead of a transport error.
 - Smartcard APDU vectors preserve command bytes, response bytes, and signature
   verification requirements.
 

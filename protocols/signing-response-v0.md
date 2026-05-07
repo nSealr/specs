@@ -87,3 +87,20 @@ The companion must verify:
 ```
 
 Error responses must not include `result`.
+
+Scaffolded devices that advertise `sign_event` for forward compatibility but
+have not implemented trusted review, physical approval, and signing yet must
+return an explicit protocol error:
+
+```json
+{
+  "version": 1,
+  "request_id": "req-kind-1-basic",
+  "ok": false,
+  "error": {
+    "code": "signing_disabled",
+    "message": "Signing is disabled until trusted review and physical approval are implemented.",
+    "retryable": false
+  }
+}
+```

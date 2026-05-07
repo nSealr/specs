@@ -8,7 +8,8 @@
 - QR envelope v0.
 - Serial frame v0.
 - Smartcard APDU v0.
-- Capability discovery request/response for scaffolded direct devices.
+- Capability discovery and disabled-signing request/response vectors for
+  scaffolded direct devices.
 - JSON schemas.
 - Deterministic Nostr/BIP-340 fixtures.
 

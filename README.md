@@ -17,6 +17,7 @@ companion implementation must agree on:
 - Signing request protocol v0.
 - Signing response protocol v0.
 - Capability discovery request and ESP32-S3 scaffold response examples.
+- ESP32-S3 scaffold signing-disabled response vector.
 - Error object v0.
 - QR envelope v0.
 - Serial frame v0.
