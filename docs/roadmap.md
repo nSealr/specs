@@ -16,13 +16,16 @@
   for companion conformance tests.
 - NIP-46 permission requirement and permission-check decision vectors for
   explicit policy-matching conformance.
+- NIP-46 bridge decision vectors for permitted signer routing, local `ping`,
+  `connect` review, and deterministic permission-denied responses.
 - JSON schemas.
 - Deterministic Nostr/BIP-340 fixtures.
 
 Status: active. The first ESP32-S3 scaffold capability vector,
 display-oriented review-screen, QR review transcript, NIP-46 decrypted payload
-bridge vectors, NIP-46 `connect` policy-review intent vector, and explicit
-NIP-46 permission policy vectors are implemented.
+bridge vectors, NIP-46 `connect` policy-review intent vector, explicit
+NIP-46 permission policy vectors, and NIP-46 bridge decision vectors are
+implemented.
 
 ## M3: Transport Contracts
 

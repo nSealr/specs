@@ -606,21 +606,9 @@ def parse_nip46_permissions(value: str, vector_path: str, errors: list[str]) -> 
 
 
 def check_nip46_connect_intent(vector_path: str, vector: dict, message: dict, errors: list[str]) -> None:
-    params = message.get("params", [])
-    if len(params) < 1 or len(params) > 3:
-        errors.append(f"{vector_path}: connect requires remote-signer pubkey plus optional secret and permissions")
+    expected = expected_nip46_connect_intent(vector_path, message, errors)
+    if expected is None:
         return
-    remote_pubkey = params[0]
-    if not isinstance(remote_pubkey, str) or not HEX32_RE.fullmatch(remote_pubkey):
-        errors.append(f"{vector_path}: connect remote-signer pubkey must be 32-byte lowercase hex")
-        return
-    expected = {
-        "id": message["id"],
-        "remote_signer_pubkey": remote_pubkey,
-        "requested_permissions": parse_nip46_permissions(params[2] if len(params) > 2 else "", vector_path, errors),
-    }
-    if len(params) > 1 and params[1] != "":
-        expected["secret"] = params[1]
     if vector.get("connect_intent") != expected:
         errors.append(f"{vector_path}: connect_intent mismatch")
     for forbidden in ("nostrseal_request", "nostrseal_response", "response_message", "local_response_message"):
@@ -629,6 +617,25 @@ def check_nip46_connect_intent(vector_path: str, vector: dict, message: dict, er
     for forbidden in ("permission_requirement", "permission_checks"):
         if forbidden in vector:
             errors.append(f"{vector_path}: connect must not include {forbidden}")
+
+
+def expected_nip46_connect_intent(vector_path: str, message: dict, errors: list[str]) -> dict | None:
+    params = message.get("params", [])
+    if len(params) < 1 or len(params) > 3:
+        errors.append(f"{vector_path}: connect requires remote-signer pubkey plus optional secret and permissions")
+        return None
+    remote_pubkey = params[0]
+    if not isinstance(remote_pubkey, str) or not HEX32_RE.fullmatch(remote_pubkey):
+        errors.append(f"{vector_path}: connect remote-signer pubkey must be 32-byte lowercase hex")
+        return None
+    expected = {
+        "id": message["id"],
+        "remote_signer_pubkey": remote_pubkey,
+        "requested_permissions": parse_nip46_permissions(params[2] if len(params) > 2 else "", vector_path, errors),
+    }
+    if len(params) > 1 and params[1] != "":
+        expected["secret"] = params[1]
+    return expected
 
 
 def normalized_nip46_permission(vector_path: str, value: object, errors: list[str]) -> dict | None:
@@ -717,6 +724,158 @@ def check_nip46_request_message(vector_path: str, message: object, errors: list[
     return message
 
 
+def expected_nip46_permission_requirement(vector_path: str, message: dict, errors: list[str]) -> dict | None:
+    method = message.get("method")
+    params = message.get("params", [])
+    if method == "ping":
+        if params:
+            errors.append(f"{vector_path}: ping params must be empty")
+            return None
+        return {"method": "ping"}
+    if method == "get_public_key":
+        if params:
+            errors.append(f"{vector_path}: get_public_key params must be empty")
+            return None
+        return {"method": "get_public_key"}
+    if method == "sign_event":
+        if len(params) != 1:
+            errors.append(f"{vector_path}: sign_event must have one JSON string param")
+            return None
+        try:
+            event_template = json.loads(params[0])
+        except json.JSONDecodeError:
+            errors.append(f"{vector_path}: sign_event param must be valid JSON")
+            return None
+        if not isinstance(event_template, dict) or not isinstance(event_template.get("kind"), int):
+            errors.append(f"{vector_path}: sign_event event kind is invalid")
+            return None
+        return {
+            "method": "sign_event",
+            "parameter": str(event_template["kind"]),
+            "event_kind": event_template["kind"],
+        }
+    return None
+
+
+def expected_nostrseal_request_from_nip46_message(
+    vector_path: str, message: dict, errors: list[str]
+) -> dict | None:
+    method = message.get("method")
+    request_id = message.get("id")
+    params = message.get("params", [])
+    if method == "get_public_key":
+        return {
+            "version": 1,
+            "request_id": request_id,
+            "method": "get_public_key",
+        }
+    if method == "sign_event":
+        if len(params) != 1:
+            return None
+        try:
+            event_template = json.loads(params[0])
+        except json.JSONDecodeError:
+            return None
+        return {
+            "version": 1,
+            "request_id": request_id,
+            "method": "sign_event",
+            "params": {
+                "event_template": event_template,
+            },
+        }
+    errors.append(f"{vector_path}: cannot create NostrSeal request for NIP-46 method")
+    return None
+
+
+def permission_label(requirement: dict) -> str:
+    if requirement.get("method") == "sign_event" and "parameter" in requirement:
+        return f"sign_event:{requirement['parameter']}"
+    return str(requirement.get("method"))
+
+
+def expected_nip46_bridge_decision(
+    vector_path: str,
+    message: dict,
+    granted_permissions: list[dict],
+    errors: list[str],
+) -> dict | None:
+    method = message.get("method")
+    request_id = message.get("id")
+    if method == "connect":
+        connect_intent = expected_nip46_connect_intent(vector_path, message, errors)
+        if connect_intent is None:
+            return None
+        return {
+            "type": "connect_review",
+            "connect_intent": connect_intent,
+        }
+
+    requirement = expected_nip46_permission_requirement(vector_path, message, errors)
+    if requirement is None:
+        return None
+    permitted = any(
+        nip46_permission_matches_requirement(permission, requirement) for permission in granted_permissions
+    )
+    if not permitted:
+        return {
+            "type": "permission_denied",
+            "permission_requirement": requirement,
+            "response_message": {
+                "id": request_id,
+                "error": f"permission_denied: request requires approved permission {permission_label(requirement)}",
+            },
+        }
+    if method == "ping":
+        return {
+            "type": "local_response",
+            "permission_requirement": requirement,
+            "response_message": {
+                "id": request_id,
+                "result": "pong",
+            },
+        }
+
+    nostrseal_request = expected_nostrseal_request_from_nip46_message(vector_path, message, errors)
+    if nostrseal_request is None:
+        return None
+    return {
+        "type": "signer_request",
+        "permission_requirement": requirement,
+        "nostrseal_request": nostrseal_request,
+    }
+
+
+def check_nip46_bridge_decisions(
+    vector_path: str,
+    vector: dict,
+    message: dict,
+    errors: list[str],
+) -> None:
+    bridge_decisions = vector.get("bridge_decisions")
+    if not isinstance(bridge_decisions, list) or not bridge_decisions:
+        errors.append(f"{vector_path}: bridge_decisions must be a non-empty list")
+        return
+    for index, check in enumerate(bridge_decisions):
+        if not isinstance(check, dict):
+            errors.append(f"{vector_path}: bridge_decisions[{index}] must be an object")
+            continue
+        granted = check.get("granted_permissions")
+        if not isinstance(granted, list):
+            errors.append(f"{vector_path}: bridge_decisions[{index}].granted_permissions must be a list")
+            continue
+        granted_permissions = [
+            permission
+            for permission in (
+                normalized_nip46_permission(vector_path, permission, errors) for permission in granted
+            )
+            if permission is not None
+        ]
+        expected = expected_nip46_bridge_decision(vector_path, message, granted_permissions, errors)
+        if expected is not None and check.get("decision") != expected:
+            errors.append(f"{vector_path}: bridge_decisions[{index}].decision mismatch")
+
+
 def check_nip46_response_message(vector_path: str, message: object, expected_id: str, errors: list[str]) -> dict | None:
     if not isinstance(message, dict):
         errors.append(f"{vector_path}: response_message must be an object")
@@ -754,6 +913,8 @@ def check_nip46_vector(rel: str, errors: list[str]) -> None:
     params = message.get("params", [])
     if not isinstance(params, list):
         return
+
+    check_nip46_bridge_decisions(vector_path, vector, message, errors)
 
     if method == "ping":
         if params:

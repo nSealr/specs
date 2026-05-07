@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+from copy import deepcopy
 import unittest
 
 from scripts.verify_specs import (
+    check_nip46_bridge_decisions,
     load_json,
     nip46_vector_names,
     review_display_frame_vector_names,
@@ -55,6 +57,49 @@ class VerifySpecsTests(unittest.TestCase):
         )
         for name, vector in policy_vectors.items():
             self.assertGreaterEqual(len(vector.get("permission_checks", [])), 2, name)
+
+    def test_nip46_bridge_decision_vectors_are_explicit(self) -> None:
+        for name in nip46_vector_names():
+            vector = load_json(f"vectors/nip46/{name}.json")
+            self.assertGreaterEqual(len(vector.get("bridge_decisions", [])), 1, name)
+
+        sign_event = load_json("vectors/nip46/sign-event-kind-1-basic.json")
+        self.assertEqual(
+            sign_event["bridge_decisions"][0]["decision"]["type"],
+            "signer_request",
+        )
+        self.assertEqual(
+            sign_event["bridge_decisions"][1]["decision"],
+            {
+                "type": "permission_denied",
+                "permission_requirement": {
+                    "method": "sign_event",
+                    "parameter": "1",
+                    "event_kind": 1,
+                },
+                "response_message": {
+                    "id": "nip46-req-1",
+                    "error": "permission_denied: request requires approved permission sign_event:1",
+                },
+            },
+        )
+
+        connect = load_json("vectors/nip46/connect-policy-review.json")
+        self.assertEqual(connect["bridge_decisions"][0]["decision"]["type"], "connect_review")
+
+    def test_nip46_bridge_decision_checker_rejects_mismatches(self) -> None:
+        vector = deepcopy(load_json("vectors/nip46/ping.json"))
+        vector["bridge_decisions"][0]["decision"]["response_message"]["result"] = "wrong"
+        errors: list[str] = []
+
+        check_nip46_bridge_decisions(
+            "vectors/nip46/ping.json",
+            vector,
+            vector["request_message"],
+            errors,
+        )
+
+        self.assertIn("bridge_decisions[0].decision mismatch", "\n".join(errors))
 
 
 if __name__ == "__main__":

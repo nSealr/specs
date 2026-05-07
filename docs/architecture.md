@@ -25,8 +25,10 @@ signer implementation.
   JSON-RPC-like request messages to NostrSeal request/response payloads or
   non-committal `connect` policy-review intents. Non-`connect` request vectors
   also pin the derived permission requirement and explicit grant/no-grant check
-  decisions without implying relay, NIP-44, permission grants, or auth flows
-  are complete.
+  decisions. Bridge decision vectors pin whether a payload becomes a signer
+  request, local `ping` response, `connect` review intent, or deterministic
+  permission-denied response, without implying relay, NIP-44, permission grants,
+  or auth flows are complete.
 - Keep schemas and examples usable by independent implementations.
 
 ## Non-Responsibilities
