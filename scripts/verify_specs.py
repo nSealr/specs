@@ -202,9 +202,21 @@ def expected_review(template: dict) -> dict:
     }
 
 
-def check_review_vector(rel: str, request: dict, errors: list[str]) -> None:
+def review_vector_names() -> list[str]:
+    return sorted(path.stem for path in (ROOT / "vectors" / "review").glob("*.json"))
+
+
+def check_review_vector(rel: str, errors: list[str]) -> None:
     vector = load_required_json(f"vectors/review/{rel}.json", errors)
     if vector is None:
+        return
+    request = vector.get("request")
+    if not isinstance(request, dict):
+        errors.append(f"vectors/review/{rel}.json: request must be an object")
+        return
+    check_request_shape(Path(f"vectors/review/{rel}.json"), request, errors)
+    if request.get("method") != "sign_event":
+        errors.append(f"vectors/review/{rel}.json: request method must be sign_event")
         return
     expected = expected_review(request["params"]["event_template"])
     if vector.get("name") != rel:
@@ -310,7 +322,9 @@ def main() -> int:
             errors.append(f"examples/request-{rel}.json: does not match vector request")
         if response != vector["response"]:
             errors.append(f"examples/response-{rel}.json: does not match vector response")
-        check_review_vector(rel, request, errors)
+
+    for rel in review_vector_names():
+        check_review_vector(rel, errors)
 
     qr_request = load_json("examples/request-kind-1-basic.json")
     qr_vector = load_required_json("vectors/transports/qr-envelope-kind-1-basic.json", errors)

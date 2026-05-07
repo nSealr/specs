@@ -27,6 +27,8 @@ fixtures.
   error instead of a transport error.
 - Trusted review vectors preserve event kind, content preview, tag summary, and
   warning semantics for display-oriented signers.
+- Review vector discovery tests ensure every `vectors/review/*.json` file is
+  included in conformance verification instead of relying on a fixed list.
 - Smartcard APDU vectors preserve command bytes, response bytes, and signature
   verification requirements.
 
@@ -36,8 +38,8 @@ fixtures.
 events and verifies committed BIP-340 signatures using libsecp256k1 bindings.
 It also checks that invalid request examples remain rejected and that committed
 transport vectors match the QR and serial framing rules.
-It also checks that review vectors match the deterministic review model used by
-vault and future display firmware tests.
+It also checks that every review vector file matches the deterministic review
+model used by vault, companion, and future display firmware tests.
 
 ## Completion Standard
 

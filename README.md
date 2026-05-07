@@ -24,6 +24,8 @@ companion implementation must agree on:
 - Smartcard APDU v0.
 - Deterministic Nostr/BIP-340 fixtures.
 - Trusted event review vectors for display-oriented signer flows.
+- Review edge-case vectors for unknown kinds, empty content, long content,
+  event references, and high tag counts.
 - Transport, device, review, and smartcard vectors shared by implementation
   repositories.
 

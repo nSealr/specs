@@ -6,6 +6,7 @@ setup:
 test:
 	python3 scripts/verify_repo.py
 	python3 scripts/verify_specs.py
+	python3 -m unittest discover -s tests
 
 lint:
 	python3 scripts/verify_repo.py
