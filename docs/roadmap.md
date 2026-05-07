@@ -7,6 +7,7 @@
 - Common error response.
 - QR envelope v0.
 - Serial frame v0.
+- Smartcard APDU v0.
 - JSON schemas.
 - Deterministic Nostr/BIP-340 fixtures.
 
@@ -20,5 +21,4 @@ Status: active.
 ## Later
 
 - NIP-46 mapping.
-- Smartcard/APDU contract.
 - Firmware conformance vectors.

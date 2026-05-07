@@ -18,6 +18,7 @@ HEX64_RE = re.compile(r"^[0-9a-f]{128}$")
 B64URL_RE = re.compile(r"^[A-Za-z0-9_-]+$")
 QR_PREFIX = "nseal1:"
 SERIAL_PREFIX = "nseal1f:"
+APDU_HEX_RE = re.compile(r"^[0-9a-f]+$")
 
 
 def load_json(rel: str) -> dict:
@@ -207,6 +208,26 @@ def main() -> int:
             errors.append("vectors/transports/serial-frame-request-kind-1-basic.json: decoded request mismatch")
         if serial_vector.get("frame") != expected_serial:
             errors.append("vectors/transports/serial-frame-request-kind-1-basic.json: frame mismatch")
+
+    apdu_pubkey = load_required_json("vectors/smartcard/get-public-key.json", errors)
+    if apdu_pubkey is not None:
+        if apdu_pubkey.get("command_hex") != "80100000":
+            errors.append("vectors/smartcard/get-public-key.json: command_hex mismatch")
+        expected_response = f"{key['public_key']}9000"
+        if apdu_pubkey.get("response_hex") != expected_response:
+            errors.append("vectors/smartcard/get-public-key.json: response_hex mismatch")
+
+    apdu_sign = load_required_json("vectors/smartcard/sign-event-id-kind-1-basic.json", errors)
+    if apdu_sign is not None:
+        expected_command = f"8020000020{load_json('vectors/events/kind-1-basic.json')['event_id']}"
+        if apdu_sign.get("command_hex") != expected_command:
+            errors.append("vectors/smartcard/sign-event-id-kind-1-basic.json: command_hex mismatch")
+        if apdu_sign.get("expected_status_word") != "9000":
+            errors.append("vectors/smartcard/sign-event-id-kind-1-basic.json: expected_status_word mismatch")
+        if apdu_sign.get("expected_data_length") != 64:
+            errors.append("vectors/smartcard/sign-event-id-kind-1-basic.json: expected_data_length must be 64")
+        if not APDU_HEX_RE.fullmatch(apdu_sign.get("command_hex", "")):
+            errors.append("vectors/smartcard/sign-event-id-kind-1-basic.json: command_hex must be lowercase hex")
 
     if errors:
         for error in errors:
