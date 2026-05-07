@@ -242,6 +242,105 @@ def check_review_vector(rel: str, errors: list[str]) -> None:
         errors.append(f"vectors/review/{rel}.json: review mismatch")
 
 
+def expected_review_pages(review: dict) -> list[dict]:
+    pages = [
+        {
+            "title": "Event",
+            "lines": [
+                f"Kind {review['kind']}",
+                str(review["kind_name"]),
+                f"Created {review['created_at']}",
+            ],
+            "action": "next",
+        },
+        {
+            "title": "Content",
+            "lines": [str(review["content_preview"])],
+            "action": "next",
+        },
+        {
+            "title": "Tags",
+            "lines": expected_tag_page_lines(review),
+            "action": "next",
+        },
+    ]
+    if review["warnings"]:
+        pages.append(
+            {
+                "title": "Warnings",
+                "lines": [str(warning) for warning in review["warnings"]],
+                "action": "approve_or_reject",
+            }
+        )
+    else:
+        pages.append(
+            {
+                "title": "Decision",
+                "lines": ["Approve signing only if all pages match."],
+                "action": "approve_or_reject",
+            }
+        )
+    return pages
+
+
+def expected_tag_page_lines(review: dict) -> list[str]:
+    tag_count = review["tag_count"]
+    if tag_count == 0:
+        return ["No tags"]
+    label = "1 tag" if tag_count == 1 else f"{tag_count} tags"
+    return [label, *[str(item) for item in review["tag_summary"]]]
+
+
+def approval_digest_for_screen_review(request: dict, review: dict, pages: list[dict]) -> str:
+    payload = {
+        "version": request["version"],
+        "method": request["method"],
+        "request_id": request["request_id"],
+        "event_template": request["params"]["event_template"],
+        "review": review,
+        "pages": pages,
+    }
+    canonical = json.dumps(payload, ensure_ascii=False, separators=(",", ":"), sort_keys=True)
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
+def expected_screen_review(request: dict) -> dict:
+    review = expected_review(request["params"]["event_template"])
+    pages = expected_review_pages(review)
+    return {
+        "format": "screen-pages",
+        "request_id": request["request_id"],
+        "approval_digest": approval_digest_for_screen_review(request, review, pages),
+        "pages": pages,
+    }
+
+
+def review_screen_vector_names() -> list[str]:
+    return sorted(path.stem for path in (ROOT / "vectors" / "review-screens").glob("*.json"))
+
+
+def check_review_screen_vector(rel: str, errors: list[str]) -> None:
+    vector = load_required_json(f"vectors/review-screens/{rel}.json", errors)
+    if vector is None:
+        return
+    request = vector.get("request")
+    if not isinstance(request, dict):
+        errors.append(f"vectors/review-screens/{rel}.json: request must be an object")
+        return
+    check_request_shape(Path(f"vectors/review-screens/{rel}.json"), request, errors)
+    if request.get("method") != "sign_event":
+        errors.append(f"vectors/review-screens/{rel}.json: request method must be sign_event")
+        return
+    expected_review_value = expected_review(request["params"]["event_template"])
+    expected_screen = expected_screen_review(request)
+    if vector.get("name") != rel:
+        errors.append(f"vectors/review-screens/{rel}.json: name mismatch")
+    if vector.get("review") != expected_review_value:
+        errors.append(f"vectors/review-screens/{rel}.json: review mismatch")
+    if vector.get("screen_review") != expected_screen:
+        errors.append(f"vectors/review-screens/{rel}.json: screen_review mismatch")
+
+
 def main() -> int:
     errors: list[str] = []
 
@@ -352,6 +451,9 @@ def main() -> int:
 
     for rel in review_vector_names():
         check_review_vector(rel, errors)
+
+    for rel in review_screen_vector_names():
+        check_review_screen_vector(rel, errors)
 
     qr_request = load_json("examples/request-kind-1-basic.json")
     qr_vector = load_required_json("vectors/transports/qr-envelope-kind-1-basic.json", errors)

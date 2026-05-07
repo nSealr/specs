@@ -25,10 +25,12 @@ companion implementation must agree on:
 - Deterministic Nostr/BIP-340 fixtures.
 - Canonical NIP-06 account `0` mnemonic derivation test vector.
 - Trusted event review vectors for display-oriented signer flows.
+- Trusted review-screen vectors with request-bound `approval_digest` values for
+  display-oriented signer approval flows.
 - Review edge-case vectors for unknown kinds, empty content, long content,
   event references, and high tag counts.
-- Transport, device, review, and smartcard vectors shared by implementation
-  repositories.
+- Transport, device, review, review-screen, and smartcard vectors shared by
+  implementation repositories.
 
 ## Initial Layout
 

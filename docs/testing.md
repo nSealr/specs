@@ -31,6 +31,10 @@ fixtures.
   warning semantics for display-oriented signers.
 - Review vector discovery tests ensure every `vectors/review/*.json` file is
   included in conformance verification instead of relying on a fixed list.
+- Review-screen vectors preserve rendered page order, final approve/reject
+  action, and request-bound approval digests.
+- Review-screen vector discovery tests ensure every
+  `vectors/review-screens/*.json` file is included in conformance verification.
 - Smartcard APDU vectors preserve command bytes, response bytes, and signature
   verification requirements.
 
@@ -42,6 +46,8 @@ It also checks that invalid request examples remain rejected and that committed
 transport vectors match the QR and serial framing rules.
 It also checks that every review vector file matches the deterministic review
 model used by vault, companion, and future display firmware tests.
+It also checks that every review-screen vector matches the deterministic page
+model and approval-digest calculation used by signer approval flows.
 
 ## Completion Standard
 

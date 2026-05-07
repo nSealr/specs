@@ -12,6 +12,9 @@ signer implementation.
 - Publish deterministic fixtures for NIP-01 event ids and BIP-340 signatures.
 - Publish deterministic trusted-review vectors for event details that hardware
   displays must render before approval.
+- Publish deterministic trusted review-screen vectors and approval digests that
+  bind request metadata, exact event templates, review data, and rendered pages
+  before signing.
 - Keep schemas and examples usable by independent implementations.
 
 ## Non-Responsibilities
