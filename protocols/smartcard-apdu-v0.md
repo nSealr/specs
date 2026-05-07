@@ -6,7 +6,7 @@ NostrSeal experiments.
 ## Scope
 
 The card signs a 32-byte Nostr event id. It does not parse or review full Nostr
-events. Trusted event review must happen in the companion, a vault, or another
+events. Trusted event review must happen in the companion, a QR vault, or another
 trusted display surface before sending a digest to a card.
 
 ## Command Class

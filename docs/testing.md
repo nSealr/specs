@@ -45,7 +45,7 @@ events and verifies committed BIP-340 signatures using libsecp256k1 bindings.
 It also checks that invalid request examples remain rejected and that committed
 transport vectors match the QR and serial framing rules.
 It also checks that every review vector file matches the deterministic review
-model used by vault, companion, and future display firmware tests.
+model used by Raspberry QR vault, companion, and future display firmware tests.
 It also checks that every review-screen vector matches the deterministic page
 model and approval-digest calculation used by signer approval flows.
 
