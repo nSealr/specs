@@ -558,13 +558,83 @@ def compact_json(value: object) -> str:
     return json.dumps(value, ensure_ascii=False, separators=(",", ":"))
 
 
+NIP46_PERMISSION_METHODS = {
+    "sign_event",
+    "nip04_encrypt",
+    "nip04_decrypt",
+    "nip44_encrypt",
+    "nip44_decrypt",
+    "get_public_key",
+    "ping",
+    "switch_relays",
+}
+
+
+def parse_nip46_permissions(value: str, vector_path: str, errors: list[str]) -> list[dict]:
+    if value.strip() == "":
+        return []
+    parsed = []
+    for raw_item in value.split(","):
+        item = raw_item.strip()
+        if not item:
+            errors.append(f"{vector_path}: NIP-46 permission entries must be non-empty")
+            continue
+        parts = item.split(":")
+        if len(parts) > 2 or not parts[0]:
+            errors.append(f"{vector_path}: NIP-46 permission format is invalid")
+            continue
+        method = parts[0]
+        parameter = parts[1] if len(parts) == 2 else None
+        if method == "connect":
+            errors.append(f"{vector_path}: NIP-46 permissions must not request connect")
+            continue
+        if method not in NIP46_PERMISSION_METHODS:
+            errors.append(f"{vector_path}: unsupported permission method: {method}")
+            continue
+        if method == "sign_event" and parameter is not None:
+            if not parameter.isdigit():
+                errors.append(f"{vector_path}: sign_event permission kind must be numeric")
+                continue
+            event_kind = int(parameter)
+            parsed.append({"method": method, "parameter": parameter, "event_kind": event_kind})
+            continue
+        if parameter is not None:
+            errors.append(f"{vector_path}: permission method does not accept a parameter: {method}")
+            continue
+        parsed.append({"method": method})
+    return parsed
+
+
+def check_nip46_connect_intent(vector_path: str, vector: dict, message: dict, errors: list[str]) -> None:
+    params = message.get("params", [])
+    if len(params) < 1 or len(params) > 3:
+        errors.append(f"{vector_path}: connect requires remote-signer pubkey plus optional secret and permissions")
+        return
+    remote_pubkey = params[0]
+    if not isinstance(remote_pubkey, str) or not HEX32_RE.fullmatch(remote_pubkey):
+        errors.append(f"{vector_path}: connect remote-signer pubkey must be 32-byte lowercase hex")
+        return
+    expected = {
+        "id": message["id"],
+        "remote_signer_pubkey": remote_pubkey,
+        "requested_permissions": parse_nip46_permissions(params[2] if len(params) > 2 else "", vector_path, errors),
+    }
+    if len(params) > 1 and params[1] != "":
+        expected["secret"] = params[1]
+    if vector.get("connect_intent") != expected:
+        errors.append(f"{vector_path}: connect_intent mismatch")
+    for forbidden in ("nostrseal_request", "nostrseal_response", "response_message", "local_response_message"):
+        if forbidden in vector:
+            errors.append(f"{vector_path}: connect must not include {forbidden}")
+
+
 def check_nip46_request_message(vector_path: str, message: object, errors: list[str]) -> dict | None:
     if not isinstance(message, dict):
         errors.append(f"{vector_path}: request_message must be an object")
         return None
     if not isinstance(message.get("id"), str) or not REQUEST_ID_RE.fullmatch(message["id"]):
         errors.append(f"{vector_path}: request_message id is invalid")
-    if message.get("method") not in {"get_public_key", "sign_event", "ping"}:
+    if message.get("method") not in {"connect", "get_public_key", "sign_event", "ping"}:
         errors.append(f"{vector_path}: unsupported NIP-46 method")
     if not isinstance(message.get("params"), list) or not all(isinstance(item, str) for item in message["params"]):
         errors.append(f"{vector_path}: request_message params must be a string array")
@@ -616,6 +686,10 @@ def check_nip46_vector(rel: str, errors: list[str]) -> None:
             errors.append(f"{vector_path}: ping must not include NostrSeal request/response")
         if vector.get("local_response_message") != {"id": request_id, "result": "pong"}:
             errors.append(f"{vector_path}: local_response_message mismatch")
+        return
+
+    if method == "connect":
+        check_nip46_connect_intent(vector_path, vector, message, errors)
         return
 
     nostrseal_request = vector.get("nostrseal_request")
