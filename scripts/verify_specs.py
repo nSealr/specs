@@ -15,6 +15,7 @@ import secp256k1
 ROOT = Path(__file__).resolve().parents[1]
 HEX32_RE = re.compile(r"^[0-9a-f]{64}$")
 HEX64_RE = re.compile(r"^[0-9a-f]{128}$")
+REQUEST_ID_RE = re.compile(r"^[A-Za-z0-9._:-]{1,128}$")
 B64URL_RE = re.compile(r"^[A-Za-z0-9_-]+$")
 QR_PREFIX = "nseal1:"
 SERIAL_PREFIX = "nseal1f:"
@@ -327,6 +328,10 @@ def review_transcript_vector_names() -> list[str]:
     return sorted(path.stem for path in (ROOT / "vectors" / "review-transcripts").glob("*.json"))
 
 
+def nip46_vector_names() -> list[str]:
+    return sorted(path.stem for path in (ROOT / "vectors" / "nip46").glob("*.json"))
+
+
 def check_review_screen_vector(rel: str, errors: list[str]) -> None:
     vector = load_required_json(f"vectors/review-screens/{rel}.json", errors)
     if vector is None:
@@ -549,6 +554,120 @@ def check_review_transcript_vector(rel: str, errors: list[str]) -> None:
         errors.append(f"vectors/review-transcripts/{rel}.json: transcript mismatch")
 
 
+def compact_json(value: object) -> str:
+    return json.dumps(value, ensure_ascii=False, separators=(",", ":"))
+
+
+def check_nip46_request_message(vector_path: str, message: object, errors: list[str]) -> dict | None:
+    if not isinstance(message, dict):
+        errors.append(f"{vector_path}: request_message must be an object")
+        return None
+    if not isinstance(message.get("id"), str) or not REQUEST_ID_RE.fullmatch(message["id"]):
+        errors.append(f"{vector_path}: request_message id is invalid")
+    if message.get("method") not in {"get_public_key", "sign_event", "ping"}:
+        errors.append(f"{vector_path}: unsupported NIP-46 method")
+    if not isinstance(message.get("params"), list) or not all(isinstance(item, str) for item in message["params"]):
+        errors.append(f"{vector_path}: request_message params must be a string array")
+    return message
+
+
+def check_nip46_response_message(vector_path: str, message: object, expected_id: str, errors: list[str]) -> dict | None:
+    if not isinstance(message, dict):
+        errors.append(f"{vector_path}: response_message must be an object")
+        return None
+    if message.get("id") != expected_id:
+        errors.append(f"{vector_path}: response_message id mismatch")
+    if "result" not in message and "error" not in message:
+        errors.append(f"{vector_path}: response_message must include result or error")
+    if "result" in message and "error" in message:
+        errors.append(f"{vector_path}: response_message must not include both result and error")
+    if "result" in message and not isinstance(message["result"], str):
+        errors.append(f"{vector_path}: response_message result must be a string")
+    if "error" in message and not isinstance(message["error"], str):
+        errors.append(f"{vector_path}: response_message error must be a string")
+    return message
+
+
+def check_nip46_vector(rel: str, errors: list[str]) -> None:
+    vector_path = f"vectors/nip46/{rel}.json"
+    vector = load_required_json(vector_path, errors)
+    if vector is None:
+        return
+    if vector.get("name") != rel:
+        errors.append(f"{vector_path}: name mismatch")
+    if vector.get("format") != "nip46-decrypted-payload-v0":
+        errors.append(f"{vector_path}: format mismatch")
+
+    message = check_nip46_request_message(vector_path, vector.get("request_message"), errors)
+    if message is None:
+        return
+    request_id = message.get("id")
+    if not isinstance(request_id, str):
+        return
+    method = message.get("method")
+    params = message.get("params", [])
+    if not isinstance(params, list):
+        return
+
+    if method == "ping":
+        if params:
+            errors.append(f"{vector_path}: ping params must be empty")
+        if "nostrseal_request" in vector or "nostrseal_response" in vector:
+            errors.append(f"{vector_path}: ping must not include NostrSeal request/response")
+        if vector.get("local_response_message") != {"id": request_id, "result": "pong"}:
+            errors.append(f"{vector_path}: local_response_message mismatch")
+        return
+
+    nostrseal_request = vector.get("nostrseal_request")
+    if not isinstance(nostrseal_request, dict):
+        errors.append(f"{vector_path}: nostrseal_request must be an object")
+        return
+    check_request_shape(Path(vector_path), nostrseal_request, errors)
+    if nostrseal_request.get("request_id") != request_id:
+        errors.append(f"{vector_path}: nostrseal_request request_id mismatch")
+    if nostrseal_request.get("method") != method:
+        errors.append(f"{vector_path}: nostrseal_request method mismatch")
+
+    if method == "get_public_key" and params:
+        errors.append(f"{vector_path}: get_public_key params must be empty")
+    if method == "sign_event":
+        if len(params) != 1:
+            errors.append(f"{vector_path}: sign_event must have one JSON string param")
+        else:
+            try:
+                event_template = json.loads(params[0])
+            except json.JSONDecodeError:
+                errors.append(f"{vector_path}: sign_event param must be valid JSON")
+            else:
+                if event_template != nostrseal_request.get("params", {}).get("event_template"):
+                    errors.append(f"{vector_path}: sign_event param must match NostrSeal event_template")
+
+    nostrseal_response = vector.get("nostrseal_response")
+    if not isinstance(nostrseal_response, dict):
+        errors.append(f"{vector_path}: nostrseal_response must be an object")
+        return
+    check_response_shape(Path(vector_path), nostrseal_response, errors)
+    if nostrseal_response.get("request_id") != request_id:
+        errors.append(f"{vector_path}: nostrseal_response request_id mismatch")
+
+    response_message = check_nip46_response_message(vector_path, vector.get("response_message"), request_id, errors)
+    if response_message is None:
+        return
+    if nostrseal_response.get("ok") is False:
+        error = nostrseal_response.get("error", {})
+        if response_message.get("error") != f"{error.get('code')}: {error.get('message')}":
+            errors.append(f"{vector_path}: response_message error mismatch")
+        return
+
+    result = nostrseal_response.get("result", {})
+    if method == "get_public_key":
+        if response_message.get("result") != result.get("public_key"):
+            errors.append(f"{vector_path}: public-key result mismatch")
+    if method == "sign_event":
+        if response_message.get("result") != compact_json(result.get("event")):
+            errors.append(f"{vector_path}: signed-event result mismatch")
+
+
 def main() -> int:
     errors: list[str] = []
 
@@ -668,6 +787,9 @@ def main() -> int:
 
     for rel in review_transcript_vector_names():
         check_review_transcript_vector(rel, errors)
+
+    for rel in nip46_vector_names():
+        check_nip46_vector(rel, errors)
 
     qr_request = load_json("examples/request-kind-1-basic.json")
     qr_vector = load_required_json("vectors/transports/qr-envelope-kind-1-basic.json", errors)

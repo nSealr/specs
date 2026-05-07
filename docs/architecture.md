@@ -21,6 +21,9 @@ signer implementation.
 - Publish deterministic QR review transcript vectors that bind raw QR input to
   the exact displayed frames, physical-style button inputs, terminal decisions,
   and approval-gate state expected from signer review adapters.
+- Publish deterministic NIP-46 decrypted payload vectors that bind
+  JSON-RPC-like request messages to NostrSeal request/response payloads without
+  implying relay, NIP-44, or permission handling is complete.
 - Keep schemas and examples usable by independent implementations.
 
 ## Non-Responsibilities

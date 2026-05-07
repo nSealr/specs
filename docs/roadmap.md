@@ -12,11 +12,13 @@
   scaffolded direct devices.
 - Trusted review and review-screen vectors for display-oriented approval flows.
 - QR review transcript vectors for display/button adapter acceptance tests.
+- NIP-46 decrypted payload bridge vectors for companion conformance tests.
 - JSON schemas.
 - Deterministic Nostr/BIP-340 fixtures.
 
 Status: active. The first ESP32-S3 scaffold capability vector and
-display-oriented review-screen and QR review transcript vectors are implemented.
+display-oriented review-screen, QR review transcript, and NIP-46 decrypted
+payload bridge vectors are implemented.
 
 ## M3: Transport Contracts
 
@@ -25,5 +27,5 @@ display-oriented review-screen and QR review transcript vectors are implemented.
 
 ## Later
 
-- NIP-46 mapping.
+- Full encrypted NIP-46 relay/session mapping.
 - Firmware conformance vectors.

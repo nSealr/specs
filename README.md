@@ -31,10 +31,12 @@ companion implementation must agree on:
   title/body/action rendering on small screens.
 - QR review transcript vectors that bind raw QR input, displayed frames,
   physical-style button sequences, terminal decisions, and approval-gate state.
+- NIP-46 decrypted payload bridge vectors for `get_public_key`, `sign_event`,
+  local `ping`, and response mapping.
 - Review edge-case vectors for unknown kinds, empty content, long content,
   event references, and high tag counts.
 - Transport, device, review, review-screen, review-display-frame,
-  review-transcript, and smartcard vectors shared by implementation
+  review-transcript, NIP-46, and smartcard vectors shared by implementation
   repositories.
 
 ## Initial Layout

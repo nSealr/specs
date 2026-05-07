@@ -3,6 +3,7 @@ from __future__ import annotations
 import unittest
 
 from scripts.verify_specs import (
+    nip46_vector_names,
     review_display_frame_vector_names,
     review_screen_vector_names,
     review_transcript_vector_names,
@@ -32,6 +33,12 @@ class VerifySpecsTests(unittest.TestCase):
         self.assertEqual(
             review_transcript_vector_names(),
             ["kind-1-basic-approve", "kind-1-basic-reject"],
+        )
+
+    def test_nip46_vector_names_are_discovered_from_directory(self) -> None:
+        self.assertEqual(
+            nip46_vector_names(),
+            ["get-public-key", "ping", "sign-event-kind-1-basic"],
         )
 
 

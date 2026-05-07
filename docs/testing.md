@@ -46,6 +46,11 @@ fixtures.
 - QR review transcript discovery tests ensure every
   `vectors/review-transcripts/*.json` file is included in conformance
   verification.
+- NIP-46 decrypted payload vectors preserve `get_public_key`, `sign_event`, and
+  local `ping` mapping between NIP-46 JSON-RPC-like messages and NostrSeal
+  request/response payloads.
+- NIP-46 vector discovery tests ensure every `vectors/nip46/*.json` file is
+  included in conformance verification.
 - Smartcard APDU vectors preserve command bytes, response bytes, and signature
   verification requirements.
 
@@ -63,6 +68,8 @@ It also checks that every review display-frame vector matches deterministic
 bounded rendering for the selected source review page and display limits.
 It also checks that every review-transcript vector matches the deterministic
 frame/button/decision sequence expected from QR signer review adapters.
+It also checks that every NIP-46 decrypted payload vector maps to the expected
+NostrSeal request, local response, or signer response payload.
 
 ## Completion Standard
 
