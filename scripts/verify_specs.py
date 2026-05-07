@@ -319,6 +319,10 @@ def review_screen_vector_names() -> list[str]:
     return sorted(path.stem for path in (ROOT / "vectors" / "review-screens").glob("*.json"))
 
 
+def review_display_frame_vector_names() -> list[str]:
+    return sorted(path.stem for path in (ROOT / "vectors" / "review-display-frames").glob("*.json"))
+
+
 def review_transcript_vector_names() -> list[str]:
     return sorted(path.stem for path in (ROOT / "vectors" / "review-transcripts").glob("*.json"))
 
@@ -353,6 +357,107 @@ def frame_for_page(page: dict, page_index: int, total_pages: int) -> dict:
         "body_lines": page["lines"],
         "action_hint": action_hint,
     }
+
+
+def truncate_for_display(text: str, max_chars: int, *, force_ellipsis: bool = False) -> str:
+    if len(text) <= max_chars and not force_ellipsis:
+        return text
+    if max_chars <= 3:
+        return "." * max_chars
+    return f"{text[: max_chars - 3]}..."
+
+
+def wrap_display_line(text: str, max_line_chars: int) -> list[str]:
+    if text == "":
+        return [""]
+    wrapped = []
+    position = 0
+    while position < len(text):
+        remaining = len(text) - position
+        if remaining <= max_line_chars:
+            wrapped.append(text[position:])
+            break
+        cut = max_line_chars
+        space = text.rfind(" ", position, position + max_line_chars)
+        if space >= position:
+            cut = space - position
+            if cut == 0:
+                cut = max_line_chars
+        wrapped.append(text[position : position + cut])
+        position += cut
+        while position < len(text) and text[position] == " ":
+            position += 1
+    return wrapped
+
+
+def bounded_display_body_lines(lines: list[str], limits: dict) -> list[str]:
+    wrapped = []
+    for line in lines:
+        wrapped.extend(wrap_display_line(str(line), limits["max_line_chars"]))
+    if len(wrapped) > limits["max_body_lines"]:
+        wrapped = wrapped[: limits["max_body_lines"]]
+        wrapped[-1] = truncate_for_display(
+            wrapped[-1],
+            limits["max_line_chars"],
+            force_ellipsis=True,
+        )
+    return [truncate_for_display(line, limits["max_line_chars"]) for line in wrapped]
+
+
+def display_frame_for_page(page: dict, page_index: int, total_pages: int, limits: dict) -> dict:
+    action_hint = "Next" if page["action"] == "next" else "Approve / Reject"
+    return {
+        "title": truncate_for_display(str(page["title"]), limits["max_title_chars"]),
+        "page_indicator": f"Page {page_index + 1}/{total_pages}",
+        "body_lines": bounded_display_body_lines(page["lines"], limits),
+        "action_hint": action_hint,
+    }
+
+
+def check_display_limits(path: str, limits: object, errors: list[str]) -> dict | None:
+    if not isinstance(limits, dict):
+        errors.append(f"{path}: limits must be an object")
+        return None
+    required = ("max_title_chars", "max_body_lines", "max_line_chars")
+    if any(not isinstance(limits.get(field), int) or limits[field] <= 0 for field in required):
+        errors.append(f"{path}: limits must contain positive integer display bounds")
+        return None
+    return {field: limits[field] for field in required}
+
+
+def check_review_display_frame_vector(rel: str, errors: list[str]) -> None:
+    vector_path = f"vectors/review-display-frames/{rel}.json"
+    vector = load_required_json(vector_path, errors)
+    if vector is None:
+        return
+    if vector.get("name") != rel:
+        errors.append(f"{vector_path}: name mismatch")
+    if vector.get("format") != "review-display-frame-v0":
+        errors.append(f"{vector_path}: format mismatch")
+
+    source_name = vector.get("source_review_vector")
+    if not isinstance(source_name, str):
+        errors.append(f"{vector_path}: source_review_vector must be a string")
+        return
+    source = load_required_json(f"vectors/review/{source_name}.json", errors)
+    if source is None:
+        return
+    review = source.get("review")
+    if not isinstance(review, dict):
+        errors.append(f"{vector_path}: source review must be an object")
+        return
+    pages = expected_review_pages(review)
+
+    page_index = vector.get("page_index")
+    if not isinstance(page_index, int) or page_index < 0 or page_index >= len(pages):
+        errors.append(f"{vector_path}: page_index out of range")
+        return
+    limits = check_display_limits(vector_path, vector.get("limits"), errors)
+    if limits is None:
+        return
+    expected = display_frame_for_page(pages[page_index], page_index, len(pages), limits)
+    if vector.get("frame") != expected:
+        errors.append(f"{vector_path}: frame mismatch")
 
 
 def expected_review_transcript(screen_review: dict, buttons: list[str], errors: list[str], rel: str) -> list[dict]:
@@ -557,6 +662,9 @@ def main() -> int:
 
     for rel in review_screen_vector_names():
         check_review_screen_vector(rel, errors)
+
+    for rel in review_display_frame_vector_names():
+        check_review_display_frame_vector(rel, errors)
 
     for rel in review_transcript_vector_names():
         check_review_transcript_vector(rel, errors)

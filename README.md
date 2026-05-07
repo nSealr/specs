@@ -27,12 +27,15 @@ companion implementation must agree on:
 - Trusted event review vectors for display-oriented signer flows.
 - Trusted review-screen vectors with request-bound `approval_digest` values for
   display-oriented signer approval flows.
+- Trusted review display-frame vectors with explicit display limits for bounded
+  title/body/action rendering on small screens.
 - QR review transcript vectors that bind raw QR input, displayed frames,
   physical-style button sequences, terminal decisions, and approval-gate state.
 - Review edge-case vectors for unknown kinds, empty content, long content,
   event references, and high tag counts.
-- Transport, device, review, review-screen, review-transcript, and smartcard
-  vectors shared by implementation repositories.
+- Transport, device, review, review-screen, review-display-frame,
+  review-transcript, and smartcard vectors shared by implementation
+  repositories.
 
 ## Initial Layout
 

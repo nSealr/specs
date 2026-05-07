@@ -35,6 +35,11 @@ fixtures.
   action, and request-bound approval digests.
 - Review-screen vector discovery tests ensure every
   `vectors/review-screens/*.json` file is included in conformance verification.
+- Review display-frame vectors preserve display limits, page selection, bounded
+  title/body/action output, and long-body wrapping/truncation behavior.
+- Review display-frame vector discovery tests ensure every
+  `vectors/review-display-frames/*.json` file is included in conformance
+  verification.
 - QR review transcript vectors preserve the raw QR envelope, source request,
   approval digest, displayed frame before each physical-style input, terminal
   decision, and approval-gate state.
@@ -54,6 +59,8 @@ It also checks that every review vector file matches the deterministic review
 model used by Raspberry QR vault, companion, and future display firmware tests.
 It also checks that every review-screen vector matches the deterministic page
 model and approval-digest calculation used by signer approval flows.
+It also checks that every review display-frame vector matches deterministic
+bounded rendering for the selected source review page and display limits.
 It also checks that every review-transcript vector matches the deterministic
 frame/button/decision sequence expected from QR signer review adapters.
 

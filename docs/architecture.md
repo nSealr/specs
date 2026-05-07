@@ -15,6 +15,9 @@ signer implementation.
 - Publish deterministic trusted review-screen vectors and approval digests that
   bind request metadata, exact event templates, review data, and rendered pages
   before signing.
+- Publish deterministic trusted review display-frame vectors that pin bounded
+  title, page indicator, body-line wrapping/truncation, and action-hint output
+  for small trusted screens.
 - Publish deterministic QR review transcript vectors that bind raw QR input to
   the exact displayed frames, physical-style button inputs, terminal decisions,
   and approval-gate state expected from signer review adapters.
