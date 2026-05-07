@@ -1,0 +1,33 @@
+# Serial Frame v0
+
+The first serial frame is designed for USB CDC, UART, and host-side firmware
+simulators. It frames one JSON request or response envelope as one ASCII line.
+
+## Format
+
+```text
+nseal1f:<type>:<base64url-json>:<checksum>\n
+```
+
+- Prefix: `nseal1f:`.
+- Type: `request`, `response`, or `error`.
+- Payload: unpadded base64url of UTF-8 JSON.
+- Checksum: first 16 lowercase hexadecimal characters of SHA-256 over
+  `<type>:<base64url-json>`.
+- Terminator: one newline byte.
+
+## Decoding
+
+1. Require the `nseal1f:` prefix.
+2. Split the remaining frame into exactly `type`, `payload`, and `checksum`.
+3. Require a supported type.
+4. Require unpadded base64url payload characters.
+5. Recompute and compare the checksum before JSON parsing.
+6. Decode payload as UTF-8 JSON.
+7. Validate decoded JSON against the relevant request or response schema.
+
+## Security Notes
+
+The checksum only detects accidental framing or transport corruption. It is not
+authentication, authorization, or a substitute for event-id and Schnorr
+verification.

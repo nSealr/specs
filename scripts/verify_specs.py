@@ -6,6 +6,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+import base64
 from pathlib import Path
 
 import secp256k1
@@ -14,10 +15,21 @@ import secp256k1
 ROOT = Path(__file__).resolve().parents[1]
 HEX32_RE = re.compile(r"^[0-9a-f]{64}$")
 HEX64_RE = re.compile(r"^[0-9a-f]{128}$")
+B64URL_RE = re.compile(r"^[A-Za-z0-9_-]+$")
+QR_PREFIX = "nseal1:"
+SERIAL_PREFIX = "nseal1f:"
 
 
 def load_json(rel: str) -> dict:
     return json.loads((ROOT / rel).read_text(encoding="utf-8"))
+
+
+def load_required_json(rel: str, errors: list[str]) -> dict | None:
+    path = ROOT / rel
+    if not path.exists():
+        errors.append(f"{rel}: missing required file")
+        return None
+    return json.loads(path.read_text(encoding="utf-8"))
 
 
 def canonical_event_serialization(event: dict) -> str:
@@ -34,6 +46,17 @@ def canonical_event_serialization(event: dict) -> str:
 
 def event_id(event: dict) -> str:
     return hashlib.sha256(canonical_event_serialization(event).encode("utf-8")).hexdigest()
+
+
+def base64url_json(value: dict) -> str:
+    encoded = base64.urlsafe_b64encode(
+        json.dumps(value, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+    ).decode("ascii")
+    return encoded.rstrip("=")
+
+
+def serial_checksum(frame_type: str, payload: str) -> str:
+    return hashlib.sha256(f"{frame_type}:{payload}".encode("utf-8")).hexdigest()[:16]
 
 
 def verify_schnorr(pubkey_hex: str, msg_hex: str, sig_hex: str) -> bool:
@@ -159,6 +182,31 @@ def main() -> int:
             errors.append(f"examples/request-{rel}.json: does not match vector request")
         if response != vector["response"]:
             errors.append(f"examples/response-{rel}.json: does not match vector response")
+
+    qr_request = load_json("examples/request-kind-1-basic.json")
+    qr_vector = load_required_json("vectors/transports/qr-envelope-kind-1-basic.json", errors)
+    if qr_vector is not None:
+        expected_qr = f"{QR_PREFIX}{base64url_json(qr_request)}"
+        if qr_vector.get("envelope") != expected_qr:
+            errors.append("vectors/transports/qr-envelope-kind-1-basic.json: envelope mismatch")
+        if qr_vector.get("decoded") != qr_request:
+            errors.append("vectors/transports/qr-envelope-kind-1-basic.json: decoded request mismatch")
+
+    serial_vector = load_required_json("vectors/transports/serial-frame-request-kind-1-basic.json", errors)
+    if serial_vector is not None:
+        payload = serial_vector.get("payload_base64url", "")
+        frame_type = serial_vector.get("type", "")
+        expected_serial = (
+            f"{SERIAL_PREFIX}{frame_type}:{payload}:{serial_checksum(frame_type, payload)}\n"
+        )
+        if frame_type not in {"request", "response", "error"}:
+            errors.append("vectors/transports/serial-frame-request-kind-1-basic.json: unsupported frame type")
+        if not isinstance(payload, str) or not B64URL_RE.fullmatch(payload):
+            errors.append("vectors/transports/serial-frame-request-kind-1-basic.json: invalid base64url payload")
+        if serial_vector.get("decoded") != qr_request:
+            errors.append("vectors/transports/serial-frame-request-kind-1-basic.json: decoded request mismatch")
+        if serial_vector.get("frame") != expected_serial:
+            errors.append("vectors/transports/serial-frame-request-kind-1-basic.json: frame mismatch")
 
     if errors:
         for error in errors:

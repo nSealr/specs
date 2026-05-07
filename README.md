@@ -12,6 +12,16 @@ companion implementation must agree on:
 - JavaCard/APDU smartcard contract.
 - JSON schemas and example request/response payloads.
 
+## Current Scope
+
+- Signing request protocol v0.
+- Signing response protocol v0.
+- Error object v0.
+- QR envelope v0.
+- Serial frame v0.
+- Deterministic Nostr/BIP-340 fixtures.
+- Transport vectors shared by companion and firmware implementations.
+
 ## Initial Layout
 
 - `protocols/`: human-readable protocol specifications.

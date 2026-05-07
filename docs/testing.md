@@ -20,12 +20,14 @@ fixtures.
 - NIP-01 event id fixtures match canonical serialization.
 - BIP-340 signatures verify against deterministic test keys.
 - QR envelope roundtrips preserve the request payload exactly.
+- Serial frame vectors preserve the request payload and checksum exactly.
 
 ## Fixture Verification
 
 `scripts/verify_specs.py` computes NIP-01 event ids from canonical serialized
 events and verifies committed BIP-340 signatures using libsecp256k1 bindings.
-It also checks that invalid request examples remain rejected.
+It also checks that invalid request examples remain rejected and that committed
+transport vectors match the QR and serial framing rules.
 
 ## Completion Standard
 

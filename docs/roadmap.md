@@ -6,6 +6,7 @@
 - Signing response v0.
 - Common error response.
 - QR envelope v0.
+- Serial frame v0.
 - JSON schemas.
 - Deterministic Nostr/BIP-340 fixtures.
 
@@ -13,7 +14,6 @@ Status: active.
 
 ## M3: Transport Contracts
 
-- Serial frame draft.
 - Capability discovery draft.
 - Transport-independent response verification requirements.
 
