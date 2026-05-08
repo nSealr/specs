@@ -7,6 +7,7 @@ from scripts.verify_specs import (
     check_nip46_bridge_decisions,
     check_nip46_policy_file_vector,
     check_invalid_vector,
+    json_utf8_size,
     implementation_limits,
     invalid_vector_names,
     load_json,
@@ -61,6 +62,19 @@ class VerifySpecsTests(unittest.TestCase):
         self.assertLessEqual(limits["limits"]["max_decoded_request_json_bytes"], 4096)
         self.assertLessEqual(limits["limits"]["max_static_qr_decoded_json_bytes"], 4096)
         self.assertLessEqual(limits["limits"]["max_nip46_decrypted_message_json_bytes"], 4096)
+
+    def test_valid_request_vectors_fit_v0_limit_profile(self) -> None:
+        limits = implementation_limits()["limits"]
+        valid_request_vectors = [
+            load_json(f"vectors/review/{name}.json")["request"]
+            for name in review_vector_names()
+        ]
+
+        for request in valid_request_vectors:
+            with self.subTest(request_id=request["request_id"]):
+                request_size = json_utf8_size(request)
+                self.assertLessEqual(request_size, limits["max_decoded_request_json_bytes"])
+                self.assertLessEqual(request_size, limits["max_static_qr_decoded_json_bytes"])
 
     def test_invalid_vectors_are_discovered_from_directory(self) -> None:
         self.assertEqual(
