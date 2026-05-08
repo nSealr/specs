@@ -206,14 +206,14 @@ def check_request_shape(path: Path, value: object, errors: list[str]) -> None:
     if method == "sign_event":
         params = value.get("params")
         if not isinstance(params, dict):
-            errors.append(f"{path}: sign_event requires params.event_template")
+            errors.append(f"{path}: sign_event requires params")
             return
         unknown_params = sorted(set(params) - {"event_template"})
         if unknown_params:
             errors.append(f"{path}: sign_event params contain unknown fields: {unknown_params}")
         template = params.get("event_template")
         if not isinstance(template, dict):
-            errors.append(f"{path}: sign_event requires params.event_template")
+            errors.append(f"{path}: event_template must be an object")
             return
         forbidden = {"id", "pubkey", "sig"} & set(template)
         if forbidden:
