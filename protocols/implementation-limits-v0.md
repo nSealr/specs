@@ -18,7 +18,7 @@ The canonical machine-readable profile is:
 | `max_request_id_length` | 128 | Signing request and NIP-46 request ids. |
 | `max_decoded_request_json_bytes` | 704 | Compact UTF-8 decoded NostrSeal request JSON. |
 | `max_static_qr_decoded_json_bytes` | 512 | Static QR envelope decoded UTF-8 JSON payloads. |
-| `max_serial_frame_bytes` | 512 | Complete ASCII serial frame line. |
+| `max_serial_frame_bytes` | 1024 | Complete ASCII serial frame line. |
 | `max_nip46_decrypted_message_json_bytes` | 1024 | Already-decrypted NIP-46 request message JSON. |
 | `max_content_utf8_bytes` | 512 | `event_template.content`. |
 | `max_tag_count` | 16 | `event_template.tags` entries. |
