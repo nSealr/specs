@@ -33,6 +33,9 @@ signer implementation.
   permissions consumed by companion decision harnesses without implying grant
   storage, client authorization, `connect` acknowledgement, relay sessions, or
   NIP-44 handling.
+- Publish the JSON schema for that read-only policy-file format so independent
+  tools can validate the envelope before applying stricter semantic checks such
+  as `sign_event` parameter/event-kind equality.
 - Keep schemas and examples usable by independent implementations.
 
 ## Non-Responsibilities

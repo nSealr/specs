@@ -19,6 +19,7 @@
 - NIP-46 bridge decision vectors for permitted signer routing, local `ping`,
   `connect` review, and deterministic permission-denied responses.
 - NIP-46 read-only policy-file vectors for explicit approved permissions.
+- NIP-46 read-only policy-file JSON schema.
 - JSON schemas.
 - Deterministic Nostr/BIP-340 fixtures.
 
@@ -26,7 +27,7 @@ Status: active. The first ESP32-S3 scaffold capability vector,
 display-oriented review-screen, QR review transcript, NIP-46 decrypted payload
 bridge vectors, NIP-46 `connect` policy-review intent vector, explicit
 NIP-46 permission policy vectors, NIP-46 bridge decision vectors, and
-read-only NIP-46 policy-file vector are implemented.
+read-only NIP-46 policy-file vector/schema are implemented.
 
 ## M3: Transport Contracts
 

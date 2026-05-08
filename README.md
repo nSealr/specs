@@ -36,6 +36,7 @@ companion implementation must agree on:
   explicit permission requirement/check/bridge decision outputs.
 - NIP-46 read-only policy-file vectors for explicit approved permissions used
   by companion decision harnesses.
+- JSON schema for the read-only NIP-46 policy-file format.
 - Review edge-case vectors for unknown kinds, empty content, long content,
   event references, and high tag counts.
 - Transport, device, review, review-screen, review-display-frame,

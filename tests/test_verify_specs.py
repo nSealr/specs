@@ -56,6 +56,12 @@ class VerifySpecsTests(unittest.TestCase):
 
         self.assertEqual(errors, [])
 
+    def test_nip46_policy_file_schema_declares_required_contract(self) -> None:
+        schema = load_json("schemas/nip46-policy-file-v0.schema.json")
+
+        self.assertEqual(schema["title"], "NostrSeal NIP-46 Policy File v0")
+        self.assertEqual(schema["required"], ["format", "approved_permissions"])
+
     def test_nip46_permission_policy_vectors_pin_request_decisions(self) -> None:
         policy_vectors = {
             name: load_json(f"vectors/nip46/{name}.json")

@@ -1019,7 +1019,12 @@ def check_nip46_vector(rel: str, errors: list[str]) -> None:
 def main() -> int:
     errors: list[str] = []
 
-    for schema in ("signing-request-v0.schema.json", "signing-response-v0.schema.json", "error-v0.schema.json"):
+    for schema in (
+        "signing-request-v0.schema.json",
+        "signing-response-v0.schema.json",
+        "error-v0.schema.json",
+        "nip46-policy-file-v0.schema.json",
+    ):
         load_json(f"schemas/{schema}")
 
     for path in sorted((ROOT / "examples").glob("request-*.json")):

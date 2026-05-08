@@ -60,6 +60,9 @@ fixtures.
   `vectors/nip46-policy-files/*.json` file is included in conformance
   verification, and each file contains normalized explicit approved
   permissions.
+- NIP-46 policy-file schema tests ensure
+  `schemas/nip46-policy-file-v0.schema.json` declares the required envelope
+  fields.
 - Smartcard APDU vectors preserve command bytes, response bytes, and signature
   verification requirements.
 
