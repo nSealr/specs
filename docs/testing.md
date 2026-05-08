@@ -63,6 +63,11 @@ fixtures.
 - NIP-46 policy-file schema tests ensure
   `schemas/nip46-policy-file-v0.schema.json` declares the required envelope
   fields.
+- Implementation-limit tests ensure the v0 limit profile is named, documented,
+  and consumed by invalid-vector verification.
+- Invalid-vector discovery tests ensure every malicious request, QR envelope,
+  serial frame, NIP-46 payload, and policy-file vector is included in
+  conformance verification.
 - Smartcard APDU vectors preserve command bytes, response bytes, and signature
   verification requirements.
 
@@ -86,6 +91,9 @@ policy-review intent, and that every non-`connect` NIP-46 vector has matching
 permission requirements, permission-check decisions, and bridge decisions.
 It also checks that every NIP-46 policy-file vector uses
 `nseal-nip46-policy-v0` and normalized explicit approved permissions.
+It also checks the shared pre-signing hardening vectors so downstream
+implementations get deterministic rejection fixtures before enabling real
+signing or full NIP-46 sessions.
 
 ## Completion Standard
 

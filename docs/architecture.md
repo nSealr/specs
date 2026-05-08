@@ -36,6 +36,12 @@ signer implementation.
 - Publish the JSON schema for that read-only policy-file format so independent
   tools can validate the envelope before applying stricter semantic checks such
   as `sign_event` parameter/event-kind equality.
+- Publish one named v0 implementation limit profile for constrained signers.
+  These limits bound request size, QR envelope size, serial frame size, NIP-46
+  message size, content size, tag count, tag field size, total tag text, and
+  integer safety. They are NostrSeal safety limits, not Nostr protocol limits.
+- Publish malicious/rejection vectors that define deterministic failure
+  behavior before review, approval, or signing.
 - Keep schemas and examples usable by independent implementations.
 
 ## Non-Responsibilities

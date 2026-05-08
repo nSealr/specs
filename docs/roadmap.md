@@ -20,6 +20,9 @@
   `connect` review, and deterministic permission-denied responses.
 - NIP-46 read-only policy-file vectors for explicit approved permissions.
 - NIP-46 read-only policy-file JSON schema.
+- NostrSeal v0 implementation limit profile for constrained signer safety.
+- Malicious/rejection vectors for unsafe signing requests, QR envelopes, serial
+  frames, NIP-46 payloads, and policy files.
 - JSON schemas.
 - Deterministic Nostr/BIP-340 fixtures.
 
@@ -33,6 +36,22 @@ read-only NIP-46 policy-file vector/schema are implemented.
 
 - Capability discovery draft.
 - Transport-independent response verification requirements.
+
+## M4.5/M7.5: Pre-Signing Contract Hardening
+
+- Define named NostrSeal v0 parser and resource limits in one contract.
+- Add shared invalid vectors for event-template signed fields, unsafe integer
+  values, oversized content/tags/messages, malformed QR envelopes, malformed
+  serial frames, malformed NIP-46 payloads, and invalid policy files.
+- Keep these as NostrSeal implementation safety limits for constrained
+  signers, not Nostr protocol limits.
+- Require companion, Raspberry, and ESP32 implementations to consume the
+  vectors where their parsers support the relevant boundary before real signing
+  or full NIP-46 sessions are enabled.
+
+Status: next hardening gate before ESP32 real signing, browser extension/full
+NIP-46 sessions, persistent grants, production smartcard claims, and custom
+persistent-secret hardware-wallet claims.
 
 ## Later
 
