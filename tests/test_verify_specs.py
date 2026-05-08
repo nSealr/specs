@@ -98,6 +98,8 @@ class VerifySpecsTests(unittest.TestCase):
                 "request-event-template-id",
                 "request-event-template-pubkey",
                 "request-event-template-sig",
+                "request-get-capabilities-params",
+                "request-get-public-key-params",
                 "request-json-over-limit",
                 "request-kind-float",
                 "request-kind-negative",
