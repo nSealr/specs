@@ -29,6 +29,10 @@ signer implementation.
   request, local `ping` response, `connect` review intent, or deterministic
   permission-denied response, without implying relay, NIP-44, permission grants,
   or auth flows are complete.
+- Publish read-only NIP-46 policy-file vectors that pin explicit approved
+  permissions consumed by companion decision harnesses without implying grant
+  storage, client authorization, `connect` acknowledgement, relay sessions, or
+  NIP-44 handling.
 - Keep schemas and examples usable by independent implementations.
 
 ## Non-Responsibilities

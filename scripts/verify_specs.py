@@ -332,6 +332,10 @@ def nip46_vector_names() -> list[str]:
     return sorted(path.stem for path in (ROOT / "vectors" / "nip46").glob("*.json"))
 
 
+def nip46_policy_file_vector_names() -> list[str]:
+    return sorted(path.stem for path in (ROOT / "vectors" / "nip46-policy-files").glob("*.json"))
+
+
 def check_review_screen_vector(rel: str, errors: list[str]) -> None:
     vector = load_required_json(f"vectors/review-screens/{rel}.json", errors)
     if vector is None:
@@ -876,6 +880,23 @@ def check_nip46_bridge_decisions(
             errors.append(f"{vector_path}: bridge_decisions[{index}].decision mismatch")
 
 
+def check_nip46_policy_file_vector(rel: str, errors: list[str]) -> None:
+    vector_path = f"vectors/nip46-policy-files/{rel}.json"
+    vector = load_required_json(vector_path, errors)
+    if vector is None:
+        return
+    if vector.get("format") != "nseal-nip46-policy-v0":
+        errors.append(f"{vector_path}: format mismatch")
+    approved_permissions = vector.get("approved_permissions")
+    if not isinstance(approved_permissions, list):
+        errors.append(f"{vector_path}: approved_permissions must be a list")
+        return
+    for index, permission in enumerate(approved_permissions):
+        normalized = normalized_nip46_permission(vector_path, permission, errors)
+        if normalized is not None and permission != normalized:
+            errors.append(f"{vector_path}: approved_permissions[{index}] must be normalized")
+
+
 def check_nip46_response_message(vector_path: str, message: object, expected_id: str, errors: list[str]) -> dict | None:
     if not isinstance(message, dict):
         errors.append(f"{vector_path}: response_message must be an object")
@@ -1117,6 +1138,9 @@ def main() -> int:
 
     for rel in nip46_vector_names():
         check_nip46_vector(rel, errors)
+
+    for rel in nip46_policy_file_vector_names():
+        check_nip46_policy_file_vector(rel, errors)
 
     qr_request = load_json("examples/request-kind-1-basic.json")
     qr_vector = load_required_json("vectors/transports/qr-envelope-kind-1-basic.json", errors)

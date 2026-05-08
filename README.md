@@ -34,11 +34,13 @@ companion implementation must agree on:
 - NIP-46 decrypted payload bridge vectors for `get_public_key`, `sign_event`,
   local `ping`, response mapping, `connect` policy-review intents, and
   explicit permission requirement/check/bridge decision outputs.
+- NIP-46 read-only policy-file vectors for explicit approved permissions used
+  by companion decision harnesses.
 - Review edge-case vectors for unknown kinds, empty content, long content,
   event references, and high tag counts.
 - Transport, device, review, review-screen, review-display-frame,
-  review-transcript, NIP-46, and smartcard vectors shared by implementation
-  repositories.
+  review-transcript, NIP-46, NIP-46 policy-file, and smartcard vectors shared
+  by implementation repositories.
 
 ## Initial Layout
 

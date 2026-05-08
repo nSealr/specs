@@ -5,7 +5,9 @@ import unittest
 
 from scripts.verify_specs import (
     check_nip46_bridge_decisions,
+    check_nip46_policy_file_vector,
     load_json,
+    nip46_policy_file_vector_names,
     nip46_vector_names,
     review_display_frame_vector_names,
     review_screen_vector_names,
@@ -43,6 +45,16 @@ class VerifySpecsTests(unittest.TestCase):
             nip46_vector_names(),
             ["connect-policy-review", "get-public-key", "ping", "sign-event-kind-1-basic", "sign-event-user-rejected"],
         )
+
+    def test_nip46_policy_file_vectors_are_discovered_from_directory(self) -> None:
+        self.assertEqual(nip46_policy_file_vector_names(), ["sign-event-kind-1-approved"])
+
+    def test_nip46_policy_file_vectors_validate_approved_permissions(self) -> None:
+        errors: list[str] = []
+
+        check_nip46_policy_file_vector("sign-event-kind-1-approved", errors)
+
+        self.assertEqual(errors, [])
 
     def test_nip46_permission_policy_vectors_pin_request_decisions(self) -> None:
         policy_vectors = {

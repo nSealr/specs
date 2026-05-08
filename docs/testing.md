@@ -56,6 +56,10 @@ fixtures.
   and permission-denied responses.
 - NIP-46 vector discovery tests ensure every `vectors/nip46/*.json` file is
   included in conformance verification.
+- NIP-46 policy-file vector discovery tests ensure every
+  `vectors/nip46-policy-files/*.json` file is included in conformance
+  verification, and each file contains normalized explicit approved
+  permissions.
 - Smartcard APDU vectors preserve command bytes, response bytes, and signature
   verification requirements.
 
@@ -77,6 +81,8 @@ It also checks that every NIP-46 decrypted payload vector maps to the expected
 NostrSeal request, local response, signer response payload, or `connect`
 policy-review intent, and that every non-`connect` NIP-46 vector has matching
 permission requirements, permission-check decisions, and bridge decisions.
+It also checks that every NIP-46 policy-file vector uses
+`nseal-nip46-policy-v0` and normalized explicit approved permissions.
 
 ## Completion Standard
 
