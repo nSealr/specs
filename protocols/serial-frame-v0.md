@@ -25,6 +25,11 @@ nseal1f:<type>:<base64url-json>:<checksum>\n
 5. Recompute and compare the checksum before JSON parsing.
 6. Decode payload as UTF-8 JSON.
 7. Validate decoded JSON against the relevant request or response schema.
+8. Enforce the NostrSeal v0 implementation safety profile before review or
+   signing.
+
+Frames larger than `max_serial_frame_bytes` are rejected in v0. Payloads remain
+unpadded base64url.
 
 ## Security Notes
 

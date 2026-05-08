@@ -30,7 +30,9 @@ Status: active. The first ESP32-S3 scaffold capability vector,
 display-oriented review-screen, QR review transcript, NIP-46 decrypted payload
 bridge vectors, NIP-46 `connect` policy-review intent vector, explicit
 NIP-46 permission policy vectors, NIP-46 bridge decision vectors, and
-read-only NIP-46 policy-file vector/schema are implemented.
+read-only NIP-46 policy-file vector/schema are implemented. The v0
+implementation limit profile and initial malicious/rejection vectors are now
+part of the shared contract.
 
 ## M3: Transport Contracts
 
@@ -49,8 +51,11 @@ read-only NIP-46 policy-file vector/schema are implemented.
   vectors where their parsers support the relevant boundary before real signing
   or full NIP-46 sessions are enabled.
 
-Status: next hardening gate before ESP32 real signing, browser extension/full
-NIP-46 sessions, persistent grants, production smartcard claims, and custom
+Status: contract implementation in progress. The specs profile and initial
+invalid vectors are implemented; downstream companion, Raspberry, ESP32, and
+lab consumers must still enforce or smoke-test the applicable vectors before
+this gate can unblock ESP32 real signing, browser extension/full NIP-46
+sessions, persistent grants, production smartcard claims, or custom
 persistent-secret hardware-wallet claims.
 
 ## Later

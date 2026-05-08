@@ -37,11 +37,15 @@ companion implementation must agree on:
 - NIP-46 read-only policy-file vectors for explicit approved permissions used
   by companion decision harnesses.
 - JSON schema for the read-only NIP-46 policy-file format.
+- Named NostrSeal v0 implementation safety-limit profile for constrained
+  signers.
+- Shared malicious/rejection vectors for unsafe signing requests, QR envelopes,
+  serial frames, NIP-46 payloads, and NIP-46 policy files.
 - Review edge-case vectors for unknown kinds, empty content, long content,
   event references, and high tag counts.
 - Transport, device, review, review-screen, review-display-frame,
-  review-transcript, NIP-46, NIP-46 policy-file, and smartcard vectors shared
-  by implementation repositories.
+  review-transcript, NIP-46, NIP-46 policy-file, invalid-vector, limit-profile,
+  and smartcard vectors shared by implementation repositories.
 
 ## Initial Layout
 

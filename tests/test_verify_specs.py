@@ -6,6 +6,9 @@ import unittest
 from scripts.verify_specs import (
     check_nip46_bridge_decisions,
     check_nip46_policy_file_vector,
+    check_invalid_vector,
+    implementation_limits,
+    invalid_vector_names,
     load_json,
     nip46_policy_file_vector_names,
     nip46_vector_names,
@@ -48,6 +51,62 @@ class VerifySpecsTests(unittest.TestCase):
 
     def test_nip46_policy_file_vectors_are_discovered_from_directory(self) -> None:
         self.assertEqual(nip46_policy_file_vector_names(), ["sign-event-kind-1-approved"])
+
+    def test_implementation_limits_are_named_and_conservative(self) -> None:
+        limits = implementation_limits()
+
+        self.assertEqual(limits["format"], "nostrseal-implementation-limits-v0")
+        self.assertEqual(limits["name"], "nostrseal-v0")
+        self.assertEqual(limits["limits"]["max_request_id_length"], 128)
+        self.assertLessEqual(limits["limits"]["max_decoded_request_json_bytes"], 4096)
+        self.assertLessEqual(limits["limits"]["max_static_qr_decoded_json_bytes"], 4096)
+        self.assertLessEqual(limits["limits"]["max_nip46_decrypted_message_json_bytes"], 4096)
+
+    def test_invalid_vectors_are_discovered_from_directory(self) -> None:
+        self.assertEqual(
+            invalid_vector_names(),
+            [
+                "nip46-connect-invalid-pubkey",
+                "nip46-permission-malformed",
+                "nip46-policy-method-unsupported",
+                "nip46-policy-sign-event-kind-mismatch",
+                "nip46-sign-event-param-not-json",
+                "nip46-sign-event-param-unsafe-template",
+                "qr-envelope-invalid-utf8",
+                "qr-envelope-malformed",
+                "qr-envelope-oversized",
+                "qr-envelope-padded",
+                "request-content-over-limit",
+                "request-created-at-float",
+                "request-created-at-negative",
+                "request-created-at-string",
+                "request-created-at-unsafe-integer",
+                "request-event-template-id",
+                "request-event-template-pubkey",
+                "request-event-template-sig",
+                "request-json-over-limit",
+                "request-kind-float",
+                "request-kind-negative",
+                "request-kind-string",
+                "request-kind-unsafe-integer",
+                "request-tag-field-too-long",
+                "request-tag-item-not-string",
+                "request-tags-not-array",
+                "request-too-many-tags",
+                "request-unknown-top-level-field",
+                "serial-frame-checksum-mismatch",
+                "serial-frame-malformed-payload",
+                "serial-frame-oversized",
+            ],
+        )
+
+    def test_invalid_vectors_validate_expected_rejections(self) -> None:
+        for name in invalid_vector_names():
+            errors: list[str] = []
+
+            check_invalid_vector(name, errors)
+
+            self.assertEqual(errors, [], name)
 
     def test_nip46_policy_file_vectors_validate_approved_permissions(self) -> None:
         errors: list[str] = []

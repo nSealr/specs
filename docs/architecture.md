@@ -40,8 +40,11 @@ signer implementation.
   These limits bound request size, QR envelope size, serial frame size, NIP-46
   message size, content size, tag count, tag field size, total tag text, and
   integer safety. They are NostrSeal safety limits, not Nostr protocol limits.
+  The machine-readable source is `vectors/limits/nseal-v0.json`; the human
+  protocol explainer is `protocols/implementation-limits-v0.md`.
 - Publish malicious/rejection vectors that define deterministic failure
-  behavior before review, approval, or signing.
+  behavior before review, approval, or signing. These live under
+  `vectors/invalid/` and are discovered automatically by the specs verifier.
 - Keep schemas and examples usable by independent implementations.
 
 ## Non-Responsibilities

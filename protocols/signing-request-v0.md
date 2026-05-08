@@ -27,6 +27,10 @@ Fields:
 
 Unknown top-level fields are invalid in v0.
 
+Requests must also satisfy the NostrSeal v0 implementation safety profile in
+`implementation-limits-v0.md`. Those limits are local NostrSeal safety bounds
+for constrained signers and are not Nostr protocol limits.
+
 ## Methods
 
 ### `get_capabilities`
@@ -90,3 +94,6 @@ The signer must:
 5. Return the complete signed event.
 
 The signer must reject templates that contain `id`, `pubkey`, or `sig`.
+It must also reject unknown `event_template` fields, unsafe `created_at` or
+`kind` integers, non-array tags, non-string tag fields, oversized tag/content
+payloads, and decoded request JSON larger than the v0 implementation profile.

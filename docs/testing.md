@@ -68,6 +68,9 @@ fixtures.
 - Invalid-vector discovery tests ensure every malicious request, QR envelope,
   serial frame, NIP-46 payload, and policy-file vector is included in
   conformance verification.
+- Invalid-vector semantic tests ensure each committed malicious fixture is
+  rejected for its expected deterministic reason, rather than merely being
+  present in a directory.
 - Smartcard APDU vectors preserve command bytes, response bytes, and signature
   verification requirements.
 
@@ -94,6 +97,10 @@ It also checks that every NIP-46 policy-file vector uses
 It also checks the shared pre-signing hardening vectors so downstream
 implementations get deterministic rejection fixtures before enabling real
 signing or full NIP-46 sessions.
+Those checks are directory-driven: new files under `vectors/invalid/` and the
+single profile under `vectors/limits/` are picked up by tests and
+`scripts/verify_specs.py` without hardcoding individual vector filenames in the
+verifier.
 
 ## Completion Standard
 

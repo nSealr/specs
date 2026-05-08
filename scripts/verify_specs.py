@@ -7,6 +7,7 @@ import hashlib
 import json
 import re
 import base64
+import binascii
 from pathlib import Path
 
 import secp256k1
@@ -20,6 +21,7 @@ B64URL_RE = re.compile(r"^[A-Za-z0-9_-]+$")
 QR_PREFIX = "nseal1:"
 SERIAL_PREFIX = "nseal1f:"
 APDU_HEX_RE = re.compile(r"^[0-9a-f]+$")
+LIMIT_PROFILE = "vectors/limits/nseal-v0.json"
 
 
 def load_json(rel: str) -> dict:
@@ -32,6 +34,14 @@ def load_required_json(rel: str, errors: list[str]) -> dict | None:
         errors.append(f"{rel}: missing required file")
         return None
     return json.loads(path.read_text(encoding="utf-8"))
+
+
+def implementation_limits() -> dict:
+    return load_json(LIMIT_PROFILE)
+
+
+def implementation_limit_values() -> dict:
+    return implementation_limits()["limits"]
 
 
 def canonical_event_serialization(event: dict) -> str:
@@ -55,6 +65,14 @@ def base64url_json(value: dict) -> str:
         json.dumps(value, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
     ).decode("ascii")
     return encoded.rstrip("=")
+
+
+def json_utf8_size(value: object) -> int:
+    return len(compact_json(value).encode("utf-8"))
+
+
+def utf8_size(value: str) -> int:
+    return len(value.encode("utf-8"))
 
 
 def serial_checksum(frame_type: str, payload: str) -> str:
@@ -95,29 +113,152 @@ def xonly_pubkey_from_secret(secret_key_hex: str) -> str | None:
     return bytes(secp256k1.ffi.buffer(out, 32)).hex()
 
 
-def check_request_shape(path: Path, value: dict, errors: list[str]) -> None:
+def check_implementation_limits(errors: list[str]) -> None:
+    profile = load_required_json(LIMIT_PROFILE, errors)
+    if profile is None:
+        return
+    if profile.get("format") != "nostrseal-implementation-limits-v0":
+        errors.append(f"{LIMIT_PROFILE}: format mismatch")
+    if profile.get("name") != "nostrseal-v0":
+        errors.append(f"{LIMIT_PROFILE}: name mismatch")
+    limits = profile.get("limits")
+    if not isinstance(limits, dict):
+        errors.append(f"{LIMIT_PROFILE}: limits must be an object")
+        return
+    required = {
+        "max_request_id_length",
+        "max_decoded_request_json_bytes",
+        "max_static_qr_decoded_json_bytes",
+        "max_serial_frame_bytes",
+        "max_nip46_decrypted_message_json_bytes",
+        "max_content_utf8_bytes",
+        "max_tag_count",
+        "max_tag_fields_per_tag",
+        "max_tag_field_utf8_bytes",
+        "max_total_tag_utf8_bytes",
+        "max_safe_integer",
+    }
+    missing = sorted(required - set(limits))
+    if missing:
+        errors.append(f"{LIMIT_PROFILE}: missing limits {missing}")
+    for field in required & set(limits):
+        if not isinstance(limits[field], int) or limits[field] <= 0:
+            errors.append(f"{LIMIT_PROFILE}: {field} must be a positive integer")
+    if limits.get("max_request_id_length") != 128:
+        errors.append(f"{LIMIT_PROFILE}: max_request_id_length must remain 128")
+    integer_policy = profile.get("integer_policy")
+    if not isinstance(integer_policy, dict):
+        errors.append(f"{LIMIT_PROFILE}: integer_policy must be an object")
+        return
+    for field in ("created_at", "kind"):
+        policy = integer_policy.get(field)
+        if not isinstance(policy, dict):
+            errors.append(f"{LIMIT_PROFILE}: integer_policy.{field} must be an object")
+            continue
+        expected = {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": limits.get("max_safe_integer"),
+        }
+        if policy != expected:
+            errors.append(f"{LIMIT_PROFILE}: integer_policy.{field} mismatch")
+
+
+def check_safe_integer(path: Path, field: str, value: object, errors: list[str], limits: dict) -> None:
+    if type(value) is not int:
+        errors.append(f"{path}: event_template {field} must be a non-negative safe integer")
+        return
+    if value < 0:
+        errors.append(f"{path}: event_template {field} must be a non-negative safe integer")
+    if value > limits["max_safe_integer"]:
+        errors.append(f"{path}: event_template {field} exceeds max_safe_integer")
+
+
+def check_request_shape(path: Path, value: object, errors: list[str]) -> None:
+    limits = implementation_limit_values()
+    if not isinstance(value, dict):
+        errors.append(f"{path}: request must be an object")
+        return
+    if json_utf8_size(value) > limits["max_decoded_request_json_bytes"]:
+        errors.append(f"{path}: decoded request JSON exceeds max_decoded_request_json_bytes")
+
     if value.get("version") != 1:
         errors.append(f"{path}: version must be 1")
-    if not isinstance(value.get("request_id"), str) or not value["request_id"]:
-        errors.append(f"{path}: request_id must be a non-empty string")
+    request_id = value.get("request_id")
+    if not isinstance(request_id, str) or not REQUEST_ID_RE.fullmatch(request_id):
+        errors.append(f"{path}: request_id must match the v0 request id profile")
+    elif len(request_id) > limits["max_request_id_length"]:
+        errors.append(f"{path}: request_id exceeds max_request_id_length")
     method = value.get("method")
     if method not in {"get_capabilities", "get_public_key", "sign_event"}:
         errors.append(f"{path}: unsupported method {method!r}")
+        return
+    allowed_top_level = {"version", "request_id", "method"}
+    if method == "sign_event":
+        allowed_top_level.add("params")
+    unknown_top_level = sorted(set(value) - allowed_top_level)
+    if unknown_top_level:
+        errors.append(f"{path}: unknown top-level fields: {unknown_top_level}")
     if method == "get_capabilities" and "params" in value:
         errors.append(f"{path}: get_capabilities must not include params in v0")
     if method == "get_public_key" and "params" in value:
         errors.append(f"{path}: get_public_key must not include params in v0")
     if method == "sign_event":
-        template = value.get("params", {}).get("event_template")
+        params = value.get("params")
+        if not isinstance(params, dict):
+            errors.append(f"{path}: sign_event requires params.event_template")
+            return
+        unknown_params = sorted(set(params) - {"event_template"})
+        if unknown_params:
+            errors.append(f"{path}: sign_event params contain unknown fields: {unknown_params}")
+        template = params.get("event_template")
         if not isinstance(template, dict):
             errors.append(f"{path}: sign_event requires params.event_template")
             return
         forbidden = {"id", "pubkey", "sig"} & set(template)
         if forbidden:
             errors.append(f"{path}: event_template contains forbidden fields: {sorted(forbidden)}")
-        for field in ("created_at", "kind", "tags", "content"):
+        required_fields = {"created_at", "kind", "tags", "content"}
+        unknown_template_fields = sorted(set(template) - required_fields - {"id", "pubkey", "sig"})
+        if unknown_template_fields:
+            errors.append(f"{path}: event_template contains unknown fields: {unknown_template_fields}")
+        for field in sorted(required_fields):
             if field not in template:
                 errors.append(f"{path}: event_template missing {field}")
+        if "created_at" in template:
+            check_safe_integer(path, "created_at", template["created_at"], errors, limits)
+        if "kind" in template:
+            check_safe_integer(path, "kind", template["kind"], errors, limits)
+        if "tags" in template:
+            tags = template["tags"]
+            if not isinstance(tags, list):
+                errors.append(f"{path}: event_template tags must be an array")
+            else:
+                if len(tags) > limits["max_tag_count"]:
+                    errors.append(f"{path}: event_template tags exceeds max_tag_count")
+                total_tag_bytes = 0
+                for tag_index, tag in enumerate(tags):
+                    if not isinstance(tag, list):
+                        errors.append(f"{path}: event_template tags[{tag_index}] must be an array")
+                        continue
+                    if len(tag) > limits["max_tag_fields_per_tag"]:
+                        errors.append(f"{path}: event_template tags[{tag_index}] exceeds max_tag_fields_per_tag")
+                    for field_index, item in enumerate(tag):
+                        if not isinstance(item, str):
+                            errors.append(f"{path}: event_template tags[{tag_index}][{field_index}] must be a string")
+                            continue
+                        item_bytes = utf8_size(item)
+                        total_tag_bytes += item_bytes
+                        if item_bytes > limits["max_tag_field_utf8_bytes"]:
+                            errors.append(f"{path}: event_template tag field exceeds max_tag_field_utf8_bytes")
+                if total_tag_bytes > limits["max_total_tag_utf8_bytes"]:
+                    errors.append(f"{path}: event_template tags exceed max_total_tag_utf8_bytes")
+        if "content" in template:
+            content = template["content"]
+            if not isinstance(content, str):
+                errors.append(f"{path}: event_template content must be a string")
+            elif utf8_size(content) > limits["max_content_utf8_bytes"]:
+                errors.append(f"{path}: event_template content exceeds max_content_utf8_bytes")
 
 
 def request_shape_errors(path: Path, value: dict) -> list[str]:
@@ -334,6 +475,10 @@ def nip46_vector_names() -> list[str]:
 
 def nip46_policy_file_vector_names() -> list[str]:
     return sorted(path.stem for path in (ROOT / "vectors" / "nip46-policy-files").glob("*.json"))
+
+
+def invalid_vector_names() -> list[str]:
+    return sorted(path.stem for path in (ROOT / "vectors" / "invalid").glob("*.json"))
 
 
 def check_review_screen_vector(rel: str, errors: list[str]) -> None:
@@ -609,6 +754,159 @@ def parse_nip46_permissions(value: str, vector_path: str, errors: list[str]) -> 
     return parsed
 
 
+def decode_unpadded_base64url(payload: object, vector_path: str, label: str, errors: list[str]) -> bytes | None:
+    if not isinstance(payload, str) or not payload:
+        errors.append(f"{vector_path}: {label} payload must be a non-empty string")
+        return None
+    if "=" in payload:
+        errors.append(f"{vector_path}: {label} payload must be unpadded base64url")
+        return None
+    if not B64URL_RE.fullmatch(payload):
+        errors.append(f"{vector_path}: {label} payload must be base64url")
+        return None
+    padding = "=" * ((4 - len(payload) % 4) % 4)
+    try:
+        return base64.b64decode(
+            f"{payload}{padding}".encode("ascii"),
+            altchars=b"-_",
+            validate=True,
+        )
+    except binascii.Error:
+        errors.append(f"{vector_path}: {label} payload must decode as base64url")
+        return None
+
+
+def check_qr_envelope_payload(vector_path: str, envelope: object, errors: list[str]) -> None:
+    limits = implementation_limit_values()
+    if not isinstance(envelope, str):
+        errors.append(f"{vector_path}: QR envelope must be a string")
+        return
+    if not envelope.startswith(QR_PREFIX):
+        errors.append(f"{vector_path}: QR envelope requires nseal1 prefix")
+        return
+    payload = envelope[len(QR_PREFIX) :]
+    decoded = decode_unpadded_base64url(payload, vector_path, "QR envelope", errors)
+    if decoded is None:
+        return
+    if len(decoded) > limits["max_static_qr_decoded_json_bytes"]:
+        errors.append(f"{vector_path}: QR decoded JSON exceeds max_static_qr_decoded_json_bytes")
+    try:
+        decoded_text = decoded.decode("utf-8")
+    except UnicodeDecodeError:
+        errors.append(f"{vector_path}: QR envelope payload must be valid UTF-8")
+        return
+    try:
+        decoded_json = json.loads(decoded_text)
+    except json.JSONDecodeError:
+        errors.append(f"{vector_path}: QR envelope payload must be JSON")
+        return
+    check_request_shape(Path(vector_path), decoded_json, errors)
+
+
+def check_serial_frame_payload(vector_path: str, frame: object, errors: list[str]) -> None:
+    limits = implementation_limit_values()
+    if not isinstance(frame, str):
+        errors.append(f"{vector_path}: serial frame must be a string")
+        return
+    if utf8_size(frame) > limits["max_serial_frame_bytes"]:
+        errors.append(f"{vector_path}: serial frame exceeds max_serial_frame_bytes")
+    if not frame.startswith(SERIAL_PREFIX):
+        errors.append(f"{vector_path}: serial frame requires nseal1f prefix")
+        return
+    if not frame.endswith("\n"):
+        errors.append(f"{vector_path}: serial frame must end with newline")
+    body = frame[len(SERIAL_PREFIX) :].rstrip("\n")
+    parts = body.split(":")
+    if len(parts) != 3:
+        errors.append(f"{vector_path}: serial frame must contain type, payload, and checksum")
+        return
+    frame_type, payload, checksum = parts
+    if frame_type not in {"request", "response", "error"}:
+        errors.append(f"{vector_path}: serial frame type is unsupported")
+    if not re.fullmatch(r"^[0-9a-f]{16}$", checksum):
+        errors.append(f"{vector_path}: serial checksum must be 16 lowercase hex characters")
+    expected_checksum = serial_checksum(frame_type, payload)
+    if checksum != expected_checksum:
+        errors.append(f"{vector_path}: serial checksum mismatch")
+    decoded = decode_unpadded_base64url(payload, vector_path, "serial frame", errors)
+    if decoded is None:
+        return
+    try:
+        decoded_text = decoded.decode("utf-8")
+    except UnicodeDecodeError:
+        errors.append(f"{vector_path}: serial frame payload must be valid UTF-8")
+        return
+    try:
+        decoded_json = json.loads(decoded_text)
+    except json.JSONDecodeError:
+        errors.append(f"{vector_path}: serial frame payload must be JSON")
+        return
+    if frame_type == "request":
+        check_request_shape(Path(vector_path), decoded_json, errors)
+    elif frame_type == "response":
+        check_response_shape(Path(vector_path), decoded_json, errors)
+
+
+def check_invalid_nip46_payload(vector_path: str, vector: dict, errors: list[str]) -> None:
+    message = check_nip46_request_message(vector_path, vector.get("request_message"), errors)
+    if message is None:
+        return
+    method = message.get("method")
+    if method == "connect":
+        expected_nip46_connect_intent(vector_path, message, errors)
+        return
+    expected_nip46_permission_requirement(vector_path, message, errors)
+
+
+def check_invalid_vector(rel: str, errors: list[str]) -> None:
+    vector_path = f"vectors/invalid/{rel}.json"
+    vector = load_required_json(vector_path, errors)
+    if vector is None:
+        return
+    if vector.get("name") != rel:
+        errors.append(f"{vector_path}: name mismatch")
+    if vector.get("format") != "pre-signing-invalid-vector-v0":
+        errors.append(f"{vector_path}: format mismatch")
+    expected_error = vector.get("expected_error")
+    if not isinstance(expected_error, str) or not expected_error:
+        errors.append(f"{vector_path}: expected_error must be a non-empty string")
+        return
+
+    rejection_errors: list[str] = []
+    category = vector.get("category")
+    if category == "signing-request":
+        check_request_shape(Path(vector_path), vector.get("request"), rejection_errors)
+    elif category == "qr-envelope":
+        check_qr_envelope_payload(vector_path, vector.get("envelope"), rejection_errors)
+    elif category == "serial-frame":
+        check_serial_frame_payload(vector_path, vector.get("frame"), rejection_errors)
+    elif category == "nip46":
+        check_invalid_nip46_payload(vector_path, vector, rejection_errors)
+    elif category == "nip46-policy-file":
+        policy = vector.get("policy_file")
+        if not isinstance(policy, dict):
+            rejection_errors.append(f"{vector_path}: policy_file must be an object")
+        else:
+            if policy.get("format") != "nseal-nip46-policy-v0":
+                rejection_errors.append(f"{vector_path}: format mismatch")
+            approved_permissions = policy.get("approved_permissions")
+            if not isinstance(approved_permissions, list):
+                rejection_errors.append(f"{vector_path}: approved_permissions must be a list")
+            else:
+                for permission in approved_permissions:
+                    normalized_nip46_permission(vector_path, permission, rejection_errors)
+    else:
+        errors.append(f"{vector_path}: unsupported invalid-vector category {category!r}")
+        return
+
+    if not rejection_errors:
+        errors.append(f"{vector_path}: invalid vector unexpectedly passed")
+        return
+    observed = "\n".join(rejection_errors)
+    if expected_error not in observed:
+        errors.append(f"{vector_path}: expected error {expected_error!r} not observed in {observed!r}")
+
+
 def check_nip46_connect_intent(vector_path: str, vector: dict, message: dict, errors: list[str]) -> None:
     expected = expected_nip46_connect_intent(vector_path, message, errors)
     if expected is None:
@@ -719,6 +1017,8 @@ def check_nip46_request_message(vector_path: str, message: object, errors: list[
     if not isinstance(message, dict):
         errors.append(f"{vector_path}: request_message must be an object")
         return None
+    if json_utf8_size(message) > implementation_limit_values()["max_nip46_decrypted_message_json_bytes"]:
+        errors.append(f"{vector_path}: NIP-46 decrypted message JSON exceeds max_nip46_decrypted_message_json_bytes")
     if not isinstance(message.get("id"), str) or not REQUEST_ID_RE.fullmatch(message["id"]):
         errors.append(f"{vector_path}: request_message id is invalid")
     if message.get("method") not in {"connect", "get_public_key", "sign_event", "ping"}:
@@ -750,7 +1050,21 @@ def expected_nip46_permission_requirement(vector_path: str, message: dict, error
         except json.JSONDecodeError:
             errors.append(f"{vector_path}: sign_event param must be valid JSON")
             return None
-        if not isinstance(event_template, dict) or not isinstance(event_template.get("kind"), int):
+        request_errors = request_shape_errors(
+            Path(vector_path),
+            {
+                "version": 1,
+                "request_id": message.get("id"),
+                "method": "sign_event",
+                "params": {
+                    "event_template": event_template,
+                },
+            },
+        )
+        if request_errors:
+            errors.extend(request_errors)
+            return None
+        if not isinstance(event_template, dict) or type(event_template.get("kind")) is not int:
             errors.append(f"{vector_path}: sign_event event kind is invalid")
             return None
         return {
@@ -1027,6 +1341,8 @@ def main() -> int:
     ):
         load_json(f"schemas/{schema}")
 
+    check_implementation_limits(errors)
+
     for path in sorted((ROOT / "examples").glob("request-*.json")):
         check_request_shape(path.relative_to(ROOT), load_json(str(path.relative_to(ROOT))), errors)
 
@@ -1146,6 +1462,9 @@ def main() -> int:
 
     for rel in nip46_policy_file_vector_names():
         check_nip46_policy_file_vector(rel, errors)
+
+    for rel in invalid_vector_names():
+        check_invalid_vector(rel, errors)
 
     qr_request = load_json("examples/request-kind-1-basic.json")
     qr_vector = load_required_json("vectors/transports/qr-envelope-kind-1-basic.json", errors)

@@ -19,10 +19,15 @@ nseal1:<base64url-json>
 2. Decode unpadded base64url payload.
 3. Parse UTF-8 JSON.
 4. Validate the decoded object against the relevant request or response schema.
+5. Enforce the NostrSeal v0 implementation safety profile before review or
+   signing.
+
+Static QR payloads whose decoded JSON exceeds
+`max_static_qr_decoded_json_bytes` are rejected in v0. The base64url payload is
+unpadded; padded payloads are rejected.
 
 ## Security Notes
 
 The QR envelope provides transport framing, not trust. The signer must still
 parse the request, compute the event id, render review where possible, require
 approval, and sign only after approval.
-
