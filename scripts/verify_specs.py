@@ -268,16 +268,36 @@ def request_shape_errors(path: Path, value: dict) -> list[str]:
 
 
 def check_response_shape(path: Path, value: dict, errors: list[str]) -> None:
+    if not isinstance(value, dict):
+        errors.append(f"{path}: response must be an object")
+        return
+    allowed_top_level = {"version", "request_id", "ok"}
+    if value.get("ok") is True:
+        allowed_top_level.add("result")
+    elif value.get("ok") is False:
+        allowed_top_level.add("error")
+    unknown_top_level = sorted(set(value) - allowed_top_level)
+    if unknown_top_level:
+        errors.append(f"{path}: unknown top-level response fields: {unknown_top_level}")
     if value.get("version") != 1:
         errors.append(f"{path}: version must be 1")
     if not isinstance(value.get("request_id"), str) or not value["request_id"]:
         errors.append(f"{path}: request_id must be a non-empty string")
     if value.get("ok") is True:
+        if "error" in value:
+            errors.append(f"{path}: successful response must not include error")
         result = value.get("result")
         if not isinstance(result, dict):
             errors.append(f"{path}: successful response requires result")
             return
-        if "public_key" in result and not HEX32_RE.fullmatch(result["public_key"]):
+        result_fields = {"public_key", "capabilities", "event"} & set(result)
+        unknown_result_fields = sorted(set(result) - {"public_key", "capabilities", "event"})
+        if unknown_result_fields:
+            errors.append(f"{path}: successful response result has unknown fields: {unknown_result_fields}")
+        if len(result_fields) != 1:
+            errors.append(f"{path}: successful response result must contain exactly one result field")
+            return
+        if "public_key" in result and (not isinstance(result["public_key"], str) or not HEX32_RE.fullmatch(result["public_key"])):
             errors.append(f"{path}: public_key must be 32-byte lowercase hex")
         if "capabilities" in result:
             capabilities = result["capabilities"]
@@ -293,16 +313,24 @@ def check_response_shape(path: Path, value: dict, errors: list[str]) -> None:
                 errors.append(f"{path}: requires_physical_approval must be boolean")
         if "event" in result:
             event = result["event"]
+            if not isinstance(event, dict):
+                errors.append(f"{path}: signed event must be an object")
+                return
+            unknown_event_fields = sorted(set(event) - {"id", "pubkey", "created_at", "kind", "tags", "content", "sig"})
+            if unknown_event_fields:
+                errors.append(f"{path}: signed event has unknown fields: {unknown_event_fields}")
             for field in ("id", "pubkey", "created_at", "kind", "tags", "content", "sig"):
                 if field not in event:
                     errors.append(f"{path}: signed event missing {field}")
-            if "id" in event and not HEX32_RE.fullmatch(event["id"]):
+            if "id" in event and (not isinstance(event["id"], str) or not HEX32_RE.fullmatch(event["id"])):
                 errors.append(f"{path}: event id must be 32-byte lowercase hex")
-            if "pubkey" in event and not HEX32_RE.fullmatch(event["pubkey"]):
+            if "pubkey" in event and (not isinstance(event["pubkey"], str) or not HEX32_RE.fullmatch(event["pubkey"])):
                 errors.append(f"{path}: pubkey must be 32-byte lowercase hex")
-            if "sig" in event and not HEX64_RE.fullmatch(event["sig"]):
+            if "sig" in event and (not isinstance(event["sig"], str) or not HEX64_RE.fullmatch(event["sig"])):
                 errors.append(f"{path}: signature must be 64-byte lowercase hex")
     elif value.get("ok") is False:
+        if "result" in value:
+            errors.append(f"{path}: error response must not include result")
         error = value.get("error")
         if not isinstance(error, dict):
             errors.append(f"{path}: error response requires error object")
@@ -310,6 +338,12 @@ def check_response_shape(path: Path, value: dict, errors: list[str]) -> None:
         for field in ("code", "message", "retryable"):
             if field not in error:
                 errors.append(f"{path}: error missing {field}")
+        if "code" in error and not isinstance(error["code"], str):
+            errors.append(f"{path}: error code must be a string")
+        if "message" in error and not isinstance(error["message"], str):
+            errors.append(f"{path}: error message must be a string")
+        if "retryable" in error and not isinstance(error["retryable"], bool):
+            errors.append(f"{path}: error retryable must be boolean")
     else:
         errors.append(f"{path}: ok must be true or false")
 
@@ -880,6 +914,8 @@ def check_invalid_vector(rel: str, errors: list[str]) -> None:
         check_qr_envelope_payload(vector_path, vector.get("envelope"), rejection_errors)
     elif category == "serial-frame":
         check_serial_frame_payload(vector_path, vector.get("frame"), rejection_errors)
+    elif category == "response":
+        check_response_shape(Path(vector_path), vector.get("response"), rejection_errors)
     elif category == "nip46":
         check_invalid_nip46_payload(vector_path, vector, rejection_errors)
     elif category == "nip46-policy-file":

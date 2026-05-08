@@ -67,8 +67,8 @@ fixtures.
   fields.
 - Implementation-limit tests ensure the v0 limit profile is named, documented,
   and consumed by invalid-vector verification.
-- Invalid-vector discovery tests ensure every malicious request, QR envelope,
-  serial frame, invalid device request metadata, NIP-46 payload, and
+- Invalid-vector discovery tests ensure every malicious request, response, QR
+  envelope, serial frame, invalid device request metadata, NIP-46 payload, and
   policy-file vector is included in conformance verification.
 - Invalid-vector semantic tests ensure each committed malicious fixture is
   rejected for its expected deterministic reason, rather than merely being
@@ -96,7 +96,9 @@ policy-review intent, and that every non-`connect` NIP-46 vector has matching
 permission requirements, permission-check decisions, and bridge decisions.
 It also checks that every NIP-46 policy-file vector uses
 `nseal-nip46-policy-v0` and normalized explicit approved permissions.
-It also checks the shared pre-signing hardening vectors so downstream
+It also checks the shared pre-signing hardening vectors, including strict
+response-shape rejection for ambiguous success results, error/result mixing,
+and unknown top-level response fields, so downstream
 implementations get deterministic rejection fixtures before enabling real
 signing or full NIP-46 sessions.
 Those checks are directory-driven: new files under `vectors/invalid/` and the
