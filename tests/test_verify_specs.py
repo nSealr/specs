@@ -111,6 +111,8 @@ class VerifySpecsTests(unittest.TestCase):
                 "serial-frame-checksum-mismatch",
                 "serial-frame-malformed-payload",
                 "serial-frame-oversized",
+                "serial-frame-request-invalid-request-id",
+                "serial-frame-request-invalid-version",
             ],
         )
 

@@ -22,7 +22,7 @@
 - NIP-46 read-only policy-file JSON schema.
 - NostrSeal v0 implementation limit profile for constrained signer safety.
 - Malicious/rejection vectors for unsafe signing requests, QR envelopes, serial
-  frames, NIP-46 payloads, and policy files.
+  frames, invalid device request metadata, NIP-46 payloads, and policy files.
 - JSON schemas.
 - Deterministic Nostr/BIP-340 fixtures.
 
@@ -44,7 +44,8 @@ part of the shared contract.
 - Define named NostrSeal v0 parser and resource limits in one contract.
 - Add shared invalid vectors for event-template signed fields, unsafe integer
   values, oversized content/tags/messages, malformed QR envelopes, malformed
-  serial frames, malformed NIP-46 payloads, and invalid policy files.
+  serial frames, invalid device request metadata, malformed NIP-46 payloads,
+  and invalid policy files.
 - Keep these as NostrSeal implementation safety limits for constrained
   signers, not Nostr protocol limits.
 - Require companion, Raspberry, and ESP32 implementations to consume the
@@ -57,6 +58,11 @@ lab consumers must still enforce or smoke-test the applicable vectors before
 this gate can unblock ESP32 real signing, browser extension/full NIP-46
 sessions, persistent grants, production smartcard claims, or custom
 persistent-secret hardware-wallet claims.
+
+Status note, 2026-05-08: invalid serial-frame vectors now include valid
+transport frames with invalid decoded request metadata for unsupported
+`version` and invalid `request_id` syntax. Device transports must reject these
+before request handling or signing paths.
 
 ## Later
 

@@ -22,7 +22,9 @@ fixtures.
 - NIP-01 event id fixtures match canonical serialization.
 - BIP-340 signatures verify against deterministic test keys.
 - QR envelope roundtrips preserve the request payload exactly.
-- Serial frame vectors preserve the request payload and checksum exactly.
+- Serial frame vectors preserve the request payload and checksum exactly,
+  including valid transport frames whose decoded request metadata must still be
+  rejected before device handling.
 - Device capability vectors preserve request/response payloads and explicit
   safety flags.
 - Device scaffold rejection vectors prove disabled signing returns a protocol
@@ -66,8 +68,8 @@ fixtures.
 - Implementation-limit tests ensure the v0 limit profile is named, documented,
   and consumed by invalid-vector verification.
 - Invalid-vector discovery tests ensure every malicious request, QR envelope,
-  serial frame, NIP-46 payload, and policy-file vector is included in
-  conformance verification.
+  serial frame, invalid device request metadata, NIP-46 payload, and
+  policy-file vector is included in conformance verification.
 - Invalid-vector semantic tests ensure each committed malicious fixture is
   rejected for its expected deterministic reason, rather than merely being
   present in a directory.

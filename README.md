@@ -40,7 +40,8 @@ companion implementation must agree on:
 - Named NostrSeal v0 implementation safety-limit profile for constrained
   signers.
 - Shared malicious/rejection vectors for unsafe signing requests, QR envelopes,
-  serial frames, NIP-46 payloads, and NIP-46 policy files.
+  serial frames, invalid device request metadata, NIP-46 payloads, and NIP-46
+  policy files.
 - Review edge-case vectors for unknown kinds, empty content, long content,
   event references, and high tag counts.
 - Transport, device, review, review-screen, review-display-frame,
