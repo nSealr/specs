@@ -17,7 +17,7 @@ Every response echoes the request version and request id.
         "hardware": "esp32-s3-devkitc-1"
       },
       "protocols": ["nseal.signing.v0", "nseal.serial-frame.v0"],
-      "methods": ["get_capabilities", "get_public_key", "sign_event"],
+      "methods": ["get_capabilities", "get_signing_status", "get_public_key", "sign_event"],
       "transports": ["usb-serial-jtag"],
       "signing_enabled": false,
       "requires_physical_approval": true
@@ -29,6 +29,38 @@ Every response echoes the request version and request id.
 `signing_enabled: false` means the device may advertise the future signing
 method while still rejecting `sign_event` until storage, trusted review, and
 physical approval gates are implemented.
+
+## Successful Signing Status Response
+
+```json
+{
+  "version": 1,
+  "request_id": "req-signing-status-esp32-s3-scaffold",
+  "ok": true,
+  "result": {
+    "signing_status": {
+      "signing_enabled": false,
+      "missing_gates": [
+        "runtime_signing_feature",
+        "parser_limits",
+        "trusted_review_display",
+        "physical_approval_controls",
+        "approval_digest_binding",
+        "key_provisioning",
+        "secure_boot",
+        "flash_encryption",
+        "debug_lock",
+        "companion_signed_output_verification"
+      ]
+    }
+  }
+}
+```
+
+`missing_gates` names the runtime readiness gates that still block real
+`sign_event`. Scaffold devices must keep `signing_enabled: false` until the
+implementation satisfies every gate and the signing feature is intentionally
+enabled.
 
 ## Successful Public Key Response
 

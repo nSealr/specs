@@ -62,6 +62,23 @@ Request:
 }
 ```
 
+### `get_signing_status`
+
+Returns the signer's current real-signing readiness state. This is a
+diagnostic method for companions and test harnesses; it must not be treated as
+permission to sign unless `signing_enabled` is true and every required safety
+gate has been satisfied.
+
+Request:
+
+```json
+{
+  "version": 1,
+  "request_id": "req-signing-status-esp32-s3-scaffold",
+  "method": "get_signing_status"
+}
+```
+
 ### `sign_event`
 
 Signs a Nostr event template. The host must not provide `id`, `pubkey`, or

@@ -29,6 +29,23 @@
         "ok": { "const": true },
         "result": {
           "type": "object",
+          "required": ["signing_status"],
+          "properties": {
+            "signing_status": { "$ref": "#/$defs/signing_status" }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "required": ["version", "request_id", "ok", "result"],
+      "properties": {
+        "version": { "const": 1 },
+        "request_id": { "$ref": "#/$defs/request_id" },
+        "ok": { "const": true },
+        "result": {
+          "type": "object",
           "required": ["public_key"],
           "properties": {
             "public_key": { "$ref": "#/$defs/hex32" }
@@ -96,7 +113,7 @@
         },
         "methods": {
           "type": "array",
-          "items": { "enum": ["get_capabilities", "get_public_key", "sign_event"] },
+          "items": { "enum": ["get_capabilities", "get_signing_status", "get_public_key", "sign_event"] },
           "minItems": 1,
           "uniqueItems": true
         },
@@ -108,6 +125,32 @@
         },
         "signing_enabled": { "type": "boolean" },
         "requires_physical_approval": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    },
+    "signing_status": {
+      "type": "object",
+      "required": ["signing_enabled", "missing_gates"],
+      "properties": {
+        "signing_enabled": { "type": "boolean" },
+        "missing_gates": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "runtime_signing_feature",
+              "parser_limits",
+              "trusted_review_display",
+              "physical_approval_controls",
+              "approval_digest_binding",
+              "key_provisioning",
+              "secure_boot",
+              "flash_encryption",
+              "debug_lock",
+              "companion_signed_output_verification"
+            ]
+          },
+          "uniqueItems": true
+        }
       },
       "additionalProperties": false
     },

@@ -22,6 +22,19 @@ QR_PREFIX = "nseal1:"
 SERIAL_PREFIX = "nseal1f:"
 APDU_HEX_RE = re.compile(r"^[0-9a-f]+$")
 LIMIT_PROFILE = "vectors/limits/nseal-v0.json"
+DEVICE_METHODS = {"get_capabilities", "get_signing_status", "get_public_key", "sign_event"}
+SIGNING_STATUS_GATES = [
+    "runtime_signing_feature",
+    "parser_limits",
+    "trusted_review_display",
+    "physical_approval_controls",
+    "approval_digest_binding",
+    "key_provisioning",
+    "secure_boot",
+    "flash_encryption",
+    "debug_lock",
+    "companion_signed_output_verification",
+]
 
 
 def load_json(rel: str) -> dict:
@@ -190,7 +203,7 @@ def check_request_shape(path: Path, value: object, errors: list[str]) -> None:
     elif len(request_id) > limits["max_request_id_length"]:
         errors.append(f"{path}: request_id exceeds max_request_id_length")
     method = value.get("method")
-    if method not in {"get_capabilities", "get_public_key", "sign_event"}:
+    if method not in DEVICE_METHODS:
         errors.append(f"{path}: unsupported method {method!r}")
         return
     allowed_top_level = {"version", "request_id", "method"}
@@ -201,6 +214,8 @@ def check_request_shape(path: Path, value: object, errors: list[str]) -> None:
         errors.append(f"{path}: unknown top-level fields: {unknown_top_level}")
     if method == "get_capabilities" and "params" in value:
         errors.append(f"{path}: get_capabilities must not include params in v0")
+    if method == "get_signing_status" and "params" in value:
+        errors.append(f"{path}: get_signing_status must not include params in v0")
     if method == "get_public_key" and "params" in value:
         errors.append(f"{path}: get_public_key must not include params in v0")
     if method == "sign_event":
@@ -290,8 +305,8 @@ def check_response_shape(path: Path, value: dict, errors: list[str]) -> None:
         if not isinstance(result, dict):
             errors.append(f"{path}: successful response requires result")
             return
-        result_fields = {"public_key", "capabilities", "event"} & set(result)
-        unknown_result_fields = sorted(set(result) - {"public_key", "capabilities", "event"})
+        result_fields = {"public_key", "capabilities", "signing_status", "event"} & set(result)
+        unknown_result_fields = sorted(set(result) - {"public_key", "capabilities", "signing_status", "event"})
         if unknown_result_fields:
             errors.append(f"{path}: successful response result has unknown fields: {unknown_result_fields}")
         if len(result_fields) != 1:
@@ -311,6 +326,28 @@ def check_response_shape(path: Path, value: dict, errors: list[str]) -> None:
                 errors.append(f"{path}: signing_enabled must be boolean")
             if "requires_physical_approval" in capabilities and not isinstance(capabilities["requires_physical_approval"], bool):
                 errors.append(f"{path}: requires_physical_approval must be boolean")
+            methods = capabilities.get("methods")
+            if isinstance(methods, list):
+                unknown_methods = sorted(set(methods) - DEVICE_METHODS)
+                if unknown_methods:
+                    errors.append(f"{path}: capabilities declare unknown methods: {unknown_methods}")
+        if "signing_status" in result:
+            signing_status = result["signing_status"]
+            if not isinstance(signing_status, dict):
+                errors.append(f"{path}: signing_status must be an object")
+                return
+            unknown_status_fields = sorted(set(signing_status) - {"signing_enabled", "missing_gates"})
+            if unknown_status_fields:
+                errors.append(f"{path}: signing_status has unknown fields: {unknown_status_fields}")
+            if not isinstance(signing_status.get("signing_enabled"), bool):
+                errors.append(f"{path}: signing_status.signing_enabled must be boolean")
+            missing_gates = signing_status.get("missing_gates")
+            if not isinstance(missing_gates, list):
+                errors.append(f"{path}: signing_status.missing_gates must be an array")
+            else:
+                for gate in missing_gates:
+                    if gate not in SIGNING_STATUS_GATES:
+                        errors.append(f"{path}: signing_status.missing_gates contains unknown gate {gate!r}")
         if "event" in result:
             event = result["event"]
             if not isinstance(event, dict):
@@ -1393,6 +1430,9 @@ def main() -> int:
     capability_request = load_required_json("examples/request-get-capabilities.json", errors)
     capability_response = load_required_json("examples/response-get-capabilities-esp32-s3-scaffold.json", errors)
     capability_vector = load_required_json("vectors/devices/esp32-s3-capabilities-scaffold.json", errors)
+    signing_status_request = load_required_json("examples/request-get-signing-status.json", errors)
+    signing_status_response = load_required_json("examples/response-get-signing-status-esp32-s3-scaffold.json", errors)
+    signing_status_vector = load_required_json("vectors/devices/esp32-s3-signing-status-disabled.json", errors)
     public_key_request = load_required_json("examples/request-get-public-key.json", errors)
     public_key_response = load_required_json("examples/response-get-public-key.json", errors)
     public_key_vector = load_required_json("vectors/devices/esp32-s3-get-public-key-dev.json", errors)
@@ -1411,11 +1451,29 @@ def main() -> int:
             errors.append("examples/response-get-capabilities-esp32-s3-scaffold.json: physical approval must be required")
         if "sign_event" not in capabilities.get("methods", []):
             errors.append("examples/response-get-capabilities-esp32-s3-scaffold.json: sign_event capability must be declared")
+        if "get_signing_status" not in capabilities.get("methods", []):
+            errors.append("examples/response-get-capabilities-esp32-s3-scaffold.json: get_signing_status capability must be declared")
     if capability_vector is not None and capability_request is not None and capability_response is not None:
         if capability_vector.get("request") != capability_request:
             errors.append("vectors/devices/esp32-s3-capabilities-scaffold.json: request mismatch")
         if capability_vector.get("response") != capability_response:
             errors.append("vectors/devices/esp32-s3-capabilities-scaffold.json: response mismatch")
+    if signing_status_request is not None:
+        if signing_status_request.get("method") != "get_signing_status":
+            errors.append("examples/request-get-signing-status.json: method must be get_signing_status")
+    if signing_status_request is not None and signing_status_response is not None:
+        if signing_status_response.get("request_id") != signing_status_request.get("request_id"):
+            errors.append("examples/response-get-signing-status-esp32-s3-scaffold.json: request_id mismatch")
+        signing_status = signing_status_response.get("result", {}).get("signing_status", {})
+        if signing_status.get("signing_enabled") is not False:
+            errors.append("examples/response-get-signing-status-esp32-s3-scaffold.json: scaffold signing must be disabled")
+        if signing_status.get("missing_gates") != SIGNING_STATUS_GATES:
+            errors.append("examples/response-get-signing-status-esp32-s3-scaffold.json: missing gate list mismatch")
+    if signing_status_vector is not None and signing_status_request is not None and signing_status_response is not None:
+        if signing_status_vector.get("request") != signing_status_request:
+            errors.append("vectors/devices/esp32-s3-signing-status-disabled.json: request mismatch")
+        if signing_status_vector.get("response") != signing_status_response:
+            errors.append("vectors/devices/esp32-s3-signing-status-disabled.json: response mismatch")
     if public_key_request is not None:
         if public_key_request.get("method") != "get_public_key":
             errors.append("examples/request-get-public-key.json: method must be get_public_key")
