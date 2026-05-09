@@ -42,10 +42,8 @@ physical approval gates are implemented.
       "signing_enabled": false,
       "missing_gates": [
         "runtime_signing_feature",
-        "parser_limits",
         "trusted_review_display",
         "physical_approval_controls",
-        "approval_digest_binding",
         "key_provisioning",
         "secure_boot",
         "flash_encryption",
@@ -58,8 +56,10 @@ physical approval gates are implemented.
 ```
 
 `missing_gates` names the runtime readiness gates that still block real
-`sign_event`. Scaffold devices must keep `signing_enabled: false` until the
-implementation satisfies every gate and the signing feature is intentionally
+`sign_event` for that device profile. The ESP32-S3 scaffold omits
+`parser_limits` and `approval_digest_binding` because those host-core gates are
+already implemented and tested, but it must keep `signing_enabled: false` until
+the remaining gates are satisfied and the signing feature is intentionally
 enabled.
 
 ## Successful Public Key Response

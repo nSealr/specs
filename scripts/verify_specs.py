@@ -35,6 +35,16 @@ SIGNING_STATUS_GATES = [
     "debug_lock",
     "companion_signed_output_verification",
 ]
+ESP32_S3_SCAFFOLD_MISSING_SIGNING_GATES = [
+    "runtime_signing_feature",
+    "trusted_review_display",
+    "physical_approval_controls",
+    "key_provisioning",
+    "secure_boot",
+    "flash_encryption",
+    "debug_lock",
+    "companion_signed_output_verification",
+]
 
 
 def load_json(rel: str) -> dict:
@@ -1467,7 +1477,7 @@ def main() -> int:
         signing_status = signing_status_response.get("result", {}).get("signing_status", {})
         if signing_status.get("signing_enabled") is not False:
             errors.append("examples/response-get-signing-status-esp32-s3-scaffold.json: scaffold signing must be disabled")
-        if signing_status.get("missing_gates") != SIGNING_STATUS_GATES:
+        if signing_status.get("missing_gates") != ESP32_S3_SCAFFOLD_MISSING_SIGNING_GATES:
             errors.append("examples/response-get-signing-status-esp32-s3-scaffold.json: missing gate list mismatch")
     if signing_status_vector is not None and signing_status_request is not None and signing_status_response is not None:
         if signing_status_vector.get("request") != signing_status_request:
