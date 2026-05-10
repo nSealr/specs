@@ -396,47 +396,17 @@ def check_response_shape(path: Path, value: dict, errors: list[str]) -> None:
 
 
 def expected_review(template: dict) -> dict:
-    kind_names = {
-        0: "Metadata",
-        1: "Short Text Note",
-        3: "Contacts",
-        6: "Repost",
-        7: "Reaction",
-        9735: "Zap Receipt",
-    }
+    author_pubkey = load_required_json("vectors/keys/test-key-1.json", [])["public_key"]
     content = template["content"]
     tags = template["tags"]
-    tag_summary = []
-    for tag in tags:
-        if not tag:
-            continue
-        name = tag[0]
-        value = tag[1] if len(tag) > 1 else ""
-        if len(value) > 8 and name in {"p", "e"}:
-            value = f"{value[:8]}..."
-        tag_summary.append(f"{name}: {value}" if value else name)
-    warnings = []
-    if template["kind"] not in kind_names:
-        warnings.append("Unknown event kind.")
-    if len(content) > 280:
-        warnings.append("Long content.")
-    if not content:
-        warnings.append("Empty content.")
-    if any(tag and tag[0] == "p" for tag in tags):
-        warnings.append("Event includes pubkey mentions.")
-    if any(tag and tag[0] == "e" for tag in tags):
-        warnings.append("Event references other events.")
-    if len(tags) > 8:
-        warnings.append("Many tags.")
     return {
         "kind": template["kind"],
-        "kind_name": kind_names.get(template["kind"], "Unknown"),
         "created_at": template["created_at"],
-        "content_preview": content if len(content) <= 120 else f"{content[:120]}...",
-        "content_length": len(content),
+        "author_pubkey": author_pubkey,
+        "content": content,
+        "content_utf8_bytes": len(content.encode("utf-8")),
         "tag_count": len(tags),
-        "tag_summary": tag_summary,
-        "warnings": warnings,
+        "tags": tags,
     }
 
 
@@ -466,19 +436,20 @@ def check_review_vector(rel: str, errors: list[str]) -> None:
 
 
 def expected_review_pages(review: dict) -> list[dict]:
-    pages = [
+    return [
         {
             "title": "Event",
             "lines": [
                 f"Kind {review['kind']}",
-                str(review["kind_name"]),
                 f"Created {review['created_at']}",
+                "Author",
+                str(review["author_pubkey"]),
             ],
             "action": "next",
         },
         {
             "title": "Content",
-            "lines": [str(review["content_preview"])],
+            "lines": [str(review["content"])],
             "action": "next",
         },
         {
@@ -486,32 +457,26 @@ def expected_review_pages(review: dict) -> list[dict]:
             "lines": expected_tag_page_lines(review),
             "action": "next",
         },
+        {
+            "title": "Decision",
+            "lines": ["Approve signing only if all pages match."],
+            "action": "approve_or_reject",
+        },
     ]
-    if review["warnings"]:
-        pages.append(
-            {
-                "title": "Warnings",
-                "lines": [str(warning) for warning in review["warnings"]],
-                "action": "approve_or_reject",
-            }
-        )
-    else:
-        pages.append(
-            {
-                "title": "Decision",
-                "lines": ["Approve signing only if all pages match."],
-                "action": "approve_or_reject",
-            }
-        )
-    return pages
 
 
 def expected_tag_page_lines(review: dict) -> list[str]:
     tag_count = review["tag_count"]
     if tag_count == 0:
         return ["No tags"]
-    label = "1 tag" if tag_count == 1 else f"{tag_count} tags"
-    return [label, *[str(item) for item in review["tag_summary"]]]
+    lines = []
+    for index, tag in enumerate(review["tags"], start=1):
+        lines.append(f"Tag {index}/{tag_count}")
+        if tag:
+            lines.extend(str(item) for item in tag)
+        else:
+            lines.append("empty tag")
+    return lines
 
 
 def approval_digest_for_screen_review(request: dict, review: dict, pages: list[dict]) -> str:
