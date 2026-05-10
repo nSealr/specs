@@ -48,6 +48,13 @@ fixtures.
 - Review display-frame vector discovery tests ensure every
   `vectors/review-display-frames/*.json` file is included in conformance
   verification.
+- Review detail-page vectors preserve complete physical Event/Content/Tags/
+  Decision pages for constrained displays, including scroll-window indicators,
+  compact body-line styles, long tag continuation indentation, and explicit
+  codepoint fallback for unsupported glyphs.
+- Review detail-page vector discovery tests ensure every
+  `vectors/review-detail-pages/*.json` file is included in conformance
+  verification.
 - QR review transcript vectors preserve the raw QR envelope, source request,
   approval digest, displayed frame before each physical-style input, terminal
   decision, and approval-gate state.
@@ -94,6 +101,9 @@ It also checks that every review-screen vector matches the deterministic page
 model and approval-digest calculation used by signer approval flows.
 It also checks that every review display-frame vector matches deterministic
 bounded rendering for the selected source review page and display limits.
+It also checks that every review detail-page vector matches deterministic
+complete physical review pages while keeping the `screen-pages`
+`approval_digest` unchanged.
 It also checks that every review-transcript vector matches the deterministic
 frame/button/decision sequence expected from QR signer review adapters.
 It also checks that every NIP-46 decrypted payload vector maps to the expected
@@ -107,8 +117,9 @@ response-shape rejection for ambiguous success results, error/result mixing,
 and unknown top-level response fields, so downstream
 implementations get deterministic rejection fixtures before enabling real
 signing or full NIP-46 sessions.
-Those checks are directory-driven: new files under `vectors/invalid/` and the
-single profile under `vectors/limits/` are picked up by tests and
+Those checks are directory-driven: new files under `vectors/invalid/`,
+`vectors/review-detail-pages/`, and the single profile under `vectors/limits/`
+are picked up by tests and
 `scripts/verify_specs.py` without hardcoding individual vector filenames in the
 verifier.
 

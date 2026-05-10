@@ -524,6 +524,10 @@ def review_display_frame_vector_names() -> list[str]:
     return sorted(path.stem for path in (ROOT / "vectors" / "review-display-frames").glob("*.json"))
 
 
+def review_detail_page_vector_names() -> list[str]:
+    return sorted(path.stem for path in (ROOT / "vectors" / "review-detail-pages").glob("*.json"))
+
+
 def review_transcript_vector_names() -> list[str]:
     return sorted(path.stem for path in (ROOT / "vectors" / "review-transcripts").glob("*.json"))
 
@@ -671,6 +675,227 @@ def check_review_display_frame_vector(rel: str, errors: list[str]) -> None:
     expected = display_frame_for_page(pages[page_index], page_index, len(pages), limits)
     if vector.get("frame") != expected:
         errors.append(f"{vector_path}: frame mismatch")
+
+
+DISPLAY_SAFE_ASCII = set(
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    "abcdefghijklmnopqrstuvwxyz"
+    "0123456789"
+    " !\"#$%&'()*+,-./:;<=>?@[\\]_{|}~"
+)
+
+
+def display_safe_text(text: str) -> str:
+    out = []
+    for char in text:
+        codepoint = ord(char)
+        if codepoint <= 0x7f and char in DISPLAY_SAFE_ASCII:
+            out.append(char)
+        else:
+            out.append(f"U+{codepoint:04X}")
+    return "".join(out)
+
+
+def split_exact_display_lines(text: str, width: int) -> list[str]:
+    if text == "":
+        return [""]
+    return [text[index:index + width] for index in range(0, len(text), width)]
+
+
+def append_detail_value_lines(lines: list[str], styles: list[str], value: str, width: int) -> None:
+    for line in split_exact_display_lines(value, width):
+        lines.append(line)
+        styles.append("value")
+
+
+def append_detail_tag_item_lines(lines: list[str], styles: list[str], value: str, width: int) -> None:
+    if value == "":
+        return
+    safe_value = display_safe_text(value)
+    continuation_indent = "  "
+    continuation_width = width - len(continuation_indent) if width > len(continuation_indent) else width
+    position = 0
+    first_line = True
+    while position < len(safe_value):
+        line_width = width if first_line else continuation_width
+        line = safe_value[position:position + line_width]
+        if not first_line and width > len(continuation_indent):
+            line = continuation_indent + line
+        lines.append(line)
+        styles.append("value")
+        position += line_width
+        first_line = False
+
+
+def detail_event_lines(review: dict, limits: dict) -> tuple[list[str], list[str]]:
+    lines = [
+        f"Kind {review['kind']}",
+        f"Created {review['created_at']}",
+        "Author",
+    ]
+    styles = ["meta", "meta", "meta"]
+    append_detail_tag_item_lines(lines, styles, str(review["author_pubkey"]), limits["max_compact_line_chars"])
+    return lines, styles
+
+
+def detail_content_lines(review: dict, limits: dict) -> tuple[list[str], list[str]]:
+    content = str(review["content"])
+    if content == "":
+        return ["empty content"], ["meta"]
+    safe_content = display_safe_text(content)
+    if len(safe_content) <= limits["max_compact_line_chars"]:
+        return [safe_content], ["normal"]
+    lines = [f"bytes: {utf8_size(content)}"]
+    styles = ["meta"]
+    append_detail_value_lines(lines, styles, safe_content, limits["max_compact_line_chars"])
+    return lines, styles
+
+
+def detail_tag_lines(review: dict, limits: dict) -> tuple[list[str], list[str]]:
+    tags = review["tags"]
+    if not tags:
+        return ["No tags"], ["normal"]
+    lines: list[str] = []
+    styles: list[str] = []
+    for tag_index, tag in enumerate(tags, start=1):
+        lines.append(f"Tag {tag_index}/{len(tags)}")
+        styles.append("meta")
+        if tag:
+            for item in tag:
+                append_detail_tag_item_lines(lines, styles, str(item), limits["max_compact_line_chars"])
+        else:
+            lines.append("empty tag")
+            styles.append("value")
+    return lines, styles
+
+
+def detail_page_indicator(
+    page_index: int,
+    page_count: int,
+    first_line: int,
+    last_line: int,
+    line_count: int,
+) -> str:
+    base = f"Page {page_index}/{page_count}"
+    if line_count == 0 or (first_line == 1 and last_line >= line_count):
+        return base
+    return f"{base} Lines {first_line}-{last_line}/{line_count}"
+
+
+def append_detail_pages(
+    pages: list[dict],
+    title: str,
+    lines: list[str],
+    styles: list[str],
+    limits: dict,
+    logical_page_index: int,
+    logical_page_count: int,
+) -> None:
+    lines_per_screen = limits["max_compact_body_lines"] if styles else limits["max_body_lines"]
+    total = len(lines) if lines else 1
+    position = 0
+    while position < total:
+        first_position = position
+        body_lines: list[str] = []
+        body_styles: list[str] = []
+        for _ in range(lines_per_screen):
+            if position >= len(lines):
+                break
+            body_lines.append(lines[position])
+            body_styles.append(styles[position] if position < len(styles) else "normal")
+            position += 1
+        if not body_lines:
+            body_lines = [""]
+            body_styles = ["normal"]
+            position = total
+        pages.append(
+            {
+                "title": title,
+                "lines": body_lines,
+                "action": "next",
+                "page_indicator": detail_page_indicator(
+                    logical_page_index,
+                    logical_page_count,
+                    first_position + 1,
+                    position,
+                    total,
+                ),
+                "body_line_styles": body_styles,
+                "logical_page_id": title,
+            }
+        )
+        if position >= total:
+            break
+
+
+def expected_review_detail_pages(review: dict, limits: dict) -> list[dict]:
+    pages: list[dict] = []
+    append_detail_pages(pages, "Event", *detail_event_lines(review, limits), limits, 1, 4)
+    append_detail_pages(pages, "Content", *detail_content_lines(review, limits), limits, 2, 4)
+    append_detail_pages(pages, "Tags", *detail_tag_lines(review, limits), limits, 3, 4)
+    pages.append(
+        {
+            "title": "Decision",
+            "lines": ["Approve signing only if all pages match."],
+            "action": "approve_or_reject",
+            "page_indicator": "Page 4/4",
+            "body_line_styles": [],
+            "logical_page_id": "Decision",
+        }
+    )
+    return pages
+
+
+def check_review_detail_page_vector(rel: str, errors: list[str]) -> None:
+    vector_path = f"vectors/review-detail-pages/{rel}.json"
+    vector = load_required_json(vector_path, errors)
+    if vector is None:
+        return
+    if vector.get("name") != rel:
+        errors.append(f"{vector_path}: name mismatch")
+    if vector.get("format") != "review-detail-pages-v0":
+        errors.append(f"{vector_path}: format mismatch")
+    if vector.get("display_profile") != "ascii-safe-codepoint-fallback-v0":
+        errors.append(f"{vector_path}: display_profile mismatch")
+
+    source_name = vector.get("source_review_vector")
+    if not isinstance(source_name, str):
+        errors.append(f"{vector_path}: source_review_vector must be a string")
+        return
+    source = load_required_json(f"vectors/review/{source_name}.json", errors)
+    if source is None:
+        return
+    review = source.get("review")
+    if not isinstance(review, dict):
+        errors.append(f"{vector_path}: source review must be an object")
+        return
+
+    expected_screen = expected_screen_review(source["request"])
+    screen_name = vector.get("source_screen_review_vector")
+    if screen_name is not None:
+        if not isinstance(screen_name, str):
+            errors.append(f"{vector_path}: source_screen_review_vector must be a string")
+            return
+        screen = load_required_json(f"vectors/review-screens/{screen_name}.json", errors)
+        if screen is None:
+            return
+        if screen.get("screen_review") != expected_screen:
+            errors.append(f"{vector_path}: source_screen_review_vector mismatch")
+    if vector.get("approval_digest") != expected_screen.get("approval_digest"):
+        errors.append(f"{vector_path}: approval_digest mismatch")
+
+    limits = check_display_limits(vector_path, vector.get("limits"), errors)
+    if limits is None:
+        return
+    for field in ("max_compact_body_lines", "max_compact_line_chars"):
+        if not isinstance(vector["limits"].get(field), int) or vector["limits"][field] <= 0:
+            errors.append(f"{vector_path}: limits must contain positive integer compact display bounds")
+            return
+        limits[field] = vector["limits"][field]
+
+    expected = expected_review_detail_pages(review, limits)
+    if vector.get("pages") != expected:
+        errors.append(f"{vector_path}: pages mismatch")
 
 
 def expected_review_transcript(screen_review: dict, buttons: list[str], errors: list[str], rel: str) -> list[dict]:
@@ -1537,6 +1762,9 @@ def main() -> int:
 
     for rel in review_display_frame_vector_names():
         check_review_display_frame_vector(rel, errors)
+
+    for rel in review_detail_page_vector_names():
+        check_review_detail_page_vector(rel, errors)
 
     for rel in review_transcript_vector_names():
         check_review_transcript_vector(rel, errors)

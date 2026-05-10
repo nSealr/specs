@@ -11,6 +11,8 @@
 - Capability discovery and disabled-signing request/response vectors for
   scaffolded direct devices.
 - Trusted review and review-screen vectors for display-oriented approval flows.
+- Trusted review detail-page vectors for complete constrained-display review
+  pages without changing the approval-digest contract.
 - QR review transcript vectors for display/button adapter acceptance tests.
 - NIP-46 decrypted payload bridge and `connect` policy-review intent vectors
   for companion conformance tests.
@@ -33,7 +35,8 @@ bridge vectors, NIP-46 `connect` policy-review intent vector, explicit
 NIP-46 permission policy vectors, NIP-46 bridge decision vectors, and
 read-only NIP-46 policy-file vector/schema are implemented. The v0
 implementation limit profile and initial malicious/rejection vectors are now
-part of the shared contract.
+part of the shared contract. Initial review detail-page vectors are also
+implemented for T-Display S3 sized constrained-display conformance.
 
 ## M3: Transport Contracts
 

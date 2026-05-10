@@ -29,6 +29,9 @@ companion implementation must agree on:
   display-oriented signer approval flows.
 - Trusted review display-frame vectors with explicit display limits for bounded
   title/body/action rendering on small screens.
+- Trusted review detail-page vectors with complete Event/Content/Tags/Decision
+  physical pages, scroll-window indicators, compact line styles, and explicit
+  codepoint fallback for constrained bitmap displays.
 - QR review transcript vectors that bind raw QR input, displayed frames,
   physical-style button sequences, terminal decisions, and approval-gate state.
 - NIP-46 decrypted payload bridge vectors for `get_public_key`, `sign_event`,
@@ -45,8 +48,9 @@ companion implementation must agree on:
 - Review edge-case vectors for unknown kinds, empty content, long content,
   event references, and high tag counts.
 - Transport, device, review, review-screen, review-display-frame,
-  review-transcript, NIP-46, NIP-46 policy-file, invalid-vector, limit-profile,
-  and smartcard vectors shared by implementation repositories.
+  review-detail-page, review-transcript, NIP-46, NIP-46 policy-file,
+  invalid-vector, limit-profile, and smartcard vectors shared by implementation
+  repositories.
 
 ## Initial Layout
 

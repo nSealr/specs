@@ -5,6 +5,7 @@ from pathlib import Path
 import unittest
 
 from scripts.verify_specs import (
+    check_review_detail_page_vector,
     check_nip46_bridge_decisions,
     check_nip46_policy_file_vector,
     check_invalid_vector,
@@ -14,6 +15,7 @@ from scripts.verify_specs import (
     load_json,
     nip46_policy_file_vector_names,
     nip46_vector_names,
+    review_detail_page_vector_names,
     review_display_frame_vector_names,
     review_screen_vector_names,
     review_transcript_vector_names,
@@ -48,6 +50,22 @@ class VerifySpecsTests(unittest.TestCase):
         self.assertEqual(names, vector_names_from_dir("vectors/review-display-frames"))
         self.assertIn("kind-1-long-content-page-1-20x3", names)
         self.assertIn("kind-1-unicode-boundary-content-4x3", names)
+
+    def test_review_detail_page_vector_names_are_discovered_from_directory(self) -> None:
+        names = review_detail_page_vector_names()
+
+        self.assertEqual(names, vector_names_from_dir("vectors/review-detail-pages"))
+        self.assertIn("kind-1-long-events-many-tags-t-display-s3", names)
+        self.assertIn("kind-1-tags-t-display-s3", names)
+        self.assertIn("kind-1-unicode-boundary-t-display-s3", names)
+
+    def test_review_detail_page_vectors_validate_complete_display_pages(self) -> None:
+        for name in review_detail_page_vector_names():
+            errors: list[str] = []
+
+            check_review_detail_page_vector(name, errors)
+
+            self.assertEqual(errors, [], name)
 
     def test_review_transcript_vector_names_are_discovered_from_directory(self) -> None:
         names = review_transcript_vector_names()
