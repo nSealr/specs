@@ -29,8 +29,10 @@ fixtures.
   safety flags.
 - Device scaffold rejection vectors prove disabled signing returns a protocol
   error instead of a transport error.
-- Trusted review vectors preserve event kind, content preview, tag summary, and
-  warning semantics for display-oriented signers.
+- Trusted review vectors preserve raw event kind, created_at, signer author
+  pubkey, complete content, complete structured tags, and final decision
+  semantics for display-oriented signers. They do not encode inferred kind
+  labels, abbreviated tag summaries, or heuristic warning pages.
 - Review vector discovery tests ensure every `vectors/review/*.json` file is
   included in conformance verification instead of relying on a fixed list.
 - Review-screen vectors preserve rendered page order, final approve/reject
