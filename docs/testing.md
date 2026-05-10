@@ -29,6 +29,9 @@ fixtures.
   safety flags.
 - Device scaffold rejection vectors prove disabled signing returns a protocol
   error instead of a transport error.
+- Signing-status vectors preserve both `missing_gates` and
+  `development_accepted_gates` so device diagnostics can report development
+  evidence without turning it into a production signing claim.
 - Trusted review vectors preserve raw event kind, created_at, signer author
   pubkey, complete content, complete structured tags, and final decision
   semantics for display-oriented signers. They do not encode inferred kind

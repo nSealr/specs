@@ -6,6 +6,9 @@ signer implementation.
 ## Responsibilities
 
 - Define signing request and response formats.
+- Define signing-status diagnostics, including the distinction between missing
+  real-signing gates and development-accepted gates that have deterministic
+  coverage or manual development evidence but are not production claims.
 - Define error formats and capability discovery.
 - Define QR, serial, USB, and smartcard envelope semantics before
   implementation repositories depend on them.

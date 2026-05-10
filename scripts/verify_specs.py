@@ -45,6 +45,12 @@ ESP32_S3_SCAFFOLD_MISSING_SIGNING_GATES = [
     "debug_lock",
     "companion_signed_output_verification",
 ]
+ESP32_S3_SCAFFOLD_DEVELOPMENT_ACCEPTED_SIGNING_GATES = [
+    "parser_limits",
+    "trusted_review_display",
+    "physical_approval_controls",
+    "approval_digest_binding",
+]
 
 
 def load_json(rel: str) -> dict:
@@ -346,7 +352,7 @@ def check_response_shape(path: Path, value: dict, errors: list[str]) -> None:
             if not isinstance(signing_status, dict):
                 errors.append(f"{path}: signing_status must be an object")
                 return
-            unknown_status_fields = sorted(set(signing_status) - {"signing_enabled", "missing_gates"})
+            unknown_status_fields = sorted(set(signing_status) - {"signing_enabled", "missing_gates", "development_accepted_gates"})
             if unknown_status_fields:
                 errors.append(f"{path}: signing_status has unknown fields: {unknown_status_fields}")
             if not isinstance(signing_status.get("signing_enabled"), bool):
@@ -358,6 +364,13 @@ def check_response_shape(path: Path, value: dict, errors: list[str]) -> None:
                 for gate in missing_gates:
                     if gate not in SIGNING_STATUS_GATES:
                         errors.append(f"{path}: signing_status.missing_gates contains unknown gate {gate!r}")
+            accepted_gates = signing_status.get("development_accepted_gates")
+            if not isinstance(accepted_gates, list):
+                errors.append(f"{path}: signing_status.development_accepted_gates must be an array")
+            else:
+                for gate in accepted_gates:
+                    if gate not in SIGNING_STATUS_GATES:
+                        errors.append(f"{path}: signing_status.development_accepted_gates contains unknown gate {gate!r}")
         if "event" in result:
             event = result["event"]
             if not isinstance(event, dict):
@@ -1444,6 +1457,8 @@ def main() -> int:
             errors.append("examples/response-get-signing-status-esp32-s3-scaffold.json: scaffold signing must be disabled")
         if signing_status.get("missing_gates") != ESP32_S3_SCAFFOLD_MISSING_SIGNING_GATES:
             errors.append("examples/response-get-signing-status-esp32-s3-scaffold.json: missing gate list mismatch")
+        if signing_status.get("development_accepted_gates") != ESP32_S3_SCAFFOLD_DEVELOPMENT_ACCEPTED_SIGNING_GATES:
+            errors.append("examples/response-get-signing-status-esp32-s3-scaffold.json: development accepted gate list mismatch")
     if signing_status_vector is not None and signing_status_request is not None and signing_status_response is not None:
         if signing_status_vector.get("request") != signing_status_request:
             errors.append("vectors/devices/esp32-s3-signing-status-disabled.json: request mismatch")

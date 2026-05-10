@@ -49,6 +49,12 @@ physical approval gates are implemented.
         "flash_encryption",
         "debug_lock",
         "companion_signed_output_verification"
+      ],
+      "development_accepted_gates": [
+        "parser_limits",
+        "trusted_review_display",
+        "physical_approval_controls",
+        "approval_digest_binding"
       ]
     }
   }
@@ -61,6 +67,12 @@ physical approval gates are implemented.
 already implemented and tested, but it must keep `signing_enabled: false` until
 the remaining gates are satisfied and the signing feature is intentionally
 enabled.
+
+`development_accepted_gates` names gates with deterministic implementation
+coverage or manual development evidence in the current scaffold. It is not a
+production security claim. A gate may appear in both `development_accepted_gates`
+and `missing_gates` when the current board has development acceptance evidence
+but production acceptance, provisioning, or hardening is still incomplete.
 
 ## Successful Public Key Response
 
