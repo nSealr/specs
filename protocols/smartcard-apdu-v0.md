@@ -29,6 +29,13 @@ trusted display surface before sending a digest to a card.
 - Response data: 64-byte BIP-340 Schnorr signature.
 - Success status word: `0x9000`.
 
+## Status Words
+
+- `0x9000`: command accepted.
+- `0x6700`: wrong command data length.
+- `0x6D00`: instruction not supported by this APDU profile.
+- `0x6E00`: command class not supported by this APDU profile.
+
 ## Security Notes
 
 This APDU profile can protect key material, but it cannot provide trusted event

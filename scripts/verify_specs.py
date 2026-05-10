@@ -541,6 +541,10 @@ def nip46_policy_file_vector_names() -> list[str]:
     return sorted(path.stem for path in (ROOT / "vectors" / "nip46-policy-files").glob("*.json"))
 
 
+def smartcard_apdu_vector_names() -> list[str]:
+    return sorted(path.stem for path in (ROOT / "vectors" / "smartcard").glob("*.json"))
+
+
 def invalid_vector_names() -> list[str]:
     return sorted(path.stem for path in (ROOT / "vectors" / "invalid").glob("*.json"))
 
@@ -1650,6 +1654,97 @@ def check_nip46_vector(rel: str, errors: list[str]) -> None:
             errors.append(f"{vector_path}: signed-event result mismatch")
 
 
+SMARTCARD_APDU_EXPECTATIONS = {
+    "get-public-key": {
+        "cla": "80",
+        "ins": "10",
+        "command_hex": "80100000",
+        "status_word": "9000",
+        "response_data_hex": lambda: load_json("vectors/keys/test-key-1.json")["public_key"],
+    },
+    "sign-event-id-kind-1-basic": {
+        "cla": "80",
+        "ins": "20",
+        "command_hex": lambda: f"8020000020{load_json('vectors/events/kind-1-basic.json')['event_id']}",
+        "status_word": "9000",
+        "expected_data_length": 64,
+    },
+    "sign-event-id-wrong-length": {
+        "cla": "80",
+        "ins": "20",
+        "command_hex": "8020000001ff",
+        "status_word": "6700",
+        "response_hex": "6700",
+    },
+    "unsupported-cla": {
+        "cla": "00",
+        "ins": "10",
+        "command_hex": "00100000",
+        "status_word": "6e00",
+        "response_hex": "6e00",
+    },
+    "unsupported-ins": {
+        "cla": "80",
+        "ins": "ff",
+        "command_hex": "80ff0000",
+        "status_word": "6d00",
+        "response_hex": "6d00",
+    },
+}
+
+
+def expected_apdu_value(value: object) -> object:
+    if callable(value):
+        return value()
+    return value
+
+
+def apdu_vector_status_word(vector: dict) -> str | None:
+    status = vector.get("expected_status_word", vector.get("status_word"))
+    return status if isinstance(status, str) else None
+
+
+def check_smartcard_apdu_vector(rel: str, errors: list[str]) -> None:
+    vector_path = f"vectors/smartcard/{rel}.json"
+    vector = load_required_json(vector_path, errors)
+    if vector is None:
+        return
+    expectation = SMARTCARD_APDU_EXPECTATIONS.get(rel)
+    if expectation is None:
+        errors.append(f"{vector_path}: unexpected smartcard APDU vector")
+        return
+
+    if vector.get("name") != rel:
+        errors.append(f"{vector_path}: name mismatch")
+    if vector.get("format") != "smartcard-apdu-v0":
+        errors.append(f"{vector_path}: format mismatch")
+    for field in ("cla", "ins", "command_hex"):
+        expected = expected_apdu_value(expectation[field])
+        if vector.get(field) != expected:
+            errors.append(f"{vector_path}: {field} mismatch")
+
+    command_hex = vector.get("command_hex", "")
+    if not isinstance(command_hex, str) or len(command_hex) % 2 != 0 or not APDU_HEX_RE.fullmatch(command_hex):
+        errors.append(f"{vector_path}: command_hex must be even-length lowercase hex")
+
+    expected_status = expected_apdu_value(expectation["status_word"])
+    if apdu_vector_status_word(vector) != expected_status:
+        errors.append(f"{vector_path}: status word mismatch")
+
+    if "response_data_hex" in expectation:
+        expected_response_data = expected_apdu_value(expectation["response_data_hex"])
+        if vector.get("response_data_hex") != expected_response_data:
+            errors.append(f"{vector_path}: response_data_hex mismatch")
+        expected_response_hex = f"{expected_response_data}{expected_status}"
+        if vector.get("response_hex") != expected_response_hex:
+            errors.append(f"{vector_path}: response_hex mismatch")
+    elif "response_hex" in expectation and vector.get("response_hex") != expectation["response_hex"]:
+        errors.append(f"{vector_path}: response_hex mismatch")
+
+    if "expected_data_length" in expectation and vector.get("expected_data_length") != expectation["expected_data_length"]:
+        errors.append(f"{vector_path}: expected_data_length mismatch")
+
+
 def main() -> int:
     errors: list[str] = []
 
@@ -1809,6 +1904,9 @@ def main() -> int:
     for rel in nip46_policy_file_vector_names():
         check_nip46_policy_file_vector(rel, errors)
 
+    for rel in smartcard_apdu_vector_names():
+        check_smartcard_apdu_vector(rel, errors)
+
     for rel in invalid_vector_names():
         check_invalid_vector(rel, errors)
 
@@ -1836,26 +1934,6 @@ def main() -> int:
             errors.append("vectors/transports/serial-frame-request-kind-1-basic.json: decoded request mismatch")
         if serial_vector.get("frame") != expected_serial:
             errors.append("vectors/transports/serial-frame-request-kind-1-basic.json: frame mismatch")
-
-    apdu_pubkey = load_required_json("vectors/smartcard/get-public-key.json", errors)
-    if apdu_pubkey is not None:
-        if apdu_pubkey.get("command_hex") != "80100000":
-            errors.append("vectors/smartcard/get-public-key.json: command_hex mismatch")
-        expected_response = f"{key['public_key']}9000"
-        if apdu_pubkey.get("response_hex") != expected_response:
-            errors.append("vectors/smartcard/get-public-key.json: response_hex mismatch")
-
-    apdu_sign = load_required_json("vectors/smartcard/sign-event-id-kind-1-basic.json", errors)
-    if apdu_sign is not None:
-        expected_command = f"8020000020{load_json('vectors/events/kind-1-basic.json')['event_id']}"
-        if apdu_sign.get("command_hex") != expected_command:
-            errors.append("vectors/smartcard/sign-event-id-kind-1-basic.json: command_hex mismatch")
-        if apdu_sign.get("expected_status_word") != "9000":
-            errors.append("vectors/smartcard/sign-event-id-kind-1-basic.json: expected_status_word mismatch")
-        if apdu_sign.get("expected_data_length") != 64:
-            errors.append("vectors/smartcard/sign-event-id-kind-1-basic.json: expected_data_length must be 64")
-        if not APDU_HEX_RE.fullmatch(apdu_sign.get("command_hex", "")):
-            errors.append("vectors/smartcard/sign-event-id-kind-1-basic.json: command_hex must be lowercase hex")
 
     if errors:
         for error in errors:

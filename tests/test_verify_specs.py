@@ -6,6 +6,7 @@ import unittest
 from unittest.mock import patch
 
 from scripts.verify_specs import (
+    check_smartcard_apdu_vector,
     check_review_detail_page_vector,
     check_nip46_bridge_decisions,
     check_nip46_policy_file_vector,
@@ -21,6 +22,7 @@ from scripts.verify_specs import (
     review_screen_vector_names,
     review_transcript_vector_names,
     review_vector_names,
+    smartcard_apdu_vector_names,
 )
 
 
@@ -174,6 +176,24 @@ class VerifySpecsTests(unittest.TestCase):
         check_nip46_policy_file_vector("sign-event-kind-1-approved", errors)
 
         self.assertEqual(errors, [])
+
+    def test_smartcard_apdu_vectors_are_discovered_from_directory(self) -> None:
+        names = smartcard_apdu_vector_names()
+
+        self.assertEqual(names, vector_names_from_dir("vectors/smartcard"))
+        self.assertIn("get-public-key", names)
+        self.assertIn("sign-event-id-kind-1-basic", names)
+        self.assertIn("sign-event-id-wrong-length", names)
+        self.assertIn("unsupported-cla", names)
+        self.assertIn("unsupported-ins", names)
+
+    def test_smartcard_apdu_vectors_validate_commands_and_status_words(self) -> None:
+        for name in smartcard_apdu_vector_names():
+            errors: list[str] = []
+
+            check_smartcard_apdu_vector(name, errors)
+
+            self.assertEqual(errors, [], name)
 
     def test_nip46_policy_file_schema_declares_required_contract(self) -> None:
         schema = load_json("schemas/nip46-policy-file-v0.schema.json")

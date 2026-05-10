@@ -89,8 +89,9 @@ fixtures.
 - Invalid-vector semantic tests ensure each committed malicious fixture is
   rejected for its expected deterministic reason, rather than merely being
   present in a directory.
-- Smartcard APDU vectors preserve command bytes, response bytes, and signature
-  verification requirements.
+- Smartcard APDU vectors preserve command bytes, response bytes, signature
+  verification requirements, and deterministic rejection status words for wrong
+  lengths, unsupported classes, and unsupported instructions.
 
 ## Fixture Verification
 

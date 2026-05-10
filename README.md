@@ -50,7 +50,8 @@ companion implementation must agree on:
 - Transport, device, review, review-screen, review-display-frame,
   review-detail-page, review-transcript, NIP-46, NIP-46 policy-file,
   invalid-vector, limit-profile, and smartcard vectors shared by implementation
-  repositories.
+  repositories, including APDU success and deterministic status-word rejection
+  cases.
 
 ## Initial Layout
 
