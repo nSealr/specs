@@ -21,7 +21,9 @@ fixtures.
   account, secret key, and public key.
 - NIP-01 event id fixtures match canonical serialization.
 - BIP-340 signatures verify against deterministic test keys.
-- QR envelope roundtrips preserve the request payload exactly.
+- QR envelope roundtrips preserve the request payload exactly, and
+  implementations must reject encode-side static QR payloads that would exceed
+  the same decoded JSON byte limit enforced by decoders.
 - Serial frame vectors preserve the request payload and checksum exactly,
   including valid transport frames whose decoded request metadata must still be
   rejected before device handling.

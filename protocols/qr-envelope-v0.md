@@ -26,6 +26,10 @@ Static QR payloads whose decoded JSON exceeds
 `max_static_qr_decoded_json_bytes` are rejected in v0. The base64url payload is
 unpadded; padded payloads are rejected.
 
+Encoders must apply the same decoded JSON byte limit before emitting a static
+QR envelope. v0 does not silently produce oversized static QR payloads; larger
+requests or responses need a future animated/chunked transport design.
+
 ## Security Notes
 
 The QR envelope provides transport framing, not trust. The signer must still
