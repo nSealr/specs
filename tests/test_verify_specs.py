@@ -243,6 +243,28 @@ class VerifySpecsTests(unittest.TestCase):
 
         connect = load_json("vectors/nip46/connect-policy-review.json")
         self.assertEqual(connect["bridge_decisions"][0]["decision"]["type"], "connect_review")
+        self.assertEqual(
+            connect["connect_review"]["pages"],
+            [
+                {
+                    "title": "Connect",
+                    "page_indicator": "Page 1/2",
+                    "body_lines": [
+                        "Remote signer",
+                        "4f355bdcb7cc0af728ef3cceb9615d90684bb5b2ca5f859ab0f0b704075871aa",
+                        "Secret: provided",
+                    ],
+                },
+                {
+                    "title": "Permissions",
+                    "page_indicator": "Page 2/2",
+                    "body_lines": [
+                        "sign_event:1",
+                        "nip44_encrypt",
+                    ],
+                },
+            ],
+        )
 
     def test_nip46_bridge_decision_checker_rejects_mismatches(self) -> None:
         vector = deepcopy(load_json("vectors/nip46/ping.json"))

@@ -67,11 +67,13 @@ fixtures.
 - NIP-46 decrypted payload vectors preserve `get_public_key`, `sign_event`, and
   local `ping` mapping between NIP-46 JSON-RPC-like messages and NostrSeal
   request/response payloads, plus `connect` parsing into policy-review intents
-  without `ack` or permission grants. Non-`connect` vectors also carry the
-  derived permission requirement and positive/negative permission-check
-  decisions. All NIP-46 payload vectors also carry explicit bridge decisions
-  that pin permitted signer routing, local response routing, `connect` review,
-  and permission-denied responses.
+  and deterministic review pages without `ack` or permission grants. The
+  review pages show the remote signer pubkey, secret presence, and requested
+  permissions, but do not echo the secret value. Non-`connect` vectors also
+  carry the derived permission requirement and positive/negative
+  permission-check decisions. All NIP-46 payload vectors also carry explicit
+  bridge decisions that pin permitted signer routing, local response routing,
+  `connect` review, and permission-denied responses.
 - NIP-46 vector discovery tests ensure every `vectors/nip46/*.json` file is
   included in conformance verification.
 - NIP-46 policy-file vector discovery tests ensure every
@@ -114,8 +116,9 @@ It also checks that every review-transcript vector matches the deterministic
 frame/button/decision sequence expected from QR signer review adapters.
 It also checks that every NIP-46 decrypted payload vector maps to the expected
 NostrSeal request, local response, signer response payload, or `connect`
-policy-review intent, and that every non-`connect` NIP-46 vector has matching
-permission requirements, permission-check decisions, and bridge decisions.
+policy-review intent and review pages, and that every non-`connect` NIP-46
+vector has matching permission requirements, permission-check decisions, and
+bridge decisions.
 It also checks that every NIP-46 policy-file vector uses
 `nseal-nip46-policy-v0` and normalized explicit approved permissions.
 It also checks the shared pre-signing hardening vectors, including strict

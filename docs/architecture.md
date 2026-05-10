@@ -42,6 +42,11 @@ signer implementation.
   request, local `ping` response, `connect` review intent, or deterministic
   permission-denied response, without implying relay, NIP-44, permission grants,
   or auth flows are complete.
+- Publish deterministic NIP-46 `connect` review pages for companion and future
+  display tests. These pages expose the remote signer pubkey, secret presence,
+  and requested permissions, but never echo the secret value and never create an
+  authorization, acknowledgement, relay session, NIP-44 session, or persisted
+  grant.
 - Publish read-only NIP-46 policy-file vectors that pin explicit approved
   permissions consumed by companion decision harnesses without implying grant
   storage, client authorization, `connect` acknowledgement, relay sessions, or

@@ -1237,6 +1237,9 @@ def check_nip46_connect_intent(vector_path: str, vector: dict, message: dict, er
         return
     if vector.get("connect_intent") != expected:
         errors.append(f"{vector_path}: connect_intent mismatch")
+    expected_review = expected_nip46_connect_review(expected)
+    if vector.get("connect_review") != expected_review:
+        errors.append(f"{vector_path}: connect_review mismatch")
     for forbidden in ("nostrseal_request", "nostrseal_response", "response_message", "local_response_message"):
         if forbidden in vector:
             errors.append(f"{vector_path}: connect must not include {forbidden}")
@@ -1262,6 +1265,34 @@ def expected_nip46_connect_intent(vector_path: str, message: dict, errors: list[
     if len(params) > 1 and params[1] != "":
         expected["secret"] = params[1]
     return expected
+
+
+def expected_nip46_connect_review(intent: dict) -> dict:
+    permissions = intent.get("requested_permissions", [])
+    permission_lines = [permission_label(permission) for permission in permissions]
+    return {
+        "format": "nseal-nip46-connect-review-v0",
+        "id": intent["id"],
+        "remote_signer_pubkey": intent["remote_signer_pubkey"],
+        "secret_present": "secret" in intent,
+        "requested_permissions": permissions,
+        "pages": [
+            {
+                "title": "Connect",
+                "page_indicator": "Page 1/2",
+                "body_lines": [
+                    "Remote signer",
+                    intent["remote_signer_pubkey"],
+                    f"Secret: {'provided' if 'secret' in intent else 'none'}",
+                ],
+            },
+            {
+                "title": "Permissions",
+                "page_indicator": "Page 2/2",
+                "body_lines": permission_lines if permission_lines else ["No permissions requested"],
+            },
+        ],
+    }
 
 
 def normalized_nip46_permission(vector_path: str, value: object, errors: list[str]) -> dict | None:

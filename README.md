@@ -35,8 +35,11 @@ companion implementation must agree on:
 - QR review transcript vectors that bind raw QR input, displayed frames,
   physical-style button sequences, terminal decisions, and approval-gate state.
 - NIP-46 decrypted payload bridge vectors for `get_public_key`, `sign_event`,
-  local `ping`, response mapping, `connect` policy-review intents, and
-  explicit permission requirement/check/bridge decision outputs.
+  local `ping`, response mapping, deterministic `connect` review pages, and
+  explicit permission requirement/check/bridge decision outputs. The
+  `connect` review contract displays the remote signer pubkey, whether a
+  secret was provided, and requested permissions without echoing the secret
+  value or implying `ack`, relay sessions, NIP-44 handling, or stored grants.
 - NIP-46 read-only policy-file vectors for explicit approved permissions used
   by companion decision harnesses.
 - JSON schema for the read-only NIP-46 policy-file format.

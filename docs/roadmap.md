@@ -14,8 +14,8 @@
 - Trusted review detail-page vectors for complete constrained-display review
   pages without changing the approval-digest contract.
 - QR review transcript vectors for display/button adapter acceptance tests.
-- NIP-46 decrypted payload bridge and `connect` policy-review intent vectors
-  for companion conformance tests.
+- NIP-46 decrypted payload bridge, `connect` policy-review intent, and
+  deterministic `connect` review-page vectors for companion conformance tests.
 - NIP-46 permission requirement and permission-check decision vectors for
   explicit policy-matching conformance.
 - NIP-46 bridge decision vectors for permitted signer routing, local `ping`,
@@ -37,6 +37,9 @@ read-only NIP-46 policy-file vector/schema are implemented. The v0
 implementation limit profile and initial malicious/rejection vectors are now
 part of the shared contract. Initial review detail-page vectors are also
 implemented for T-Display S3 sized constrained-display conformance.
+The `connect` vector now also pins deterministic review pages that show remote
+signer identity, secret presence, and requested permissions without producing
+an acknowledgement, grant, relay session, or NIP-44 state.
 
 ## M3: Transport Contracts
 
