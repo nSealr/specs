@@ -51,6 +51,7 @@ ESP32_S3_SCAFFOLD_DEVELOPMENT_ACCEPTED_SIGNING_GATES = [
     "physical_approval_controls",
     "approval_digest_binding",
 ]
+REVIEW_DETAIL_BODY_LINE_STYLES = {"meta", "normal", "value"}
 
 
 def load_json(rel: str) -> dict:
@@ -846,6 +847,37 @@ def expected_review_detail_pages(review: dict, limits: dict) -> list[dict]:
     return pages
 
 
+def check_review_detail_page_contract(vector_path: str, pages: object, errors: list[str]) -> None:
+    if not isinstance(pages, list):
+        errors.append(f"{vector_path}: pages must be an array")
+        return
+    for page_index, page in enumerate(pages):
+        if not isinstance(page, dict):
+            errors.append(f"{vector_path}: pages[{page_index}] must be an object")
+            continue
+        lines = page.get("lines")
+        if not isinstance(lines, list) or not all(isinstance(line, str) for line in lines):
+            errors.append(f"{vector_path}: pages[{page_index}].lines must be an array of strings")
+            continue
+        styles = page.get("body_line_styles")
+        if styles is None:
+            errors.append(f"{vector_path}: pages[{page_index}].body_line_styles is required")
+            continue
+        if not isinstance(styles, list) or not all(isinstance(style, str) for style in styles):
+            errors.append(f"{vector_path}: pages[{page_index}].body_line_styles must be an array of strings")
+            continue
+        if styles and len(styles) != len(lines):
+            errors.append(f"{vector_path}: pages[{page_index}].body_line_styles length must match lines")
+        unknown_styles = sorted({style for style in styles if style not in REVIEW_DETAIL_BODY_LINE_STYLES})
+        if unknown_styles:
+            errors.append(f"{vector_path}: pages[{page_index}].body_line_styles contain unknown styles {unknown_styles}")
+        for line_index, (line, style) in enumerate(zip(lines, styles)):
+            if line.startswith("  ") and style != "value":
+                errors.append(
+                    f"{vector_path}: pages[{page_index}].lines[{line_index}] continuation lines must use value style"
+                )
+
+
 def check_review_detail_page_vector(rel: str, errors: list[str]) -> None:
     vector_path = f"vectors/review-detail-pages/{rel}.json"
     vector = load_required_json(vector_path, errors)
@@ -894,7 +926,9 @@ def check_review_detail_page_vector(rel: str, errors: list[str]) -> None:
         limits[field] = vector["limits"][field]
 
     expected = expected_review_detail_pages(review, limits)
-    if vector.get("pages") != expected:
+    pages = vector.get("pages")
+    check_review_detail_page_contract(vector_path, pages, errors)
+    if pages != expected:
         errors.append(f"{vector_path}: pages mismatch")
 
 

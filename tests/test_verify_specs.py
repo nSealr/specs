@@ -3,6 +3,7 @@ from __future__ import annotations
 from copy import deepcopy
 from pathlib import Path
 import unittest
+from unittest.mock import patch
 
 from scripts.verify_specs import (
     check_review_detail_page_vector,
@@ -66,6 +67,50 @@ class VerifySpecsTests(unittest.TestCase):
             check_review_detail_page_vector(name, errors)
 
             self.assertEqual(errors, [], name)
+
+    def test_review_detail_page_vectors_reject_body_style_length_drift(self) -> None:
+        vector = deepcopy(load_json("vectors/review-detail-pages/kind-1-tags-t-display-s3.json"))
+        vector["name"] = "mutated-detail-style-length"
+        vector["pages"][2]["body_line_styles"].pop()
+        source = load_json("vectors/review/kind-1-tags.json")
+        screen = load_json("vectors/review-screens/kind-1-tags.json")
+
+        def load_mutation(path: str, errors: list[str]) -> dict:
+            if path == "vectors/review-detail-pages/mutated-detail-style-length.json":
+                return vector
+            if path == "vectors/review/kind-1-tags.json":
+                return source
+            if path == "vectors/review-screens/kind-1-tags.json":
+                return screen
+            return load_json(path)
+
+        errors: list[str] = []
+        with patch("scripts.verify_specs.load_required_json", side_effect=load_mutation):
+            check_review_detail_page_vector("mutated-detail-style-length", errors)
+
+        self.assertIn("body_line_styles length must match lines", "\n".join(errors))
+
+    def test_review_detail_page_vectors_reject_continuation_style_drift(self) -> None:
+        vector = deepcopy(load_json("vectors/review-detail-pages/kind-1-tags-t-display-s3.json"))
+        vector["name"] = "mutated-detail-continuation-style"
+        vector["pages"][2]["body_line_styles"][3] = "normal"
+        source = load_json("vectors/review/kind-1-tags.json")
+        screen = load_json("vectors/review-screens/kind-1-tags.json")
+
+        def load_mutation(path: str, errors: list[str]) -> dict:
+            if path == "vectors/review-detail-pages/mutated-detail-continuation-style.json":
+                return vector
+            if path == "vectors/review/kind-1-tags.json":
+                return source
+            if path == "vectors/review-screens/kind-1-tags.json":
+                return screen
+            return load_json(path)
+
+        errors: list[str] = []
+        with patch("scripts.verify_specs.load_required_json", side_effect=load_mutation):
+            check_review_detail_page_vector("mutated-detail-continuation-style", errors)
+
+        self.assertIn("continuation lines must use value style", "\n".join(errors))
 
     def test_review_transcript_vector_names_are_discovered_from_directory(self) -> None:
         names = review_transcript_vector_names()

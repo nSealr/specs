@@ -28,7 +28,9 @@ signer implementation.
   Tags, and Decision pages, scroll-window indicators, body-line styles, and
   explicit `U+XXXX` fallback text for unsupported display glyphs. They are
   display conformance fixtures, not a replacement for the approval-digest
-  contract.
+  contract. Their style metadata is part of the contract: if a long tag value
+  wraps, continuation lines must stay styled as `value` so the display can make
+  the wrap visually distinct from the next item.
 - Publish deterministic QR review transcript vectors that bind raw QR input to
   the exact displayed frames, physical-style button inputs, terminal decisions,
   and approval-gate state expected from signer review adapters.

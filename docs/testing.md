@@ -52,6 +52,9 @@ fixtures.
   Decision pages for constrained displays, including scroll-window indicators,
   compact body-line styles, long tag continuation indentation, and explicit
   codepoint fallback for unsupported glyphs.
+- Review detail-page semantic tests reject drift where `body_line_styles` no
+  longer line up with rendered lines, use unknown style names, or mark
+  continuation lines as anything other than `value`.
 - Review detail-page vector discovery tests ensure every
   `vectors/review-detail-pages/*.json` file is included in conformance
   verification.
@@ -104,6 +107,8 @@ bounded rendering for the selected source review page and display limits.
 It also checks that every review detail-page vector matches deterministic
 complete physical review pages while keeping the `screen-pages`
 `approval_digest` unchanged.
+It also checks detail-page body-line style integrity so wrapped tag or author
+values remain visually distinguishable from new items on constrained screens.
 It also checks that every review-transcript vector matches the deterministic
 frame/button/decision sequence expected from QR signer review adapters.
 It also checks that every NIP-46 decrypted payload vector maps to the expected
