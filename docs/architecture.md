@@ -20,7 +20,8 @@ signer implementation.
   before signing.
 - Publish deterministic trusted review display-frame vectors that pin bounded
   title, page indicator, body-line wrapping/truncation, and action-hint output
-  for small trusted screens.
+  for small trusted screens, including UTF-8 codepoint-boundary preservation
+  during constrained wrapping.
 - Publish deterministic QR review transcript vectors that bind raw QR input to
   the exact displayed frames, physical-style button inputs, terminal decisions,
   and approval-gate state expected from signer review adapters.

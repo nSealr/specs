@@ -43,7 +43,8 @@ fixtures.
 - Review-screen vector discovery tests ensure every
   `vectors/review-screens/*.json` file is included in conformance verification.
 - Review display-frame vectors preserve display limits, page selection, bounded
-  title/body/action output, and long-body wrapping/truncation behavior.
+  title/body/action output, long-body wrapping/truncation behavior, and UTF-8
+  codepoint-boundary preservation.
 - Review display-frame vector discovery tests ensure every
   `vectors/review-display-frames/*.json` file is included in conformance
   verification.

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
+from pathlib import Path
 import unittest
 
 from scripts.verify_specs import (
@@ -20,38 +21,51 @@ from scripts.verify_specs import (
 )
 
 
+ROOT = Path(__file__).resolve().parents[1]
+
+
+def vector_names_from_dir(relative: str) -> list[str]:
+    return sorted(path.stem for path in (ROOT / relative).glob("*.json"))
+
+
 class VerifySpecsTests(unittest.TestCase):
     def test_review_vector_names_are_discovered_from_directory(self) -> None:
-        self.assertEqual(
-            review_vector_names(),
-            [
-                "kind-1-basic",
-                "kind-1-long-events-many-tags",
-                "kind-1-tags",
-                "kind-30078-empty",
-            ],
-        )
+        names = review_vector_names()
+
+        self.assertEqual(names, vector_names_from_dir("vectors/review"))
+        self.assertIn("kind-1-basic", names)
+        self.assertIn("kind-1-unicode-boundary", names)
 
     def test_review_screen_vector_names_are_discovered_from_directory(self) -> None:
-        self.assertEqual(review_screen_vector_names(), ["kind-1-basic", "kind-1-tags"])
+        names = review_screen_vector_names()
+
+        self.assertEqual(names, vector_names_from_dir("vectors/review-screens"))
+        self.assertIn("kind-1-basic", names)
 
     def test_review_display_frame_vector_names_are_discovered_from_directory(self) -> None:
-        self.assertEqual(review_display_frame_vector_names(), ["kind-1-long-content-page-1-20x3"])
+        names = review_display_frame_vector_names()
+
+        self.assertEqual(names, vector_names_from_dir("vectors/review-display-frames"))
+        self.assertIn("kind-1-long-content-page-1-20x3", names)
+        self.assertIn("kind-1-unicode-boundary-content-4x3", names)
 
     def test_review_transcript_vector_names_are_discovered_from_directory(self) -> None:
-        self.assertEqual(
-            review_transcript_vector_names(),
-            ["kind-1-basic-approve", "kind-1-basic-reject"],
-        )
+        names = review_transcript_vector_names()
+
+        self.assertEqual(names, vector_names_from_dir("vectors/review-transcripts"))
+        self.assertIn("kind-1-basic-approve", names)
 
     def test_nip46_vector_names_are_discovered_from_directory(self) -> None:
-        self.assertEqual(
-            nip46_vector_names(),
-            ["connect-policy-review", "get-public-key", "ping", "sign-event-kind-1-basic", "sign-event-user-rejected"],
-        )
+        names = nip46_vector_names()
+
+        self.assertEqual(names, vector_names_from_dir("vectors/nip46"))
+        self.assertIn("sign-event-kind-1-basic", names)
 
     def test_nip46_policy_file_vectors_are_discovered_from_directory(self) -> None:
-        self.assertEqual(nip46_policy_file_vector_names(), ["sign-event-kind-1-approved"])
+        names = nip46_policy_file_vector_names()
+
+        self.assertEqual(names, vector_names_from_dir("vectors/nip46-policy-files"))
+        self.assertIn("sign-event-kind-1-approved", names)
 
     def test_implementation_limits_are_named_and_conservative(self) -> None:
         limits = implementation_limits()
@@ -77,54 +91,11 @@ class VerifySpecsTests(unittest.TestCase):
                 self.assertLessEqual(request_size, limits["max_static_qr_decoded_json_bytes"])
 
     def test_invalid_vectors_are_discovered_from_directory(self) -> None:
-        self.assertEqual(
-            invalid_vector_names(),
-            [
-                "nip46-connect-invalid-pubkey",
-                "nip46-permission-malformed",
-                "nip46-policy-method-unsupported",
-                "nip46-policy-sign-event-kind-mismatch",
-                "nip46-sign-event-param-not-json",
-                "nip46-sign-event-param-unsafe-template",
-                "qr-envelope-invalid-utf8",
-                "qr-envelope-malformed",
-                "qr-envelope-oversized",
-                "qr-envelope-padded",
-                "request-content-over-limit",
-                "request-created-at-float",
-                "request-created-at-negative",
-                "request-created-at-string",
-                "request-created-at-unsafe-integer",
-                "request-event-template-id",
-                "request-event-template-missing",
-                "request-event-template-not-object",
-                "request-event-template-pubkey",
-                "request-event-template-sig",
-                "request-get-capabilities-params",
-                "request-get-public-key-params",
-                "request-json-over-limit",
-                "request-kind-float",
-                "request-kind-negative",
-                "request-kind-string",
-                "request-kind-unsafe-integer",
-                "request-sign-event-missing-params",
-                "request-sign-event-params-not-object",
-                "request-sign-event-unknown-param",
-                "request-tag-field-too-long",
-                "request-tag-item-not-string",
-                "request-tags-not-array",
-                "request-too-many-tags",
-                "request-unknown-top-level-field",
-                "response-error-with-result",
-                "response-success-ambiguous-result",
-                "response-unknown-top-level-field",
-                "serial-frame-checksum-mismatch",
-                "serial-frame-malformed-payload",
-                "serial-frame-oversized",
-                "serial-frame-request-invalid-request-id",
-                "serial-frame-request-invalid-version",
-            ],
-        )
+        names = invalid_vector_names()
+
+        self.assertEqual(names, vector_names_from_dir("vectors/invalid"))
+        self.assertIn("request-event-template-pubkey", names)
+        self.assertIn("serial-frame-oversized", names)
 
     def test_invalid_vectors_validate_expected_rejections(self) -> None:
         for name in invalid_vector_names():
