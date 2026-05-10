@@ -56,12 +56,16 @@ implemented for T-Display S3 sized constrained-display conformance.
   vectors where their parsers support the relevant boundary before real signing
   or full NIP-46 sessions are enabled.
 
-Status: contract implementation in progress. The specs profile and initial
-invalid vectors are implemented; downstream companion, Raspberry, ESP32, and
-lab consumers must still enforce or smoke-test the applicable vectors before
-this gate can unblock ESP32 real signing, browser extension/full NIP-46
-sessions, persistent grants, production smartcard claims, or custom
-persistent-secret hardware-wallet claims.
+Status: shared contract and first downstream consumers are implemented. The
+specs profile and invalid vectors are part of `NostrSeal/specs`, companion
+validates the shared fixtures and NIP-46 policy-file vectors, Raspberry rejects
+applicable unsafe QR/signing requests while preserving RAM-only custody, ESP32
+host-core rejects applicable QR/signing/serial hardening vectors before review,
+and lab integration now checks live shared fixtures plus sibling snapshot
+drift. This gate remains a blocker for ESP32 real signing, browser
+extension/full NIP-46 sessions, persistent grants, production smartcard claims,
+and custom persistent-secret hardware-wallet claims; any new parser boundary
+must add specs vectors before being treated as complete.
 
 Status note, 2026-05-08: invalid serial-frame vectors now include valid
 transport frames with invalid decoded request metadata for unsupported
