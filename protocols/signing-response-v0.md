@@ -69,7 +69,9 @@ already implemented and tested, but it must keep `signing_enabled: false` until
 the remaining gates are satisfied and the signing feature is intentionally
 enabled. `unicode_review_rendering` stays missing while the current display
 path uses development `U+XXXX` fallback instead of a production-accepted
-Unicode review policy.
+Unicode review policy. A device must not return `signing_enabled: true` while
+`missing_gates` is non-empty; hosts must reject that contradictory status
+instead of treating it as signing-ready.
 
 `development_accepted_gates` names gates with deterministic implementation
 coverage or manual development evidence in the current scaffold. It is not a

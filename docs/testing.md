@@ -37,7 +37,9 @@ fixtures.
   `development_accepted_gates` so device diagnostics can report development
   evidence without turning it into a production signing claim. The ESP32-S3
   scaffold vector must keep `unicode_review_rendering` in `missing_gates` until
-  a full Unicode review policy or accepted equivalent exists.
+  a full Unicode review policy or accepted equivalent exists, and invalid
+  signing-status vectors reject contradictory `signing_enabled: true` responses
+  that still report missing gates.
 - Trusted review vectors preserve raw event kind, created_at, signer author
   pubkey, complete content, complete structured tags, and final decision
   semantics for display-oriented signers. They do not encode inferred kind
@@ -129,7 +131,8 @@ It also checks that every NIP-46 policy-file vector uses
 `nseal-nip46-policy-v0` and normalized explicit approved permissions.
 It also checks the shared pre-signing hardening vectors, including strict
 response-shape rejection for ambiguous success results, error/result mixing,
-and unknown top-level response fields, so downstream
+unknown top-level response fields, and contradictory signing-status readiness,
+so downstream
 implementations get deterministic rejection fixtures before enabling real
 signing or full NIP-46 sessions.
 Those checks are directory-driven: new files under `vectors/invalid/`,

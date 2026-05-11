@@ -393,6 +393,8 @@ def check_response_shape(path: Path, value: dict, errors: list[str]) -> None:
                 for gate in missing_gates:
                     if gate not in SIGNING_STATUS_GATES:
                         errors.append(f"{path}: signing_status.missing_gates contains unknown gate {gate!r}")
+                if signing_status.get("signing_enabled") is True and missing_gates:
+                    errors.append(f"{path}: signing_status signing_enabled true requires empty missing_gates")
             accepted_gates = signing_status.get("development_accepted_gates")
             if not isinstance(accepted_gates, list):
                 errors.append(f"{path}: signing_status.development_accepted_gates must be an array")

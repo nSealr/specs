@@ -131,6 +131,21 @@
     "signing_status": {
       "type": "object",
       "required": ["signing_enabled", "missing_gates", "development_accepted_gates"],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "signing_enabled": { "const": true }
+            },
+            "required": ["signing_enabled"]
+          },
+          "then": {
+            "properties": {
+              "missing_gates": { "maxItems": 0 }
+            }
+          }
+        }
+      ],
       "properties": {
         "signing_enabled": { "type": "boolean" },
         "missing_gates": {
