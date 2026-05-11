@@ -1338,7 +1338,7 @@ def check_serial_frame_payload(vector_path: str, frame: object, errors: list[str
         return
     frame_type, payload, checksum = parts
     if frame_type not in {"request", "response", "error"}:
-        errors.append(f"{vector_path}: serial frame type is unsupported")
+        errors.append(f"{vector_path}: unsupported serial frame type")
     if not re.fullmatch(r"^[0-9a-f]{16}$", checksum):
         errors.append(f"{vector_path}: serial checksum must be 16 lowercase hex characters")
     expected_checksum = serial_checksum(frame_type, payload)

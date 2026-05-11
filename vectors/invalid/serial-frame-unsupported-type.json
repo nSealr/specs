@@ -2,6 +2,6 @@
   "name": "serial-frame-unsupported-type",
   "format": "pre-signing-invalid-vector-v0",
   "category": "serial-frame",
-  "expected_error": "serial frame type is unsupported",
+  "expected_error": "unsupported serial frame type",
   "frame": "nseal1f:command:eyJub29wIjp0cnVlfQ:224b8206979b2488\n"
 }
