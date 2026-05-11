@@ -1067,17 +1067,54 @@ def expected_review_transcript(screen_review: dict, buttons: list[str], errors: 
     return transcript
 
 
-def detail_frame_for_page(page: dict, logical_page_has_scroll: bool) -> dict:
+def detail_frame_for_page(page: dict, logical_page_has_scroll: bool, limits: dict) -> dict:
     action_hint = "Next" if page["action"] == "next" else "Approve / Reject"
     if logical_page_has_scroll and action_hint == "Next":
         action_hint = "Next/Scroll"
+    lines, styles = bounded_detail_frame_body_lines(page, limits)
     return {
         "title": page["title"],
         "page_indicator": page["page_indicator"],
-        "body_lines": page["lines"],
+        "body_lines": lines,
         "action_hint": action_hint,
-        "body_line_styles": page["body_line_styles"],
+        "body_line_styles": styles,
     }
+
+
+def detail_frame_compact_style(style: str) -> bool:
+    return style in {"meta", "value"}
+
+
+def bounded_detail_frame_body_lines(page: dict, limits: dict) -> tuple[list[str], list[str]]:
+    wrapped: list[str] = []
+    styles: list[str] = []
+    has_compact_style = False
+    page_styles = page.get("body_line_styles", [])
+    for index, line in enumerate(page.get("lines", [])):
+        style = page_styles[index] if index < len(page_styles) else "normal"
+        has_compact_style = has_compact_style or detail_frame_compact_style(style)
+        width = limits["max_compact_line_chars"] if detail_frame_compact_style(style) else limits["max_line_chars"]
+        parts = split_exact_display_lines(str(line), width)
+        wrapped.extend(parts)
+        styles.extend([style] * len(parts))
+    max_lines = limits["max_compact_body_lines"] if has_compact_style else limits["max_body_lines"]
+    if len(wrapped) > max_lines:
+        wrapped = wrapped[:max_lines]
+        styles = styles[:max_lines]
+        width = (
+            limits["max_compact_line_chars"]
+            if styles and detail_frame_compact_style(styles[-1])
+            else limits["max_line_chars"]
+        )
+        wrapped[-1] = truncate_for_display(wrapped[-1], width, force_ellipsis=True)
+    for index, line in enumerate(wrapped):
+        width = (
+            limits["max_compact_line_chars"]
+            if index < len(styles) and detail_frame_compact_style(styles[index])
+            else limits["max_line_chars"]
+        )
+        wrapped[index] = truncate_for_display(line, width)
+    return wrapped, styles
 
 
 def detail_logical_ranges(pages: list[dict]) -> list[tuple[int, int]]:
@@ -1097,6 +1134,7 @@ def detail_logical_ranges(pages: list[dict]) -> list[tuple[int, int]]:
 def expected_detail_review_transcript(
     detail_pages: list[dict],
     buttons: list[str],
+    limits: dict,
     errors: list[str],
     rel: str,
 ) -> list[dict]:
@@ -1117,7 +1155,7 @@ def expected_detail_review_transcript(
         start, count = logical_ranges[logical_page_index]
         page_index = start + scroll_page_offset
         page = detail_pages[page_index]
-        frame = detail_frame_for_page(page, count > 1)
+        frame = detail_frame_for_page(page, count > 1, limits)
         decision = None
         approved = False
         if button == "next":
@@ -1218,7 +1256,11 @@ def check_review_transcript_vector(rel: str, errors: list[str]) -> None:
         check_review_detail_page_contract(f"vectors/review-transcripts/{rel}.json", pages, errors)
         if not isinstance(pages, list):
             return
-        expected = expected_detail_review_transcript(pages, buttons, errors, rel)
+        limits = detail_vector.get("limits")
+        if not isinstance(limits, dict):
+            errors.append(f"vectors/review-transcripts/{rel}.json: detail vector limits must be an object")
+            return
+        expected = expected_detail_review_transcript(pages, buttons, limits, errors, rel)
     if vector.get("transcript") != expected:
         errors.append(f"vectors/review-transcripts/{rel}.json: transcript mismatch")
 
