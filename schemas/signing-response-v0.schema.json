@@ -144,6 +144,19 @@
               "missing_gates": { "maxItems": 0 }
             }
           }
+        },
+        {
+          "if": {
+            "properties": {
+              "signing_enabled": { "const": false }
+            },
+            "required": ["signing_enabled"]
+          },
+          "then": {
+            "properties": {
+              "missing_gates": { "minItems": 1 }
+            }
+          }
         }
       ],
       "properties": {

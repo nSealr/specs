@@ -10,7 +10,8 @@ signer implementation.
   real-signing gates and development-accepted gates that have deterministic
   coverage or manual development evidence but are not production claims.
   Signing-status responses must be non-contradictory: `signing_enabled: true`
-  requires an empty `missing_gates` list.
+  requires an empty `missing_gates` list, and `signing_enabled: false` requires
+  at least one missing gate.
 - Define error formats and capability discovery.
 - Define QR, serial, USB, and smartcard envelope semantics before
   implementation repositories depend on them.

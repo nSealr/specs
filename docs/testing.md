@@ -39,7 +39,8 @@ fixtures.
   scaffold vector must keep `unicode_review_rendering` in `missing_gates` until
   a full Unicode review policy or accepted equivalent exists, and invalid
   signing-status vectors reject contradictory `signing_enabled: true` responses
-  that still report missing gates.
+  that still report missing gates plus disabled responses that omit the reason
+  for disabled signing.
 - Trusted review vectors preserve raw event kind, created_at, signer author
   pubkey, complete content, complete structured tags, and final decision
   semantics for display-oriented signers. They do not encode inferred kind
