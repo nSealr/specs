@@ -59,8 +59,9 @@ fixtures.
   verification.
 - Review detail-page vectors preserve complete physical Event/Content/Tags/
   Decision pages for constrained displays, including scroll-window indicators,
-  compact body-line styles, long tag continuation indentation, and explicit
-  codepoint fallback for unsupported glyphs.
+  compact body-line styles, long tag continuation indentation, visible
+  JSON-style escapes for decoded control characters, and explicit codepoint
+  fallback for unsupported glyphs.
 - Review detail-page semantic tests reject drift where `body_line_styles` no
   longer line up with rendered lines, use unknown style names, or mark
   continuation lines as anything other than `value`.

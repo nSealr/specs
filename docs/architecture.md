@@ -29,11 +29,13 @@ signer implementation.
   physical review pages on constrained signers. These vectors preserve the
   existing `screen-pages` approval digest, but separately pin Event, Content,
   Tags, and Decision pages, scroll-window indicators, body-line styles, and
-  explicit `U+XXXX` fallback text for unsupported display glyphs. They are
-  display conformance fixtures, not a replacement for the approval-digest
-  contract. Their style metadata is part of the contract: if a long tag value
-  wraps, continuation lines must stay styled as `value` so the display can make
-  the wrap visually distinct from the next item.
+  display-safe text. JSON control characters decoded inside event strings must
+  be rendered as visible JSON-style escapes such as `\n`, `\t`, `\r`, `\b`,
+  and `\f`; unsupported display glyphs still use explicit `U+XXXX` fallback
+  text. They are display conformance fixtures, not a replacement for the
+  approval-digest contract. Their style metadata is part of the contract: if a
+  long tag value wraps, continuation lines must stay styled as `value` so the
+  display can make the wrap visually distinct from the next item.
 - Publish deterministic QR review transcript vectors that bind raw QR input to
   the exact displayed frames, physical-style button inputs, terminal decisions,
   and approval-gate state expected from signer review adapters. Screen-mode

@@ -27,6 +27,7 @@ from scripts.verify_specs import (
     review_transcript_vector_names,
     review_vector_names,
     smartcard_apdu_vector_names,
+    display_safe_text,
 )
 import scripts.verify_specs as verify_specs
 
@@ -43,6 +44,7 @@ class VerifySpecsTests(unittest.TestCase):
         names = review_vector_names()
 
         self.assertEqual(names, vector_names_from_dir("vectors/review"))
+        self.assertIn("kind-1-control-escapes", names)
         self.assertIn("kind-1-basic", names)
         self.assertIn("kind-1-unicode-boundary", names)
 
@@ -63,6 +65,7 @@ class VerifySpecsTests(unittest.TestCase):
         names = review_detail_page_vector_names()
 
         self.assertEqual(names, vector_names_from_dir("vectors/review-detail-pages"))
+        self.assertIn("kind-1-control-escapes-t-display-s3", names)
         self.assertIn("kind-1-long-events-many-tags-t-display-s3", names)
         self.assertIn("kind-1-tags-t-display-s3", names)
         self.assertIn("kind-1-unicode-boundary-t-display-s3", names)
@@ -118,6 +121,12 @@ class VerifySpecsTests(unittest.TestCase):
             check_review_detail_page_vector("mutated-detail-continuation-style", errors)
 
         self.assertIn("continuation lines must use value style", "\n".join(errors))
+
+    def test_display_safe_text_renders_json_control_escapes_visibly(self) -> None:
+        self.assertEqual(
+            display_safe_text("line 1\nline 2\tTabbed\rCarriage\bBackspace\fFormfeed"),
+            "line 1\\nline 2\\tTabbed\\rCarriage\\bBackspace\\fFormfeed",
+        )
 
     def test_review_transcript_vector_names_are_discovered_from_directory(self) -> None:
         names = review_transcript_vector_names()
