@@ -9,6 +9,7 @@ from scripts.verify_specs import (
     check_smartcard_apdu_vector,
     check_review_detail_page_vector,
     check_review_transcript_vector,
+    check_static_qr_vector,
     check_nip46_bridge_decisions,
     check_nip46_policy_file_vector,
     check_invalid_vector,
@@ -127,6 +128,19 @@ class VerifySpecsTests(unittest.TestCase):
             errors: list[str] = []
 
             check_review_transcript_vector(name, errors)
+
+            self.assertEqual(errors, [], name)
+
+    def test_static_qr_transport_vectors_validate_envelope_payloads(self) -> None:
+        names = [
+            path.stem
+            for path in sorted((ROOT / "vectors/transports").glob("qr-envelope-*.json"))
+        ]
+        self.assertIn("qr-envelope-kind-1-long-events-many-tags", names)
+        for name in names:
+            errors: list[str] = []
+
+            check_static_qr_vector(name, errors)
 
             self.assertEqual(errors, [], name)
 

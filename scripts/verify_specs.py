@@ -1427,6 +1427,27 @@ def check_animated_qr_vector(rel: str, errors: list[str]) -> None:
     check_response_shape(Path(vector_path), decoded, errors)
 
 
+def check_static_qr_vector(rel: str, errors: list[str]) -> None:
+    vector_path = f"vectors/transports/{rel}.json"
+    vector = load_required_json(vector_path, errors)
+    if vector is None:
+        return
+    if vector.get("format") != "qr-envelope-v0":
+        errors.append(f"{vector_path}: format mismatch")
+    if vector.get("prefix") != QR_PREFIX:
+        errors.append(f"{vector_path}: prefix mismatch")
+    decoded = vector.get("decoded")
+    if not isinstance(decoded, dict):
+        errors.append(f"{vector_path}: decoded must be an object")
+        return
+    check_request_shape(Path(vector_path), decoded, errors)
+    payload = base64url_json(decoded)
+    if vector.get("payload_base64url") != payload:
+        errors.append(f"{vector_path}: payload_base64url mismatch")
+    if vector.get("envelope") != f"{QR_PREFIX}{payload}":
+        errors.append(f"{vector_path}: envelope mismatch")
+
+
 def check_serial_frame_payload(vector_path: str, frame: object, errors: list[str]) -> None:
     limits = implementation_limit_values()
     if not isinstance(frame, str):
