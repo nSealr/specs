@@ -25,6 +25,43 @@ SERIAL_PREFIX = "nseal1f:"
 APDU_HEX_RE = re.compile(r"^[0-9a-f]+$")
 LIMIT_PROFILE = "vectors/limits/nseal-v0.json"
 DEVICE_METHODS = {"get_capabilities", "get_signing_status", "get_public_key", "sign_event"}
+ROUTE_TYPES = {
+    "raspberry_qr_vault",
+    "esp32_qr_vault",
+    "esp32_usb_nip46",
+    "smartcard",
+    "custom_hardware_wallet",
+    "external_nip46",
+}
+QR_ROUTE_TYPES = {"raspberry_qr_vault", "esp32_qr_vault"}
+ROUTE_REPOSITORIES = {
+    "raspberry_qr_vault": "raspberry",
+    "esp32_qr_vault": "esp32",
+    "esp32_usb_nip46": "esp32",
+    "smartcard": "smartcard",
+    "custom_hardware_wallet": "hardware",
+}
+ROUTE_TRANSPORTS = {"qr", "usb", "smartcard", "nfc", "nip46_relay", "embedded"}
+ROUTE_CUSTODY_MODES = {
+    "stateless_session",
+    "device_persistent",
+    "card_persistent",
+    "custom_hardware_persistent",
+    "external_signer",
+}
+ROUTE_REVIEW_MODES = {"device_display", "external_review", "external_policy", "display_less"}
+POLICY_SUPPORT_MODES = {"manual_only", "scoped_automation", "external"}
+POLICY_MODES = {"manual_only", "scoped_automation"}
+GRANT_DECISIONS = {"allow_once", "allow_until_expiry"}
+SECRET_FIELD_NAMES = {
+    "secret_key",
+    "private_key",
+    "nsec",
+    "mnemonic",
+    "seed",
+    "passphrase",
+    "nip49_ciphertext",
+}
 SIGNING_STATUS_GATES = [
     "runtime_signing_feature",
     "parser_limits",
@@ -637,6 +674,296 @@ def smartcard_apdu_vector_names() -> list[str]:
 
 def invalid_vector_names() -> list[str]:
     return sorted(path.stem for path in (ROOT / "vectors" / "invalid").glob("*.json"))
+
+
+def account_descriptor_vector_names() -> list[str]:
+    return sorted(path.stem for path in (ROOT / "vectors" / "accounts").glob("*.json"))
+
+
+def policy_profile_vector_names() -> list[str]:
+    return sorted(path.stem for path in (ROOT / "vectors" / "policies").glob("*.json"))
+
+
+def grant_descriptor_vector_names() -> list[str]:
+    return sorted(path.stem for path in (ROOT / "vectors" / "grants").glob("*.json"))
+
+
+def secret_field_paths(value: object, prefix: str = "") -> list[str]:
+    paths: list[str] = []
+    if isinstance(value, dict):
+        for key, child in value.items():
+            path = f"{prefix}.{key}" if prefix else str(key)
+            if str(key).lower() in SECRET_FIELD_NAMES:
+                paths.append(path)
+            paths.extend(secret_field_paths(child, path))
+    elif isinstance(value, list):
+        for index, child in enumerate(value):
+            path = f"{prefix}[{index}]" if prefix else f"[{index}]"
+            paths.extend(secret_field_paths(child, path))
+    return paths
+
+
+def check_no_secret_fields(path: str, value: object, errors: list[str]) -> None:
+    for secret_path in secret_field_paths(value):
+        errors.append(f"{path}: must not contain secret field {secret_path}")
+
+
+def check_string_id(path: str, field: str, value: object, errors: list[str]) -> None:
+    if not isinstance(value, str) or not re.fullmatch(r"[A-Za-z0-9._:-]{1,128}", value):
+        errors.append(f"{path}: {field} must be a stable string id")
+
+
+def check_permission_shape(path: str, permission: object, errors: list[str]) -> None:
+    if not isinstance(permission, dict):
+        errors.append(f"{path}: permission must be an object")
+        return
+    method = permission.get("method")
+    if method == "*":
+        errors.append(f"{path}: grant permission must not use wildcards")
+    if not isinstance(method, str) or not method:
+        errors.append(f"{path}: permission.method must be a non-empty string")
+    if permission.get("parameter") == "*":
+        errors.append(f"{path}: grant permission must not use wildcards")
+    if method == "sign_event":
+        parameter = permission.get("parameter")
+        event_kind = permission.get("event_kind")
+        if not isinstance(parameter, str) or not parameter.isdigit():
+            errors.append(f"{path}: sign_event permission.parameter must be a decimal event kind")
+        if type(event_kind) is not int or event_kind < 0:
+            errors.append(f"{path}: sign_event permission.event_kind must be a non-negative integer")
+        elif isinstance(parameter, str) and parameter.isdigit() and int(parameter) != event_kind:
+            errors.append(f"{path}: sign_event permission parameter/event_kind mismatch")
+    unknown = sorted(set(permission) - {"method", "parameter", "event_kind"})
+    if unknown:
+        errors.append(f"{path}: permission has unknown fields {unknown}")
+
+
+def check_account_descriptor_shape(path: str, value: object, errors: list[str]) -> None:
+    if not isinstance(value, dict):
+        errors.append(f"{path}: account descriptor must be an object")
+        return
+    check_no_secret_fields(path, value, errors)
+    if value.get("format") != "nseal-account-descriptor-v0":
+        errors.append(f"{path}: format mismatch")
+    check_string_id(path, "account_id", value.get("account_id"), errors)
+    if not isinstance(value.get("label"), str) or not value["label"]:
+        errors.append(f"{path}: label must be a non-empty string")
+    if not isinstance(value.get("public_key"), str) or not HEX32_RE.fullmatch(value["public_key"]):
+        errors.append(f"{path}: public_key must be 32-byte lowercase hex")
+
+    route = value.get("signer_route")
+    if not isinstance(route, dict):
+        errors.append(f"{path}: signer_route must be an object")
+        return
+    route_type = route.get("type")
+    if route_type not in ROUTE_TYPES:
+        errors.append(f"{path}: signer_route.type is unknown")
+    expected_repository = ROUTE_REPOSITORIES.get(route_type)
+    if expected_repository is not None and route.get("repository") != expected_repository:
+        errors.append(f"{path}: signer_route.repository must be {expected_repository}")
+    if expected_repository is None and "repository" in route:
+        errors.append(f"{path}: external signer routes must not claim a NostrSeal repository")
+    if route.get("transport") not in ROUTE_TRANSPORTS:
+        errors.append(f"{path}: signer_route.transport is unknown")
+    if route.get("custody") not in ROUTE_CUSTODY_MODES:
+        errors.append(f"{path}: signer_route.custody is unknown")
+    if route.get("trusted_review") not in ROUTE_REVIEW_MODES:
+        errors.append(f"{path}: signer_route.trusted_review is unknown")
+    if route.get("policy_support") not in POLICY_SUPPORT_MODES:
+        errors.append(f"{path}: signer_route.policy_support is unknown")
+
+    capabilities = value.get("capabilities")
+    if not isinstance(capabilities, dict):
+        errors.append(f"{path}: capabilities must be an object")
+        return
+    methods = capabilities.get("methods")
+    if not isinstance(methods, list) or not all(isinstance(method, str) for method in methods):
+        errors.append(f"{path}: capabilities.methods must be an array of strings")
+    elif unknown_methods := sorted(set(methods) - DEVICE_METHODS):
+        errors.append(f"{path}: capabilities.methods contain unknown methods {unknown_methods}")
+    for field in ("physical_review", "physical_approval", "persistent_grants"):
+        if not isinstance(capabilities.get(field), bool):
+            errors.append(f"{path}: capabilities.{field} must be boolean")
+
+    if route_type in QR_ROUTE_TYPES:
+        serialized = json.dumps(value, ensure_ascii=False, sort_keys=True).lower()
+        if "tropic01" in serialized:
+            errors.append(f"{path}: stateless QR vault descriptors must not reference TROPIC01")
+        if route.get("transport") != "qr":
+            errors.append(f"{path}: stateless QR vault routes must use qr transport")
+        if route.get("custody") != "stateless_session":
+            errors.append(f"{path}: stateless QR vault routes must use stateless_session custody")
+        if route.get("policy_support") != "manual_only":
+            errors.append(f"{path}: stateless QR vault routes must use manual_only policy support")
+        if capabilities.get("persistent_grants") is not False:
+            errors.append(f"{path}: stateless QR vault routes must not support persistent grants")
+
+    recovery = value.get("recovery")
+    if not isinstance(recovery, dict):
+        errors.append(f"{path}: recovery must be an object")
+        return
+    recovery_type = recovery.get("type")
+    if recovery_type == "nip06":
+        if not isinstance(recovery.get("path"), str) or not recovery["path"].startswith("m/44'/1237'/"):
+            errors.append(f"{path}: NIP-06 recovery path must use the Nostr derivation prefix")
+        if type(recovery.get("account")) is not int or recovery["account"] < 0:
+            errors.append(f"{path}: NIP-06 recovery account must be a non-negative integer")
+        source_vector = recovery.get("source_vector")
+        if not isinstance(source_vector, str):
+            errors.append(f"{path}: NIP-06 recovery source_vector must be a string")
+        elif (ROOT / source_vector).exists():
+            source = load_json(source_vector)
+            if source.get("public_key") != value.get("public_key"):
+                errors.append(f"{path}: NIP-06 recovery source_vector public_key mismatch")
+    elif recovery_type == "device_slot":
+        if not isinstance(recovery.get("slot_id"), str) or not recovery["slot_id"]:
+            errors.append(f"{path}: device_slot recovery requires slot_id")
+        if not isinstance(recovery.get("backup_required"), bool):
+            errors.append(f"{path}: device_slot recovery requires backup_required boolean")
+    elif recovery_type == "external_signer":
+        if not isinstance(recovery.get("external_signer_id"), str) or not recovery["external_signer_id"]:
+            errors.append(f"{path}: external_signer recovery requires external_signer_id")
+    else:
+        errors.append(f"{path}: recovery.type is unknown")
+
+    policy_profile_id = value.get("policy_profile_id")
+    if not isinstance(policy_profile_id, str) or not policy_profile_id.startswith("policy-"):
+        errors.append(f"{path}: policy_profile_id must reference a policy-* profile")
+    elif not (ROOT / "vectors" / "policies" / f"{policy_profile_id.removeprefix('policy-')}.json").exists():
+        errors.append(f"{path}: policy_profile_id target is missing")
+
+
+def check_policy_profile_shape(path: str, value: object, errors: list[str]) -> None:
+    if not isinstance(value, dict):
+        errors.append(f"{path}: policy profile must be an object")
+        return
+    check_no_secret_fields(path, value, errors)
+    if value.get("format") != "nseal-policy-profile-v0":
+        errors.append(f"{path}: format mismatch")
+    policy_id = value.get("policy_id")
+    if not isinstance(policy_id, str) or not policy_id.startswith("policy-"):
+        errors.append(f"{path}: policy_id must start with policy-")
+    if not isinstance(value.get("label"), str) or not value["label"]:
+        errors.append(f"{path}: label must be a non-empty string")
+    route_types = value.get("route_types")
+    if not isinstance(route_types, list) or not route_types:
+        errors.append(f"{path}: route_types must be a non-empty array")
+        route_types = []
+    elif unknown_routes := sorted(set(route_types) - ROUTE_TYPES):
+        errors.append(f"{path}: route_types contain unknown routes {unknown_routes}")
+    mode = value.get("mode")
+    if mode not in POLICY_MODES:
+        errors.append(f"{path}: mode is unknown")
+    if not isinstance(value.get("grants_allowed"), bool):
+        errors.append(f"{path}: grants_allowed must be boolean")
+    manual_review_required = value.get("manual_review_required")
+    if not isinstance(manual_review_required, list) or not all(isinstance(item, str) for item in manual_review_required):
+        errors.append(f"{path}: manual_review_required must be an array of strings")
+    forbidden_permissions = value.get("forbidden_permissions")
+    if not isinstance(forbidden_permissions, list) or not all(isinstance(item, str) for item in forbidden_permissions):
+        errors.append(f"{path}: forbidden_permissions must be an array of strings")
+    else:
+        for required_forbidden in ("wildcard", "export_secret"):
+            if required_forbidden not in forbidden_permissions:
+                errors.append(f"{path}: forbidden_permissions must include {required_forbidden}")
+    if value.get("risk_tiers") is not None and not isinstance(value["risk_tiers"], dict):
+        errors.append(f"{path}: risk_tiers must be an object")
+    if set(route_types) & QR_ROUTE_TYPES and (mode != "manual_only" or value.get("grants_allowed") is not False):
+        errors.append(f"{path}: QR vault routes must remain manual_only with grants_allowed false")
+    if mode == "manual_only" and value.get("grants_allowed") is True:
+        errors.append(f"{path}: manual_only profiles must not allow grants")
+    if value.get("grants_allowed") is True:
+        constraints = value.get("grant_constraints")
+        if not isinstance(constraints, dict):
+            errors.append(f"{path}: grant_constraints are required when grants_allowed is true")
+        else:
+            for field in (
+                "expiry_required",
+                "rate_limit_required",
+                "revocation_required",
+                "audit_log_required",
+                "device_confirmation_required",
+            ):
+                if constraints.get(field) is not True:
+                    errors.append(f"{path}: grant_constraints.{field} must be true")
+
+
+def check_grant_descriptor_shape(path: str, value: object, errors: list[str]) -> None:
+    if not isinstance(value, dict):
+        errors.append(f"{path}: grant descriptor must be an object")
+        return
+    check_no_secret_fields(path, value, errors)
+    if value.get("format") != "nseal-grant-descriptor-v0":
+        errors.append(f"{path}: format mismatch")
+    check_string_id(path, "grant_id", value.get("grant_id"), errors)
+    check_string_id(path, "account_id", value.get("account_id"), errors)
+    route_type = value.get("route_type")
+    if route_type not in ROUTE_TYPES:
+        errors.append(f"{path}: route_type is unknown")
+    if route_type in QR_ROUTE_TYPES:
+        errors.append(f"{path}: grant route_type must not be a stateless QR vault")
+    client = value.get("client")
+    if not isinstance(client, dict):
+        errors.append(f"{path}: client must be an object")
+    elif not isinstance(client.get("pubkey"), str) or not HEX32_RE.fullmatch(client["pubkey"]):
+        errors.append(f"{path}: client.pubkey must be 32-byte lowercase hex")
+    check_permission_shape(path, value.get("permission"), errors)
+    decision = value.get("decision")
+    if decision not in GRANT_DECISIONS:
+        errors.append(f"{path}: decision is unknown")
+    if decision == "allow_until_expiry" and (type(value.get("expires_at")) is not int or value["expires_at"] <= 0):
+        errors.append(f"{path}: allow_until_expiry requires positive expires_at")
+    rate_limit = value.get("rate_limit")
+    if not isinstance(rate_limit, dict):
+        errors.append(f"{path}: rate_limit must be an object")
+    else:
+        for field in ("max_uses", "window_seconds"):
+            if type(rate_limit.get(field)) is not int or rate_limit[field] <= 0:
+                errors.append(f"{path}: rate_limit.{field} must be a positive integer")
+    if value.get("requires_device_policy_confirmation") is not True:
+        errors.append(f"{path}: requires_device_policy_confirmation must be true")
+    if value.get("revocable") is not True:
+        errors.append(f"{path}: revocable must be true")
+    if value.get("audit_event_format") != "nseal-grant-audit-event-v0":
+        errors.append(f"{path}: audit_event_format mismatch")
+
+
+def check_account_descriptor_vector(rel: str, errors: list[str]) -> None:
+    vector_path = f"vectors/accounts/{rel}.json"
+    vector = load_required_json(vector_path, errors)
+    if vector is None:
+        return
+    check_account_descriptor_shape(vector_path, vector, errors)
+
+
+def check_policy_profile_vector(rel: str, errors: list[str]) -> None:
+    vector_path = f"vectors/policies/{rel}.json"
+    vector = load_required_json(vector_path, errors)
+    if vector is None:
+        return
+    check_policy_profile_shape(vector_path, vector, errors)
+    policy_id = vector.get("policy_id")
+    if isinstance(policy_id, str) and policy_id != f"policy-{rel}":
+        errors.append(f"{vector_path}: policy_id/file name mismatch")
+
+
+def check_grant_descriptor_vector(rel: str, errors: list[str]) -> None:
+    vector_path = f"vectors/grants/{rel}.json"
+    vector = load_required_json(vector_path, errors)
+    if vector is None:
+        return
+    check_grant_descriptor_shape(vector_path, vector, errors)
+    account_id = vector.get("account_id")
+    route_type = vector.get("route_type")
+    matching_accounts = []
+    for name in account_descriptor_vector_names():
+        account = load_json(f"vectors/accounts/{name}.json")
+        if account.get("account_id") == account_id:
+            matching_accounts.append(account)
+    if not matching_accounts:
+        errors.append(f"{vector_path}: account_id target is missing")
+    elif matching_accounts[0].get("signer_route", {}).get("type") != route_type:
+        errors.append(f"{vector_path}: account route_type mismatch")
 
 
 def check_review_screen_vector(rel: str, errors: list[str]) -> None:
@@ -2149,6 +2476,9 @@ def main() -> int:
         "signing-response-v0.schema.json",
         "error-v0.schema.json",
         "nip46-policy-file-v0.schema.json",
+        "account-descriptor-v0.schema.json",
+        "policy-profile-v0.schema.json",
+        "grant-descriptor-v0.schema.json",
     ):
         load_json(f"schemas/{schema}")
 
@@ -2299,6 +2629,15 @@ def main() -> int:
 
     for rel in nip46_policy_file_vector_names():
         check_nip46_policy_file_vector(rel, errors)
+
+    for rel in account_descriptor_vector_names():
+        check_account_descriptor_vector(rel, errors)
+
+    for rel in policy_profile_vector_names():
+        check_policy_profile_vector(rel, errors)
+
+    for rel in grant_descriptor_vector_names():
+        check_grant_descriptor_vector(rel, errors)
 
     for rel in smartcard_apdu_vector_names():
         check_smartcard_apdu_vector(rel, errors)

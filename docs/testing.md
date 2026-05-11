@@ -93,6 +93,15 @@ fixtures.
 - NIP-46 policy-file schema tests ensure
   `schemas/nip46-policy-file-v0.schema.json` declares the required envelope
   fields.
+- Account-descriptor, policy-profile, and grant-descriptor discovery tests
+  ensure every file under `vectors/accounts/`, `vectors/policies/`, and
+  `vectors/grants/` is included in conformance verification.
+- Identity/policy semantic tests reject embedded secret fields, QR-vault
+  automation, wildcard grants, and grant targets that point at stateless QR
+  vault routes.
+- Identity/policy schema tests ensure account descriptors, policy profiles, and
+  grant descriptors expose the expected required contract surface without
+  adding secret-key fields.
 - Implementation-limit tests ensure the v0 limit profile is named, documented,
   and consumed by invalid-vector verification.
 - Invalid-vector discovery tests ensure every malicious request, response, QR
@@ -135,6 +144,9 @@ vector has matching permission requirements, permission-check decisions, and
 bridge decisions.
 It also checks that every NIP-46 policy-file vector uses
 `nseal-nip46-policy-v0` and normalized explicit approved permissions.
+It also checks that account, policy, and grant descriptor vectors preserve the
+secretless companion boundary, manual-only QR-vault policy, and scoped
+automation constraints for persistent routes.
 It also checks the shared pre-signing hardening vectors, including strict
 response-shape rejection for ambiguous success results, error/result mixing,
 unknown top-level response fields, malformed response request ids,
@@ -144,7 +156,8 @@ duplicate signing-status gate entries, so downstream
 implementations get deterministic rejection fixtures before enabling real
 signing or full NIP-46 sessions.
 Those checks are directory-driven: new files under `vectors/invalid/`,
-`vectors/review-detail-pages/`, and the single profile under `vectors/limits/`
+`vectors/review-detail-pages/`, `vectors/accounts/`, `vectors/policies/`,
+`vectors/grants/`, and the single profile under `vectors/limits/`
 are picked up by tests and
 `scripts/verify_specs.py` without hardcoding individual vector filenames in the
 verifier.

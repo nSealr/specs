@@ -37,7 +37,7 @@ signer implementation.
 - Publish deterministic QR review transcript vectors that bind raw QR input to
   the exact displayed frames, physical-style button inputs, terminal decisions,
   and approval-gate state expected from signer review adapters. Screen-mode
-  vectors pin the legacy top-level review pages; detail-mode vectors pin
+  vectors pin the top-level review pages; detail-mode vectors pin
   constrained-display scroll-window behavior without requiring every scroll
   window to be visited before approval.
 - Publish deterministic animated QR envelope vectors for larger valid payloads.
@@ -64,6 +64,12 @@ signer implementation.
 - Publish the JSON schema for that read-only policy-file format so independent
   tools can validate the envelope before applying stricter semantic checks such
   as `sign_event` parameter/event-kind equality.
+- Publish identity, recovery, policy, and grant descriptor contracts that let
+  companion route requests without storing production private-key material.
+  These contracts make account descriptors secretless, keep stateless QR vaults
+  manual-only, reject QR-vault grants, and require expiry, rate limits,
+  revocation, audit, and device policy confirmation for persistent-route
+  automation.
 - Publish one named v0 implementation limit profile for constrained signers.
   These limits bound request size, static QR envelope size, animated QR decoded
   size, animated QR frame payload size/count, serial frame size, NIP-46 message
@@ -86,6 +92,8 @@ signer implementation.
 - No production private key custody.
 - No hardware-specific policy.
 - No companion UI behavior beyond protocol requirements.
+- No compatibility path without an explicit route type, validator coverage, and
+  ownership. Stale or unowned legacy behavior should be removed or rewritten.
 
 ## Design Rule
 

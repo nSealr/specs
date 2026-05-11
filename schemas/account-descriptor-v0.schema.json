@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://nostrseal.dev/schemas/account-descriptor-v0.schema.json",
+  "title": "NostrSeal Account Descriptor v0",
+  "type": "object",
+  "required": [
+    "format",
+    "account_id",
+    "label",
+    "public_key",
+    "signer_route",
+    "recovery",
+    "capabilities",
+    "policy_profile_id"
+  ],
+  "properties": {
+    "format": { "const": "nseal-account-descriptor-v0" },
+    "account_id": { "type": "string", "pattern": "^[A-Za-z0-9._:-]{1,128}$" },
+    "label": { "type": "string", "minLength": 1 },
+    "public_key": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "signer_route": {
+      "type": "object",
+      "required": ["type", "transport", "custody", "trusted_review", "policy_support"],
+      "properties": {
+        "type": {
+          "enum": [
+            "raspberry_qr_vault",
+            "esp32_qr_vault",
+            "esp32_usb_nip46",
+            "smartcard",
+            "custom_hardware_wallet",
+            "external_nip46"
+          ]
+        },
+        "repository": {
+          "enum": ["raspberry", "esp32", "smartcard", "hardware"]
+        },
+        "transport": {
+          "enum": ["qr", "usb", "smartcard", "nfc", "nip46_relay", "embedded"]
+        },
+        "custody": {
+          "enum": [
+            "stateless_session",
+            "device_persistent",
+            "card_persistent",
+            "custom_hardware_persistent",
+            "external_signer"
+          ]
+        },
+        "trusted_review": {
+          "enum": ["device_display", "external_review", "external_policy", "display_less"]
+        },
+        "policy_support": {
+          "enum": ["manual_only", "scoped_automation", "external"]
+        }
+      },
+      "additionalProperties": false
+    },
+    "recovery": { "type": "object" },
+    "capabilities": {
+      "type": "object",
+      "required": ["methods", "physical_review", "physical_approval", "persistent_grants"],
+      "properties": {
+        "methods": {
+          "type": "array",
+          "items": {
+            "enum": ["get_capabilities", "get_signing_status", "get_public_key", "sign_event"]
+          },
+          "uniqueItems": true
+        },
+        "physical_review": { "type": "boolean" },
+        "physical_approval": { "type": "boolean" },
+        "persistent_grants": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    },
+    "policy_profile_id": { "type": "string", "pattern": "^policy-[A-Za-z0-9._:-]+$" }
+  },
+  "additionalProperties": false
+}

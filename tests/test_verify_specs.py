@@ -26,6 +26,7 @@ from scripts.verify_specs import (
     review_vector_names,
     smartcard_apdu_vector_names,
 )
+import scripts.verify_specs as verify_specs
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -304,6 +305,99 @@ class VerifySpecsTests(unittest.TestCase):
         )
 
         self.assertIn("bridge_decisions[0].decision mismatch", "\n".join(errors))
+
+    def test_identity_policy_contract_vectors_are_discovered(self) -> None:
+        self.assertTrue(hasattr(verify_specs, "account_descriptor_vector_names"))
+        self.assertTrue(hasattr(verify_specs, "policy_profile_vector_names"))
+        self.assertTrue(hasattr(verify_specs, "grant_descriptor_vector_names"))
+
+        self.assertEqual(
+            verify_specs.account_descriptor_vector_names(),
+            vector_names_from_dir("vectors/accounts"),
+        )
+        self.assertEqual(
+            verify_specs.policy_profile_vector_names(),
+            vector_names_from_dir("vectors/policies"),
+        )
+        self.assertEqual(
+            verify_specs.grant_descriptor_vector_names(),
+            vector_names_from_dir("vectors/grants"),
+        )
+        self.assertIn("raspberry-qr-nip06-account-0", verify_specs.account_descriptor_vector_names())
+        self.assertIn("manual-only-qr-vault", verify_specs.policy_profile_vector_names())
+        self.assertIn("esp32-usb-kind-1-session", verify_specs.grant_descriptor_vector_names())
+
+    def test_identity_policy_contract_vectors_validate(self) -> None:
+        for name in verify_specs.account_descriptor_vector_names():
+            errors: list[str] = []
+            verify_specs.check_account_descriptor_vector(name, errors)
+            self.assertEqual(errors, [], name)
+
+        for name in verify_specs.policy_profile_vector_names():
+            errors = []
+            verify_specs.check_policy_profile_vector(name, errors)
+            self.assertEqual(errors, [], name)
+
+        for name in verify_specs.grant_descriptor_vector_names():
+            errors = []
+            verify_specs.check_grant_descriptor_vector(name, errors)
+            self.assertEqual(errors, [], name)
+
+    def test_account_descriptors_reject_embedded_secret_material(self) -> None:
+        account = deepcopy(load_json("vectors/accounts/raspberry-qr-nip06-account-0.json"))
+        account["recovery"]["mnemonic"] = "leader monkey parrot ring guide accident before fence cannon height naive bean"
+        errors: list[str] = []
+
+        verify_specs.check_account_descriptor_shape(
+            "vectors/accounts/mutated-secret-account.json",
+            account,
+            errors,
+        )
+
+        self.assertIn("must not contain secret field recovery.mnemonic", "\n".join(errors))
+
+    def test_policy_profiles_reject_automation_for_qr_vault_routes(self) -> None:
+        policy = deepcopy(load_json("vectors/policies/manual-only-qr-vault.json"))
+        policy["mode"] = "scoped_automation"
+        policy["grants_allowed"] = True
+        errors: list[str] = []
+
+        verify_specs.check_policy_profile_shape(
+            "vectors/policies/mutated-qr-automation.json",
+            policy,
+            errors,
+        )
+
+        self.assertIn("QR vault routes must remain manual_only with grants_allowed false", "\n".join(errors))
+
+    def test_grant_descriptors_reject_wildcard_or_qr_automation(self) -> None:
+        grant = deepcopy(load_json("vectors/grants/esp32-usb-kind-1-session.json"))
+        grant["permission"]["method"] = "*"
+        grant["route_type"] = "esp32_qr_vault"
+        errors: list[str] = []
+
+        verify_specs.check_grant_descriptor_shape(
+            "vectors/grants/mutated-wildcard-qr-grant.json",
+            grant,
+            errors,
+        )
+
+        joined = "\n".join(errors)
+        self.assertIn("grant route_type must not be a stateless QR vault", joined)
+        self.assertIn("grant permission must not use wildcards", joined)
+
+    def test_identity_policy_schemas_declare_required_contracts(self) -> None:
+        account_schema = load_json("schemas/account-descriptor-v0.schema.json")
+        policy_schema = load_json("schemas/policy-profile-v0.schema.json")
+        grant_schema = load_json("schemas/grant-descriptor-v0.schema.json")
+
+        self.assertEqual(account_schema["title"], "NostrSeal Account Descriptor v0")
+        self.assertIn("signer_route", account_schema["required"])
+        self.assertNotIn("secret_key", account_schema["properties"])
+        self.assertEqual(policy_schema["title"], "NostrSeal Policy Profile v0")
+        self.assertIn("grants_allowed", policy_schema["required"])
+        self.assertEqual(grant_schema["title"], "NostrSeal Grant Descriptor v0")
+        self.assertIn("expires_at", grant_schema["required"])
 
 
 if __name__ == "__main__":

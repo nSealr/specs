@@ -22,6 +22,8 @@
   `connect` review, and deterministic permission-denied responses.
 - NIP-46 read-only policy-file vectors for explicit approved permissions.
 - NIP-46 read-only policy-file JSON schema.
+- Secretless account-descriptor, policy-profile, and grant-descriptor
+  contracts for identity routing, recovery metadata, and scoped automation.
 - NostrSeal v0 implementation limit profile for constrained signer safety.
 - Malicious/rejection vectors for unsafe signing requests, unsafe responses, QR
   envelopes, serial frames, invalid device request metadata, NIP-46 payloads,
@@ -43,6 +45,12 @@ behavior for long tag reviews.
 The `connect` vector now also pins deterministic review pages that show remote
 signer identity, secret presence, and requested permissions without producing
 an acknowledgement, grant, relay session, or NIP-44 state.
+
+Status note, 2026-05-11: account descriptors, policy profiles, and grant
+descriptors now exist as shared vectors and schemas. They keep companion
+account metadata secretless, keep Raspberry and ESP32 stateless QR vaults
+manual-only, and require scoped grants to carry expiry, rate-limit, revocation,
+audit, and device-policy-confirmation constraints.
 
 ## M3: Transport Contracts
 

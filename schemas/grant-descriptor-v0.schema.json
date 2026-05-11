@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://nostrseal.dev/schemas/grant-descriptor-v0.schema.json",
+  "title": "NostrSeal Grant Descriptor v0",
+  "type": "object",
+  "required": [
+    "format",
+    "grant_id",
+    "account_id",
+    "route_type",
+    "client",
+    "permission",
+    "decision",
+    "expires_at",
+    "rate_limit",
+    "requires_device_policy_confirmation",
+    "revocable",
+    "audit_event_format"
+  ],
+  "properties": {
+    "format": { "const": "nseal-grant-descriptor-v0" },
+    "grant_id": { "type": "string", "pattern": "^[A-Za-z0-9._:-]{1,128}$" },
+    "account_id": { "type": "string", "pattern": "^[A-Za-z0-9._:-]{1,128}$" },
+    "route_type": {
+      "enum": ["esp32_usb_nip46", "smartcard", "custom_hardware_wallet", "external_nip46"]
+    },
+    "client": {
+      "type": "object",
+      "required": ["pubkey"],
+      "properties": {
+        "pubkey": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "label": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "permission": {
+      "type": "object",
+      "required": ["method"],
+      "properties": {
+        "method": { "type": "string", "minLength": 1 },
+        "parameter": { "type": "string" },
+        "event_kind": { "type": "integer", "minimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "decision": { "enum": ["allow_once", "allow_until_expiry"] },
+    "expires_at": { "type": "integer", "minimum": 1 },
+    "rate_limit": {
+      "type": "object",
+      "required": ["max_uses", "window_seconds"],
+      "properties": {
+        "max_uses": { "type": "integer", "minimum": 1 },
+        "window_seconds": { "type": "integer", "minimum": 1 }
+      },
+      "additionalProperties": false
+    },
+    "requires_device_policy_confirmation": { "const": true },
+    "revocable": { "const": true },
+    "audit_event_format": { "const": "nseal-grant-audit-event-v0" }
+  },
+  "additionalProperties": false
+}

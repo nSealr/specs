@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://nostrseal.dev/schemas/policy-profile-v0.schema.json",
+  "title": "NostrSeal Policy Profile v0",
+  "type": "object",
+  "required": [
+    "format",
+    "policy_id",
+    "label",
+    "route_types",
+    "mode",
+    "grants_allowed",
+    "manual_review_required",
+    "forbidden_permissions",
+    "risk_tiers"
+  ],
+  "properties": {
+    "format": { "const": "nseal-policy-profile-v0" },
+    "policy_id": { "type": "string", "pattern": "^policy-[A-Za-z0-9._:-]+$" },
+    "label": { "type": "string", "minLength": 1 },
+    "route_types": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "raspberry_qr_vault",
+          "esp32_qr_vault",
+          "esp32_usb_nip46",
+          "smartcard",
+          "custom_hardware_wallet",
+          "external_nip46"
+        ]
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "mode": { "enum": ["manual_only", "scoped_automation"] },
+    "grants_allowed": { "type": "boolean" },
+    "manual_review_required": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "uniqueItems": true
+    },
+    "forbidden_permissions": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "uniqueItems": true
+    },
+    "grant_constraints": {
+      "type": "object",
+      "properties": {
+        "expiry_required": { "type": "boolean" },
+        "rate_limit_required": { "type": "boolean" },
+        "revocation_required": { "type": "boolean" },
+        "audit_log_required": { "type": "boolean" },
+        "device_confirmation_required": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    },
+    "risk_tiers": {
+      "type": "object",
+      "additionalProperties": { "type": "string", "minLength": 1 }
+    }
+  },
+  "additionalProperties": false
+}
