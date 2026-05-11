@@ -73,7 +73,8 @@ must add specs vectors before being treated as complete.
 Status note, 2026-05-11: invalid response vectors now also cover signed-event
 integer safety plus content and tag payloads that exceed the shared v0
 implementation limits. Hosts must reject those responses before treating a
-device output as accepted signing output.
+device output as accepted signing output. Response `request_id` values now use
+the same v0 profile as requests.
 
 Status note, 2026-05-08: invalid serial-frame vectors now include valid
 transport frames with invalid decoded request metadata for unsupported

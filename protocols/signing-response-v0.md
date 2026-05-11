@@ -2,6 +2,10 @@
 
 Every response echoes the request version and request id.
 
+The echoed `request_id` must use the same NostrSeal v0 request-id profile as
+requests; hosts must reject malformed response ids before interpreting result
+payloads.
+
 ## Successful Capabilities Response
 
 ```json

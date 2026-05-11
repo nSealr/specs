@@ -352,8 +352,11 @@ def check_response_shape(path: Path, value: dict, errors: list[str]) -> None:
         errors.append(f"{path}: unknown top-level response fields: {unknown_top_level}")
     if value.get("version") != 1:
         errors.append(f"{path}: version must be 1")
-    if not isinstance(value.get("request_id"), str) or not value["request_id"]:
-        errors.append(f"{path}: request_id must be a non-empty string")
+    request_id = value.get("request_id")
+    if not isinstance(request_id, str) or not REQUEST_ID_RE.fullmatch(request_id):
+        errors.append(f"{path}: request_id is invalid")
+    elif len(request_id) > limits["max_request_id_length"]:
+        errors.append(f"{path}: request_id exceeds max_request_id_length")
     if value.get("ok") is True:
         if "error" in value:
             errors.append(f"{path}: successful response must not include error")
