@@ -7,7 +7,7 @@ companion implementation must agree on:
 
 - NIP-01 event canonicalization and signing fixtures.
 - BIP-340/secp256k1 test vectors.
-- QR signing request envelope.
+- Static and animated QR signing request/response envelopes.
 - USB and serial signer transport protocol.
 - JavaCard/APDU smartcard contract.
 - JSON schemas and example request/response payloads.
@@ -19,7 +19,7 @@ companion implementation must agree on:
 - Capability discovery request and ESP32-S3 scaffold response examples.
 - ESP32-S3 scaffold signing-disabled response vector.
 - Error object v0.
-- QR envelope v0.
+- Static `nseal1:` and animated `nseal1a:` QR envelope v0.
 - Serial frame v0.
 - Smartcard APDU v0.
 - Deterministic Nostr/BIP-340 fixtures.

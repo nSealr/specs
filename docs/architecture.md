@@ -34,6 +34,10 @@ signer implementation.
 - Publish deterministic QR review transcript vectors that bind raw QR input to
   the exact displayed frames, physical-style button inputs, terminal decisions,
   and approval-gate state expected from signer review adapters.
+- Publish deterministic animated QR envelope vectors for larger valid payloads.
+  The `nseal1a:` contract pins decoded JSON digest, one-based frame ordering,
+  frame checksums, payload chunk limits, frame-count limits, and response-schema
+  validation without adding compression or fountain-code recovery.
 - Publish deterministic NIP-46 decrypted payload vectors that bind
   JSON-RPC-like request messages to NostrSeal request/response payloads or
   non-committal `connect` policy-review intents. Non-`connect` request vectors
@@ -55,11 +59,12 @@ signer implementation.
   tools can validate the envelope before applying stricter semantic checks such
   as `sign_event` parameter/event-kind equality.
 - Publish one named v0 implementation limit profile for constrained signers.
-  These limits bound request size, QR envelope size, serial frame size, NIP-46
-  message size, content size, tag count, tag field size, total tag text, and
-  integer safety. They are NostrSeal safety limits, not Nostr protocol limits.
-  The machine-readable source is `vectors/limits/nseal-v0.json`; the human
-  protocol explainer is `protocols/implementation-limits-v0.md`.
+  These limits bound request size, static QR envelope size, animated QR decoded
+  size, animated QR frame payload size/count, serial frame size, NIP-46 message
+  size, content size, tag count, tag field size, total tag text, and integer
+  safety. They are NostrSeal safety limits, not Nostr protocol limits. The
+  machine-readable source is `vectors/limits/nseal-v0.json`; the human protocol
+  explainer is `protocols/implementation-limits-v0.md`.
 - Publish malicious/rejection vectors that define deterministic failure
   behavior before review, approval, response acceptance, or signing. These live
   under `vectors/invalid/` and are discovered automatically by the specs

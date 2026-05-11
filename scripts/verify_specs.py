@@ -16,9 +16,11 @@ import secp256k1
 ROOT = Path(__file__).resolve().parents[1]
 HEX32_RE = re.compile(r"^[0-9a-f]{64}$")
 HEX64_RE = re.compile(r"^[0-9a-f]{128}$")
+HEX8_RE = re.compile(r"^[0-9a-f]{16}$")
 REQUEST_ID_RE = re.compile(r"^[A-Za-z0-9._:-]{1,128}$")
 B64URL_RE = re.compile(r"^[A-Za-z0-9_-]+$")
 QR_PREFIX = "nseal1:"
+ANIMATED_QR_PREFIX = "nseal1a:"
 SERIAL_PREFIX = "nseal1f:"
 APDU_HEX_RE = re.compile(r"^[0-9a-f]+$")
 LIMIT_PROFILE = "vectors/limits/nseal-v0.json"
@@ -97,6 +99,27 @@ def base64url_json(value: dict) -> str:
     return encoded.rstrip("=")
 
 
+def sha256_hex(value: bytes) -> str:
+    return hashlib.sha256(value).hexdigest()
+
+
+def animated_qr_checksum(digest: str, index: int, total: int, chunk: str) -> str:
+    frame_without_checksum = f"{ANIMATED_QR_PREFIX}{digest}:{index}/{total}:{chunk}"
+    return sha256_hex(frame_without_checksum.encode("utf-8"))[:16]
+
+
+def animated_qr_frames(value: dict, chunk_size: int) -> list[str]:
+    decoded = compact_json(value).encode("utf-8")
+    digest = sha256_hex(decoded)
+    payload = base64.urlsafe_b64encode(decoded).decode("ascii").rstrip("=")
+    chunks = [payload[index : index + chunk_size] for index in range(0, len(payload), chunk_size)]
+    frames = []
+    for index, chunk in enumerate(chunks, start=1):
+        checksum = animated_qr_checksum(digest, index, len(chunks), chunk)
+        frames.append(f"{ANIMATED_QR_PREFIX}{digest}:{index}/{len(chunks)}:{chunk}:{checksum}")
+    return frames
+
+
 def json_utf8_size(value: object) -> int:
     return len(compact_json(value).encode("utf-8"))
 
@@ -159,6 +182,9 @@ def check_implementation_limits(errors: list[str]) -> None:
         "max_request_id_length",
         "max_decoded_request_json_bytes",
         "max_static_qr_decoded_json_bytes",
+        "max_animated_qr_decoded_json_bytes",
+        "max_animated_qr_frame_payload_chars",
+        "max_animated_qr_frame_count",
         "max_serial_frame_bytes",
         "max_nip46_decrypted_message_json_bytes",
         "max_content_utf8_bytes",
@@ -1125,6 +1151,110 @@ def check_qr_envelope_payload(vector_path: str, envelope: object, errors: list[s
     check_request_shape(Path(vector_path), decoded_json, errors)
 
 
+def parse_animated_qr_frame(vector_path: str, frame: object, errors: list[str]) -> tuple[str, int, int, str] | None:
+    limits = implementation_limit_values()
+    if not isinstance(frame, str):
+        errors.append(f"{vector_path}: animated QR frame must be a string")
+        return None
+    if not frame.startswith(ANIMATED_QR_PREFIX):
+        errors.append(f"{vector_path}: animated QR frame requires nseal1a prefix")
+        return None
+    parts = frame.split(":")
+    if len(parts) != 5 or parts[0] != "nseal1a":
+        errors.append(f"{vector_path}: animated QR frame is malformed")
+        return None
+    digest, index_total, chunk, checksum = parts[1], parts[2], parts[3], parts[4]
+    if not HEX32_RE.fullmatch(digest):
+        errors.append(f"{vector_path}: animated QR digest must be 32-byte lowercase hex")
+        return None
+    if not HEX8_RE.fullmatch(checksum):
+        errors.append(f"{vector_path}: animated QR checksum must be 8-byte lowercase hex")
+        return None
+    if "/" not in index_total:
+        errors.append(f"{vector_path}: animated QR index must use index/total")
+        return None
+    index_text, total_text = index_total.split("/", 1)
+    if not index_text.isdecimal() or not total_text.isdecimal():
+        errors.append(f"{vector_path}: animated QR index and total must be decimal")
+        return None
+    index = int(index_text)
+    total = int(total_text)
+    if index < 1 or total < 1 or index > total:
+        errors.append(f"{vector_path}: animated QR frame index is out of range")
+        return None
+    if total > limits["max_animated_qr_frame_count"]:
+        errors.append(f"{vector_path}: animated QR frame count exceeds max_animated_qr_frame_count")
+    if not B64URL_RE.fullmatch(chunk):
+        errors.append(f"{vector_path}: animated QR chunk must be unpadded base64url")
+        return None
+    if len(chunk) > limits["max_animated_qr_frame_payload_chars"]:
+        errors.append(f"{vector_path}: animated QR chunk exceeds max_animated_qr_frame_payload_chars")
+    expected_checksum = animated_qr_checksum(digest, index, total, chunk)
+    if checksum != expected_checksum:
+        errors.append(f"{vector_path}: animated QR frame checksum mismatch")
+    return digest, index, total, chunk
+
+
+def check_animated_qr_vector(rel: str, errors: list[str]) -> None:
+    vector_path = f"vectors/transports/{rel}.json"
+    vector = load_required_json(vector_path, errors)
+    if vector is None:
+        return
+    limits = implementation_limit_values()
+    if vector.get("format") != "qr-animated-envelope-v0":
+        errors.append(f"{vector_path}: format mismatch")
+    if vector.get("prefix") != ANIMATED_QR_PREFIX:
+        errors.append(f"{vector_path}: prefix mismatch")
+    decoded = vector.get("decoded")
+    if not isinstance(decoded, dict):
+        errors.append(f"{vector_path}: decoded must be an object")
+        return
+    decoded_bytes = compact_json(decoded).encode("utf-8")
+    if len(decoded_bytes) > limits["max_animated_qr_decoded_json_bytes"]:
+        errors.append(f"{vector_path}: decoded JSON exceeds max_animated_qr_decoded_json_bytes")
+    digest = sha256_hex(decoded_bytes)
+    if vector.get("decoded_json_sha256") != digest:
+        errors.append(f"{vector_path}: decoded_json_sha256 mismatch")
+    payload = base64.urlsafe_b64encode(decoded_bytes).decode("ascii").rstrip("=")
+    if vector.get("payload_base64url") != payload:
+        errors.append(f"{vector_path}: payload_base64url mismatch")
+    chunk_size = vector.get("chunk_size_chars")
+    if not isinstance(chunk_size, int) or chunk_size <= 0:
+        errors.append(f"{vector_path}: chunk_size_chars must be a positive integer")
+        return
+    if chunk_size > limits["max_animated_qr_frame_payload_chars"]:
+        errors.append(f"{vector_path}: chunk_size_chars exceeds max_animated_qr_frame_payload_chars")
+    expected_frames = animated_qr_frames(decoded, chunk_size)
+    if vector.get("frames") != expected_frames:
+        errors.append(f"{vector_path}: frames mismatch")
+    frames = vector.get("frames")
+    if not isinstance(frames, list) or not frames:
+        errors.append(f"{vector_path}: frames must be a non-empty list")
+        return
+    parsed = [parse_animated_qr_frame(vector_path, frame, errors) for frame in frames]
+    if any(item is None for item in parsed):
+        return
+    parsed_frames = [item for item in parsed if item is not None]
+    digests = {item[0] for item in parsed_frames}
+    totals = {item[2] for item in parsed_frames}
+    if digests != {digest}:
+        errors.append(f"{vector_path}: frame digest set mismatch")
+    if len(totals) != 1:
+        errors.append(f"{vector_path}: frame total mismatch")
+        return
+    total = totals.pop()
+    indices = sorted(item[1] for item in parsed_frames)
+    if indices != list(range(1, total + 1)):
+        errors.append(f"{vector_path}: frames must be unique and contiguous")
+    reassembled_payload = "".join(chunk for _, _, _, chunk in sorted(parsed_frames, key=lambda item: item[1]))
+    if reassembled_payload != payload:
+        errors.append(f"{vector_path}: reassembled payload mismatch")
+    reassembled = decode_unpadded_base64url(reassembled_payload, vector_path, "animated QR", errors)
+    if reassembled is not None and sha256_hex(reassembled) != digest:
+        errors.append(f"{vector_path}: reassembled decoded digest mismatch")
+    check_response_shape(Path(vector_path), decoded, errors)
+
+
 def check_serial_frame_payload(vector_path: str, frame: object, errors: list[str]) -> None:
     limits = implementation_limit_values()
     if not isinstance(frame, str):
@@ -1949,6 +2079,7 @@ def main() -> int:
             errors.append("vectors/transports/qr-envelope-kind-1-basic.json: envelope mismatch")
         if qr_vector.get("decoded") != qr_request:
             errors.append("vectors/transports/qr-envelope-kind-1-basic.json: decoded request mismatch")
+    check_animated_qr_vector("qr-animated-response-kind-1-basic", errors)
 
     serial_vector = load_required_json("vectors/transports/serial-frame-request-kind-1-basic.json", errors)
     if serial_vector is not None:

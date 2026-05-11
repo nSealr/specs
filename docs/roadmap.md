@@ -5,7 +5,7 @@
 - Signing request v0.
 - Signing response v0.
 - Common error response.
-- QR envelope v0.
+- Static `nseal1:` and animated `nseal1a:` QR envelope v0.
 - Serial frame v0.
 - Smartcard APDU v0.
 - Capability discovery and disabled-signing request/response vectors for

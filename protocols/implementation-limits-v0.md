@@ -18,6 +18,9 @@ The canonical machine-readable profile is:
 | `max_request_id_length` | 128 | Signing request and NIP-46 request ids. |
 | `max_decoded_request_json_bytes` | 704 | Compact UTF-8 decoded NostrSeal request JSON. |
 | `max_static_qr_decoded_json_bytes` | 704 | Static QR envelope decoded UTF-8 JSON payloads. |
+| `max_animated_qr_decoded_json_bytes` | 4096 | Reassembled animated QR decoded UTF-8 JSON payloads before schema validation. |
+| `max_animated_qr_frame_payload_chars` | 256 | Base64url chunk characters inside one animated QR frame. |
+| `max_animated_qr_frame_count` | 64 | Total frames in one animated QR payload. |
 | `max_serial_frame_bytes` | 1024 | Complete ASCII serial frame line. |
 | `max_nip46_decrypted_message_json_bytes` | 1024 | Already-decrypted NIP-46 request message JSON. |
 | `max_content_utf8_bytes` | 512 | `event_template.content`. |
