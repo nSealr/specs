@@ -35,7 +35,9 @@ fixtures.
   error instead of a transport error.
 - Signing-status vectors preserve both `missing_gates` and
   `development_accepted_gates` so device diagnostics can report development
-  evidence without turning it into a production signing claim.
+  evidence without turning it into a production signing claim. The ESP32-S3
+  scaffold vector must keep `unicode_review_rendering` in `missing_gates` until
+  a full Unicode review policy or accepted equivalent exists.
 - Trusted review vectors preserve raw event kind, created_at, signer author
   pubkey, complete content, complete structured tags, and final decision
   semantics for display-oriented signers. They do not encode inferred kind

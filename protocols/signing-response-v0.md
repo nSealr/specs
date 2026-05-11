@@ -44,6 +44,7 @@ physical approval gates are implemented.
         "runtime_signing_feature",
         "trusted_review_display",
         "physical_approval_controls",
+        "unicode_review_rendering",
         "key_provisioning",
         "secure_boot",
         "flash_encryption",
@@ -66,7 +67,9 @@ physical approval gates are implemented.
 `parser_limits` and `approval_digest_binding` because those host-core gates are
 already implemented and tested, but it must keep `signing_enabled: false` until
 the remaining gates are satisfied and the signing feature is intentionally
-enabled.
+enabled. `unicode_review_rendering` stays missing while the current display
+path uses development `U+XXXX` fallback instead of a production-accepted
+Unicode review policy.
 
 `development_accepted_gates` names gates with deterministic implementation
 coverage or manual development evidence in the current scaffold. It is not a
