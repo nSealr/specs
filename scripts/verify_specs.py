@@ -1067,6 +1067,87 @@ def expected_review_transcript(screen_review: dict, buttons: list[str], errors: 
     return transcript
 
 
+def detail_frame_for_page(page: dict, logical_page_has_scroll: bool) -> dict:
+    action_hint = "Next" if page["action"] == "next" else "Approve / Reject"
+    if logical_page_has_scroll and action_hint == "Next":
+        action_hint = "Next/Scroll"
+    return {
+        "title": page["title"],
+        "page_indicator": page["page_indicator"],
+        "body_lines": page["lines"],
+        "action_hint": action_hint,
+    }
+
+
+def detail_logical_ranges(pages: list[dict]) -> list[tuple[int, int]]:
+    ranges: list[tuple[int, int]] = []
+    current_id: str | None = None
+    for index, page in enumerate(pages):
+        page_id = str(page.get("logical_page_id") or f"__page_{index}")
+        if page_id != current_id:
+            ranges.append((index, 1))
+            current_id = page_id
+        else:
+            start, count = ranges[-1]
+            ranges[-1] = (start, count + 1)
+    return ranges
+
+
+def expected_detail_review_transcript(
+    detail_pages: list[dict],
+    buttons: list[str],
+    errors: list[str],
+    rel: str,
+) -> list[dict]:
+    logical_ranges = detail_logical_ranges(detail_pages)
+    logical_page_index = 0
+    scroll_page_offset = 0
+    seen_logical_pages = {0}
+    terminal = False
+    transcript = []
+    for button in buttons:
+        if terminal:
+            errors.append(f"vectors/review-transcripts/{rel}.json: button after terminal decision")
+            break
+        if button not in {"next", "scroll", "approve", "reject"}:
+            errors.append(f"vectors/review-transcripts/{rel}.json: unsupported button {button!r}")
+            break
+
+        start, count = logical_ranges[logical_page_index]
+        page_index = start + scroll_page_offset
+        page = detail_pages[page_index]
+        frame = detail_frame_for_page(page, count > 1)
+        decision = None
+        approved = False
+        if button == "next":
+            logical_page_index = (logical_page_index + 1) % len(logical_ranges)
+            scroll_page_offset = 0
+            seen_logical_pages.add(logical_page_index)
+        elif button == "scroll":
+            if count > 1:
+                scroll_page_offset = (scroll_page_offset + 1) % count
+        elif button == "reject":
+            decision = False
+            terminal = True
+        else:
+            if page.get("action") != "approve_or_reject" or len(seen_logical_pages) != len(logical_ranges):
+                errors.append(f"vectors/review-transcripts/{rel}.json: approval before final page")
+                break
+            decision = True
+            approved = True
+            terminal = True
+
+        transcript.append(
+            {
+                "frame": frame,
+                "button": button,
+                "decision": decision,
+                "approved_for_signing": approved,
+            }
+        )
+    return transcript
+
+
 def check_review_transcript_vector(rel: str, errors: list[str]) -> None:
     vector = load_required_json(f"vectors/review-transcripts/{rel}.json", errors)
     if vector is None:
@@ -1084,12 +1165,9 @@ def check_review_transcript_vector(rel: str, errors: list[str]) -> None:
     if source_vector is None:
         return
 
-    screen_review_name = vector.get("screen_review_vector")
-    if not isinstance(screen_review_name, str):
-        errors.append(f"vectors/review-transcripts/{rel}.json: screen_review_vector must be a string")
-        return
-    screen_vector = load_required_json(f"vectors/review-screens/{screen_review_name}.json", errors)
-    if screen_vector is None:
+    review_mode = vector.get("review_mode", "screen")
+    if review_mode not in {"screen", "detail"}:
+        errors.append(f"vectors/review-transcripts/{rel}.json: review_mode must be screen or detail")
         return
 
     request = vector.get("request")
@@ -1099,18 +1177,47 @@ def check_review_transcript_vector(rel: str, errors: list[str]) -> None:
     check_request_shape(Path(f"vectors/review-transcripts/{rel}.json"), request, errors)
     if request != source_vector.get("decoded"):
         errors.append(f"vectors/review-transcripts/{rel}.json: request must match source QR vector")
-    if request != screen_vector.get("request"):
-        errors.append(f"vectors/review-transcripts/{rel}.json: request must match review-screen vector")
     if vector.get("qr_envelope") != source_vector.get("envelope"):
         errors.append(f"vectors/review-transcripts/{rel}.json: qr_envelope mismatch")
-    if vector.get("approval_digest") != screen_vector.get("screen_review", {}).get("approval_digest"):
-        errors.append(f"vectors/review-transcripts/{rel}.json: approval_digest mismatch")
 
     buttons = vector.get("buttons")
     if not isinstance(buttons, list) or not all(isinstance(button, str) for button in buttons):
         errors.append(f"vectors/review-transcripts/{rel}.json: buttons must be a string list")
         return
-    expected = expected_review_transcript(screen_vector["screen_review"], buttons, errors, rel)
+    if review_mode == "screen":
+        screen_review_name = vector.get("screen_review_vector")
+        if not isinstance(screen_review_name, str):
+            errors.append(f"vectors/review-transcripts/{rel}.json: screen_review_vector must be a string")
+            return
+        screen_vector = load_required_json(f"vectors/review-screens/{screen_review_name}.json", errors)
+        if screen_vector is None:
+            return
+        if request != screen_vector.get("request"):
+            errors.append(f"vectors/review-transcripts/{rel}.json: request must match review-screen vector")
+        if vector.get("approval_digest") != screen_vector.get("screen_review", {}).get("approval_digest"):
+            errors.append(f"vectors/review-transcripts/{rel}.json: approval_digest mismatch")
+        expected = expected_review_transcript(screen_vector["screen_review"], buttons, errors, rel)
+    else:
+        detail_review_name = vector.get("detail_review_vector")
+        if not isinstance(detail_review_name, str):
+            errors.append(f"vectors/review-transcripts/{rel}.json: detail_review_vector must be a string")
+            return
+        detail_vector = load_required_json(f"vectors/review-detail-pages/{detail_review_name}.json", errors)
+        if detail_vector is None:
+            return
+        source_review_name = detail_vector.get("source_review_vector")
+        source_review = load_required_json(f"vectors/review/{source_review_name}.json", errors)
+        if source_review is None:
+            return
+        if request != source_review.get("request"):
+            errors.append(f"vectors/review-transcripts/{rel}.json: request must match detail review source")
+        if vector.get("approval_digest") != detail_vector.get("approval_digest"):
+            errors.append(f"vectors/review-transcripts/{rel}.json: approval_digest mismatch")
+        pages = detail_vector.get("pages")
+        check_review_detail_page_contract(f"vectors/review-transcripts/{rel}.json", pages, errors)
+        if not isinstance(pages, list):
+            return
+        expected = expected_detail_review_transcript(pages, buttons, errors, rel)
     if vector.get("transcript") != expected:
         errors.append(f"vectors/review-transcripts/{rel}.json: transcript mismatch")
 

@@ -69,7 +69,8 @@ fixtures.
   verification.
 - QR review transcript vectors preserve the raw QR envelope, source request,
   approval digest, displayed frame before each physical-style input, terminal
-  decision, and approval-gate state.
+  decision, and approval-gate state. Detail-mode transcript vectors also pin
+  `scroll` inputs within constrained-display Content or Tags windows.
 - QR review transcript discovery tests ensure every
   `vectors/review-transcripts/*.json` file is included in conformance
   verification.
@@ -125,7 +126,8 @@ complete physical review pages while keeping the `screen-pages`
 It also checks detail-page body-line style integrity so wrapped tag or author
 values remain visually distinguishable from new items on constrained screens.
 It also checks that every review-transcript vector matches the deterministic
-frame/button/decision sequence expected from QR signer review adapters.
+frame/button/decision sequence expected from QR signer review adapters,
+including detail-mode scroll-window navigation.
 It also checks that every NIP-46 decrypted payload vector maps to the expected
 NostrSeal request, local response, signer response payload, or `connect`
 policy-review intent and review pages, and that every non-`connect` NIP-46

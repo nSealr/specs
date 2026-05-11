@@ -36,7 +36,10 @@ signer implementation.
   the wrap visually distinct from the next item.
 - Publish deterministic QR review transcript vectors that bind raw QR input to
   the exact displayed frames, physical-style button inputs, terminal decisions,
-  and approval-gate state expected from signer review adapters.
+  and approval-gate state expected from signer review adapters. Screen-mode
+  vectors pin the legacy top-level review pages; detail-mode vectors pin
+  constrained-display scroll-window behavior without requiring every scroll
+  window to be visited before approval.
 - Publish deterministic animated QR envelope vectors for larger valid payloads.
   The `nseal1a:` contract pins decoded JSON digest, one-based frame ordering,
   frame checksums, payload chunk limits, frame-count limits, and response-schema

@@ -8,6 +8,7 @@ from unittest.mock import patch
 from scripts.verify_specs import (
     check_smartcard_apdu_vector,
     check_review_detail_page_vector,
+    check_review_transcript_vector,
     check_nip46_bridge_decisions,
     check_nip46_policy_file_vector,
     check_invalid_vector,
@@ -119,6 +120,15 @@ class VerifySpecsTests(unittest.TestCase):
 
         self.assertEqual(names, vector_names_from_dir("vectors/review-transcripts"))
         self.assertIn("kind-1-basic-approve", names)
+        self.assertIn("kind-1-long-events-many-tags-detail-scroll-approve", names)
+
+    def test_review_transcript_vectors_validate_display_navigation(self) -> None:
+        for name in review_transcript_vector_names():
+            errors: list[str] = []
+
+            check_review_transcript_vector(name, errors)
+
+            self.assertEqual(errors, [], name)
 
     def test_nip46_vector_names_are_discovered_from_directory(self) -> None:
         names = nip46_vector_names()

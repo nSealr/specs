@@ -37,6 +37,9 @@ read-only NIP-46 policy-file vector/schema are implemented. The v0
 implementation limit profile and initial malicious/rejection vectors are now
 part of the shared contract. Initial review detail-page vectors are also
 implemented for T-Display S3 sized constrained-display conformance.
+QR review transcripts now include detail-mode scroll-window navigation so
+Raspberry and ESP32 display/button adapter tests can agree on `Next/Scroll`
+behavior for long tag reviews.
 The `connect` vector now also pins deterministic review pages that show remote
 signer identity, secret presence, and requested permissions without producing
 an acknowledgement, grant, relay session, or NIP-44 state.

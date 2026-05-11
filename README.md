@@ -34,6 +34,8 @@ companion implementation must agree on:
   codepoint fallback for constrained bitmap displays.
 - QR review transcript vectors that bind raw QR input, displayed frames,
   physical-style button sequences, terminal decisions, and approval-gate state.
+  They cover both simple screen-page traversal and detail-page scroll-window
+  navigation for constrained displays.
 - NIP-46 decrypted payload bridge vectors for `get_public_key`, `sign_event`,
   local `ping`, response mapping, deterministic `connect` review pages, and
   explicit permission requirement/check/bridge decision outputs. The
