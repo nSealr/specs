@@ -12,10 +12,12 @@ are routing and safety metadata for the five existing signer families.
 - Account descriptors: `vectors/accounts/*.json`
 - Policy profiles: `vectors/policies/*.json`
 - Grant descriptors: `vectors/grants/*.json`
+- Policy-decision transcripts: `vectors/policy-decisions/*.json`
 - Schemas:
   - `schemas/account-descriptor-v0.schema.json`
   - `schemas/policy-profile-v0.schema.json`
   - `schemas/grant-descriptor-v0.schema.json`
+  - `schemas/policy-decision-vector-v0.schema.json`
 
 ## Account Descriptor
 
@@ -76,6 +78,24 @@ Grant descriptors must include:
 - audit event format.
 
 Wildcards are invalid. Stateless QR vault routes are invalid grant targets.
+
+## Policy Decision Transcript
+
+`nseal-policy-decision-vector-v0` records deterministic policy outcomes for
+future persistent-route automation without creating a grant store or relay
+session. v0 decisions are:
+
+- `allow` when a matching grant is scoped to the account, route, client,
+  method, event kind, and is neither expired nor revoked;
+- `deny` when the permission is forbidden, the matching grant is expired, or
+  the matching grant is revoked;
+- `manual_review` when decrypt requests, unknown methods, manual-only routes,
+  or requests without a matching grant must stay outside automation.
+
+Every decision carries a deterministic `nseal-grant-audit-event-v0` object so
+future stores can be audited without changing the decision semantics. These
+vectors do not authorize companion-side private-key custody, persistent grant
+storage, `connect` acknowledgements, or NIP-46 relay sessions.
 
 ## Change Control
 

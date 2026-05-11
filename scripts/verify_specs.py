@@ -53,6 +53,18 @@ ROUTE_REVIEW_MODES = {"device_display", "external_review", "external_policy", "d
 POLICY_SUPPORT_MODES = {"manual_only", "scoped_automation", "external"}
 POLICY_MODES = {"manual_only", "scoped_automation"}
 GRANT_DECISIONS = {"allow_once", "allow_until_expiry"}
+POLICY_DECISIONS = {"allow", "deny", "manual_review"}
+POLICY_DECISION_REASONS = {
+    "decrypt_requires_manual_review",
+    "forbidden_permission",
+    "grant_expired",
+    "grant_revoked",
+    "grant_valid",
+    "no_matching_grant",
+    "policy_manual_only",
+    "unknown_method_requires_manual_review",
+}
+DECRYPT_METHODS = {"nip04_decrypt", "nip44_decrypt"}
 SECRET_FIELD_NAMES = {
     "secret_key",
     "private_key",
@@ -688,6 +700,10 @@ def grant_descriptor_vector_names() -> list[str]:
     return sorted(path.stem for path in (ROOT / "vectors" / "grants").glob("*.json"))
 
 
+def policy_decision_vector_names() -> list[str]:
+    return sorted(path.stem for path in (ROOT / "vectors" / "policy-decisions").glob("*.json"))
+
+
 def secret_field_paths(value: object, prefix: str = "") -> list[str]:
     paths: list[str] = []
     if isinstance(value, dict):
@@ -964,6 +980,165 @@ def check_grant_descriptor_vector(rel: str, errors: list[str]) -> None:
         errors.append(f"{vector_path}: account_id target is missing")
     elif matching_accounts[0].get("signer_route", {}).get("type") != route_type:
         errors.append(f"{vector_path}: account route_type mismatch")
+
+
+def policy_permission_key(permission: dict) -> str:
+    if permission.get("method") == "sign_event":
+        return f"sign_event:{permission.get('event_kind')}"
+    return str(permission.get("method"))
+
+
+def permissions_match(grant_permission: dict, request_permission: dict) -> bool:
+    if grant_permission.get("method") != request_permission.get("method"):
+        return False
+    if grant_permission.get("method") == "sign_event":
+        return (
+            grant_permission.get("parameter") == request_permission.get("parameter")
+            and grant_permission.get("event_kind") == request_permission.get("event_kind")
+        )
+    return "parameter" not in grant_permission and "event_kind" not in grant_permission
+
+
+def policy_audit_event(request: dict, decision: str, reason: str, grant_id: str | None = None) -> dict:
+    event = {
+        "format": "nseal-grant-audit-event-v0",
+        "occurred_at": request["now"],
+        "account_id": request["account_id"],
+        "route_type": request["route_type"],
+        "client_pubkey": request["client_pubkey"],
+        "permission": request["permission"],
+        "decision": decision,
+        "reason": reason,
+    }
+    if grant_id is not None:
+        event["grant_id"] = grant_id
+    return event
+
+
+def policy_decision(decision: str, reason: str, request: dict, grant_id: str | None = None) -> dict:
+    result = {
+        "format": "nseal-policy-decision-v0",
+        "decision": decision,
+        "reason": reason,
+        "audit_event": policy_audit_event(request, decision, reason, grant_id),
+    }
+    if grant_id is not None:
+        result["grant_id"] = grant_id
+    return result
+
+
+def expected_policy_decision(vector_path: str, vector: dict, errors: list[str]) -> dict | None:
+    request = vector.get("request")
+    if not isinstance(request, dict):
+        errors.append(f"{vector_path}: request must be an object")
+        return None
+    profile_id = vector.get("policy_profile_id")
+    if not isinstance(profile_id, str) or not profile_id.startswith("policy-"):
+        errors.append(f"{vector_path}: policy_profile_id must reference a policy-* profile")
+        return None
+    policy_path = f"vectors/policies/{profile_id.removeprefix('policy-')}.json"
+    policy = load_required_json(policy_path, errors)
+    if policy is None:
+        return None
+
+    permission = request.get("permission")
+    if not isinstance(permission, dict):
+        errors.append(f"{vector_path}: request.permission must be an object")
+        return None
+    method = permission.get("method")
+    forbidden_permissions = policy.get("forbidden_permissions", [])
+    if method in forbidden_permissions or method == "export_secret":
+        return policy_decision("deny", "forbidden_permission", request)
+    if method in DECRYPT_METHODS:
+        return policy_decision("manual_review", "decrypt_requires_manual_review", request)
+    if method == "unknown_method":
+        return policy_decision("manual_review", "unknown_method_requires_manual_review", request)
+    if policy.get("grants_allowed") is not True:
+        return policy_decision("manual_review", "policy_manual_only", request)
+
+    revoked = set(request.get("revoked_grant_ids", []))
+    for grant_id in request.get("grant_ids", []):
+        if not isinstance(grant_id, str):
+            errors.append(f"{vector_path}: request.grant_ids must contain strings")
+            continue
+        grant = load_required_json(f"vectors/grants/{grant_id.removeprefix('grant-')}.json", errors)
+        if grant is None:
+            continue
+        if grant.get("account_id") != request.get("account_id"):
+            continue
+        if grant.get("route_type") != request.get("route_type"):
+            continue
+        if grant.get("client", {}).get("pubkey") != request.get("client_pubkey"):
+            continue
+        grant_permission = grant.get("permission")
+        if not isinstance(grant_permission, dict) or not permissions_match(grant_permission, permission):
+            continue
+        if grant_id in revoked:
+            return policy_decision("deny", "grant_revoked", request, grant_id)
+        if type(request.get("now")) is int and type(grant.get("expires_at")) is int and request["now"] >= grant["expires_at"]:
+            return policy_decision("deny", "grant_expired", request, grant_id)
+        return policy_decision("allow", "grant_valid", request, grant_id)
+    return policy_decision("manual_review", "no_matching_grant", request)
+
+
+def check_policy_decision_request_shape(path: str, request: object, errors: list[str]) -> None:
+    if not isinstance(request, dict):
+        errors.append(f"{path}: request must be an object")
+        return
+    check_string_id(path, "request.account_id", request.get("account_id"), errors)
+    if request.get("route_type") not in ROUTE_TYPES:
+        errors.append(f"{path}: request.route_type is unknown")
+    if not isinstance(request.get("client_pubkey"), str) or not HEX32_RE.fullmatch(request["client_pubkey"]):
+        errors.append(f"{path}: request.client_pubkey must be 32-byte lowercase hex")
+    check_permission_shape(path, request.get("permission"), errors)
+    if type(request.get("now")) is not int or request["now"] <= 0:
+        errors.append(f"{path}: request.now must be a positive integer")
+    grant_ids = request.get("grant_ids")
+    if not isinstance(grant_ids, list) or not all(isinstance(item, str) for item in grant_ids):
+        errors.append(f"{path}: request.grant_ids must be an array of strings")
+    revoked_grant_ids = request.get("revoked_grant_ids")
+    if not isinstance(revoked_grant_ids, list) or not all(isinstance(item, str) for item in revoked_grant_ids):
+        errors.append(f"{path}: request.revoked_grant_ids must be an array of strings")
+
+
+def check_policy_decision_shape(path: str, decision: object, errors: list[str]) -> None:
+    if not isinstance(decision, dict):
+        errors.append(f"{path}: decision must be an object")
+        return
+    if decision.get("format") != "nseal-policy-decision-v0":
+        errors.append(f"{path}: decision format mismatch")
+    if decision.get("decision") not in POLICY_DECISIONS:
+        errors.append(f"{path}: decision is unknown")
+    if decision.get("reason") not in POLICY_DECISION_REASONS:
+        errors.append(f"{path}: reason is unknown")
+    audit = decision.get("audit_event")
+    if not isinstance(audit, dict):
+        errors.append(f"{path}: audit_event must be an object")
+        return
+    if audit.get("format") != "nseal-grant-audit-event-v0":
+        errors.append(f"{path}: audit_event format mismatch")
+    if audit.get("decision") != decision.get("decision") or audit.get("reason") != decision.get("reason"):
+        errors.append(f"{path}: audit_event decision/reason mismatch")
+
+
+def check_policy_decision_vector(rel: str, errors: list[str]) -> None:
+    vector_path = f"vectors/policy-decisions/{rel}.json"
+    vector = load_required_json(vector_path, errors)
+    if vector is None:
+        return
+    if not isinstance(vector, dict):
+        errors.append(f"{vector_path}: policy decision vector must be an object")
+        return
+    check_no_secret_fields(vector_path, vector, errors)
+    if vector.get("name") != rel:
+        errors.append(f"{vector_path}: name mismatch")
+    if vector.get("format") != "nseal-policy-decision-vector-v0":
+        errors.append(f"{vector_path}: format mismatch")
+    check_policy_decision_request_shape(vector_path, vector.get("request"), errors)
+    check_policy_decision_shape(vector_path, vector.get("decision"), errors)
+    expected = expected_policy_decision(vector_path, vector, errors)
+    if expected is not None and vector.get("decision") != expected:
+        errors.append(f"{vector_path}: decision mismatch")
 
 
 def check_review_screen_vector(rel: str, errors: list[str]) -> None:
@@ -2479,6 +2654,7 @@ def main() -> int:
         "account-descriptor-v0.schema.json",
         "policy-profile-v0.schema.json",
         "grant-descriptor-v0.schema.json",
+        "policy-decision-vector-v0.schema.json",
     ):
         load_json(f"schemas/{schema}")
 
@@ -2638,6 +2814,9 @@ def main() -> int:
 
     for rel in grant_descriptor_vector_names():
         check_grant_descriptor_vector(rel, errors)
+
+    for rel in policy_decision_vector_names():
+        check_policy_decision_vector(rel, errors)
 
     for rel in smartcard_apdu_vector_names():
         check_smartcard_apdu_vector(rel, errors)

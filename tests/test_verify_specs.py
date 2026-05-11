@@ -12,6 +12,7 @@ from scripts.verify_specs import (
     check_static_qr_vector,
     check_nip46_bridge_decisions,
     check_nip46_policy_file_vector,
+    check_policy_decision_vector,
     check_invalid_vector,
     json_utf8_size,
     implementation_limits,
@@ -19,6 +20,7 @@ from scripts.verify_specs import (
     load_json,
     nip46_policy_file_vector_names,
     nip46_vector_names,
+    policy_decision_vector_names,
     review_detail_page_vector_names,
     review_display_frame_vector_names,
     review_screen_vector_names,
@@ -341,6 +343,30 @@ class VerifySpecsTests(unittest.TestCase):
         for name in verify_specs.grant_descriptor_vector_names():
             errors = []
             verify_specs.check_grant_descriptor_vector(name, errors)
+            self.assertEqual(errors, [], name)
+
+    def test_policy_decision_vectors_are_discovered_from_directory(self) -> None:
+        names = policy_decision_vector_names()
+
+        self.assertEqual(names, vector_names_from_dir("vectors/policy-decisions"))
+        self.assertEqual(
+            names,
+            [
+                "export-secret-denied",
+                "grant-sign-event-kind-1-allowed",
+                "grant-sign-event-kind-1-expired",
+                "grant-sign-event-kind-1-revoked",
+                "nip44-decrypt-manual-review",
+                "unknown-method-manual-review",
+            ],
+        )
+
+    def test_policy_decision_vectors_validate(self) -> None:
+        for name in policy_decision_vector_names():
+            errors: list[str] = []
+
+            check_policy_decision_vector(name, errors)
+
             self.assertEqual(errors, [], name)
 
     def test_account_descriptors_reject_embedded_secret_material(self) -> None:

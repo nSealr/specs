@@ -70,6 +70,12 @@ signer implementation.
   manual-only, reject QR-vault grants, and require expiry, rate limits,
   revocation, audit, and device policy confirmation for persistent-route
   automation.
+- Publish deterministic policy-decision transcript vectors for persistent-route
+  automation boundaries before any grant store or relay session exists. These
+  vectors pin valid grant allowance, expired-grant denial, revoked-grant
+  denial, decrypt/manual-review routing, export-secret denial, unknown-method
+  manual review, and `nseal-grant-audit-event-v0` output without authorizing
+  companion key custody or production policy automation.
 - Publish one named v0 implementation limit profile for constrained signers.
   These limits bound request size, static QR envelope size, animated QR decoded
   size, animated QR frame payload size/count, serial frame size, NIP-46 message
