@@ -1076,6 +1076,7 @@ def detail_frame_for_page(page: dict, logical_page_has_scroll: bool) -> dict:
         "page_indicator": page["page_indicator"],
         "body_lines": page["lines"],
         "action_hint": action_hint,
+        "body_line_styles": page["body_line_styles"],
     }
 
 

@@ -79,7 +79,14 @@
           "4f355bdcb7cc0af728ef3cceb9615d90684bb5b2ca5f859a",
           "  b0f0b704075871aa"
         ],
-        "action_hint": "Next"
+        "action_hint": "Next",
+        "body_line_styles": [
+          "meta",
+          "meta",
+          "meta",
+          "value",
+          "value"
+        ]
       },
       "button": "next",
       "decision": null,
@@ -98,7 +105,16 @@
           "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
           "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
         ],
-        "action_hint": "Next"
+        "action_hint": "Next",
+        "body_line_styles": [
+          "meta",
+          "value",
+          "value",
+          "value",
+          "value",
+          "value",
+          "value"
+        ]
       },
       "button": "next",
       "decision": null,
@@ -119,7 +135,18 @@
           "nostrseal",
           "Tag 3/9"
         ],
-        "action_hint": "Next/Scroll"
+        "action_hint": "Next/Scroll",
+        "body_line_styles": [
+          "meta",
+          "value",
+          "value",
+          "value",
+          "value",
+          "meta",
+          "value",
+          "value",
+          "meta"
+        ]
       },
       "button": "scroll",
       "decision": null,
@@ -140,7 +167,18 @@
           "security",
           "Tag 6/9"
         ],
-        "action_hint": "Next/Scroll"
+        "action_hint": "Next/Scroll",
+        "body_line_styles": [
+          "value",
+          "value",
+          "meta",
+          "value",
+          "value",
+          "meta",
+          "value",
+          "value",
+          "meta"
+        ]
       },
       "button": "scroll",
       "decision": null,
@@ -161,7 +199,18 @@
           "companion",
           "Tag 9/9"
         ],
-        "action_hint": "Next/Scroll"
+        "action_hint": "Next/Scroll",
+        "body_line_styles": [
+          "value",
+          "value",
+          "meta",
+          "value",
+          "value",
+          "meta",
+          "value",
+          "value",
+          "meta"
+        ]
       },
       "button": "scroll",
       "decision": null,
@@ -175,7 +224,11 @@
           "t",
           "test"
         ],
-        "action_hint": "Next/Scroll"
+        "action_hint": "Next/Scroll",
+        "body_line_styles": [
+          "value",
+          "value"
+        ]
       },
       "button": "next",
       "decision": null,
@@ -188,7 +241,8 @@
         "body_lines": [
           "Approve signing only if all pages match."
         ],
-        "action_hint": "Approve / Reject"
+        "action_hint": "Approve / Reject",
+        "body_line_styles": []
       },
       "button": "approve",
       "decision": true,
