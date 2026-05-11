@@ -64,6 +64,15 @@ fall back to manual review, secret export is denied, unknown methods require
 manual review, and every decision emits a deterministic
 `nseal-grant-audit-event-v0` record.
 
+Status note, 2026-05-11: the identity/policy contract now also records the
+official account and custody model. Policies attach to final signing public
+keys, not mnemonic containers; BIP-39 passphrases create separate seed
+namespaces; QR vaults use RAM-only session keyrings with SeedSigner
+SeedQR/CompactSeedQR import as a product goal; and ESP32/custom persistent
+devices keep policy authority at the device authorization boundary. The current
+scoped-automation fixtures remain minimal conformance vectors, not the final
+policy UX.
+
 Status note, 2026-05-11: the feature conformance matrix is now a shared
 contract. It records required, optional, planned, forbidden, and not-applicable
 features per first-class signer family, while requiring one canonical behavior

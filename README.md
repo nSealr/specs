@@ -48,6 +48,9 @@ companion implementation must agree on:
 - JSON schema for the read-only NIP-46 policy-file format.
 - Identity, recovery, policy, grant descriptor, and policy-decision transcript
   vectors for secretless companion routing across the five signer families.
+- Account/custody product model for QR vault session keyrings, persistent
+  device vaults, per-public-key policy authority, and SeedSigner-compatible
+  SeedQR import goals without turning policy records into Nostr events.
 - JSON schemas for account descriptors, policy profiles, grant descriptors, and
   policy-decision vectors.
 - Feature conformance matrix for the five first-class signer families. The

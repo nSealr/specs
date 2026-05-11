@@ -72,6 +72,12 @@ signer implementation.
   manual-only, reject QR-vault grants, and require expiry, rate limits,
   revocation, audit, and device policy confirmation for persistent-route
   automation.
+- Publish the current account/custody product model for all signer families:
+  policies attach to final signing public keys and routes, QR vaults use a
+  RAM-only session keyring with SeedSigner-compatible SeedQR import goals, and
+  persistent-device policy authority lives on the device rather than in the
+  companion. The current scoped-automation vectors are boundary fixtures, not
+  the final user-facing policy menu.
 - Publish deterministic policy-decision transcript vectors for persistent-route
   automation boundaries before any grant store or relay session exists. These
   vectors pin valid grant allowance, expired-grant denial, revoked-grant
