@@ -729,7 +729,7 @@ def check_string_id(path: str, field: str, value: object, errors: list[str]) -> 
         errors.append(f"{path}: {field} must be a stable string id")
 
 
-def check_permission_shape(path: str, permission: object, errors: list[str]) -> None:
+def check_permission_shape(path: str, permission: object, errors: list[str], *, grant_permission: bool = False) -> None:
     if not isinstance(permission, dict):
         errors.append(f"{path}: permission must be an object")
         return
@@ -740,6 +740,8 @@ def check_permission_shape(path: str, permission: object, errors: list[str]) -> 
         errors.append(f"{path}: permission.method must be a non-empty string")
     if permission.get("parameter") == "*":
         errors.append(f"{path}: grant permission must not use wildcards")
+    if grant_permission and method in DECRYPT_METHODS:
+        errors.append(f"{path}: decrypt grant permissions require manual review")
     if method == "sign_event":
         parameter = permission.get("parameter")
         event_kind = permission.get("event_kind")
@@ -923,7 +925,7 @@ def check_grant_descriptor_shape(path: str, value: object, errors: list[str]) ->
         errors.append(f"{path}: client must be an object")
     elif not isinstance(client.get("pubkey"), str) or not HEX32_RE.fullmatch(client["pubkey"]):
         errors.append(f"{path}: client.pubkey must be 32-byte lowercase hex")
-    check_permission_shape(path, value.get("permission"), errors)
+    check_permission_shape(path, value.get("permission"), errors, grant_permission=True)
     decision = value.get("decision")
     if decision not in GRANT_DECISIONS:
         errors.append(f"{path}: decision is unknown")

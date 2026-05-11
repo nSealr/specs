@@ -412,6 +412,18 @@ class VerifySpecsTests(unittest.TestCase):
         self.assertIn("grant route_type must not be a stateless QR vault", joined)
         self.assertIn("grant permission must not use wildcards", joined)
 
+        grant = deepcopy(load_json("vectors/grants/esp32-usb-kind-1-session.json"))
+        grant["permission"] = {"method": "nip44_decrypt"}
+        errors = []
+
+        verify_specs.check_grant_descriptor_shape(
+            "vectors/grants/mutated-decrypt-grant.json",
+            grant,
+            errors,
+        )
+
+        self.assertIn("decrypt grant permissions require manual review", "\n".join(errors))
+
     def test_identity_policy_schemas_declare_required_contracts(self) -> None:
         account_schema = load_json("schemas/account-descriptor-v0.schema.json")
         policy_schema = load_json("schemas/policy-profile-v0.schema.json")
