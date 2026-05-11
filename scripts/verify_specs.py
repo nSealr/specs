@@ -328,6 +328,7 @@ def request_shape_errors(path: Path, value: dict) -> list[str]:
 
 
 def check_response_shape(path: Path, value: dict, errors: list[str]) -> None:
+    limits = implementation_limit_values()
     if not isinstance(value, dict):
         errors.append(f"{path}: response must be an object")
         return
@@ -429,6 +430,36 @@ def check_response_shape(path: Path, value: dict, errors: list[str]) -> None:
                 errors.append(f"{path}: event id must be 32-byte lowercase hex")
             if "pubkey" in event and (not isinstance(event["pubkey"], str) or not HEX32_RE.fullmatch(event["pubkey"])):
                 errors.append(f"{path}: pubkey must be 32-byte lowercase hex")
+            if "tags" in event:
+                tags = event["tags"]
+                if not isinstance(tags, list):
+                    errors.append(f"{path}: signed event tags must be an array")
+                else:
+                    if len(tags) > limits["max_tag_count"]:
+                        errors.append(f"{path}: signed event tags exceeds max_tag_count")
+                    total_tag_bytes = 0
+                    for tag_index, tag in enumerate(tags):
+                        if not isinstance(tag, list):
+                            errors.append(f"{path}: signed event tags[{tag_index}] must be an array")
+                            continue
+                        if len(tag) > limits["max_tag_fields_per_tag"]:
+                            errors.append(f"{path}: signed event tags[{tag_index}] exceeds max_tag_fields_per_tag")
+                        for field_index, item in enumerate(tag):
+                            if not isinstance(item, str):
+                                errors.append(f"{path}: signed event tags[{tag_index}][{field_index}] must be a string")
+                                continue
+                            item_bytes = utf8_size(item)
+                            total_tag_bytes += item_bytes
+                            if item_bytes > limits["max_tag_field_utf8_bytes"]:
+                                errors.append(f"{path}: signed event tag field exceeds max_tag_field_utf8_bytes")
+                    if total_tag_bytes > limits["max_total_tag_utf8_bytes"]:
+                        errors.append(f"{path}: signed event tags exceed max_total_tag_utf8_bytes")
+            if "content" in event:
+                content = event["content"]
+                if not isinstance(content, str):
+                    errors.append(f"{path}: signed event content must be a string")
+                elif utf8_size(content) > limits["max_content_utf8_bytes"]:
+                    errors.append(f"{path}: signed event content exceeds max_content_utf8_bytes")
             if "sig" in event and (not isinstance(event["sig"], str) or not HEX64_RE.fullmatch(event["sig"])):
                 errors.append(f"{path}: signature must be 64-byte lowercase hex")
     elif value.get("ok") is False:

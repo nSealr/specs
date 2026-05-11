@@ -69,9 +69,10 @@ signer implementation.
   machine-readable source is `vectors/limits/nseal-v0.json`; the human protocol
   explainer is `protocols/implementation-limits-v0.md`.
 - Publish malicious/rejection vectors that define deterministic failure
-  behavior before review, approval, response acceptance, or signing. These live
-  under `vectors/invalid/` and are discovered automatically by the specs
-  verifier.
+  behavior before review, approval, response acceptance, or signing. These
+  include signed-event response limit checks so hosts cannot accept oversized
+  content or tag payloads after a device signs. They live under
+  `vectors/invalid/` and are discovered automatically by the specs verifier.
 - Keep schemas and examples usable by independent implementations.
 
 ## Non-Responsibilities

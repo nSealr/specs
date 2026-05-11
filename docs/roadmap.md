@@ -70,6 +70,11 @@ extension/full NIP-46 sessions, persistent grants, production smartcard claims,
 and custom persistent-secret hardware-wallet claims; any new parser boundary
 must add specs vectors before being treated as complete.
 
+Status note, 2026-05-11: invalid response vectors now also cover signed-event
+content and tag payloads that exceed the shared v0 implementation limits.
+Hosts must reject those responses before treating a device output as accepted
+signing output.
+
 Status note, 2026-05-08: invalid serial-frame vectors now include valid
 transport frames with invalid decoded request metadata for unsupported
 `version` and invalid `request_id` syntax. Device transports must reject these
