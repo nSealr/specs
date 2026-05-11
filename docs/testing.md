@@ -40,7 +40,7 @@ fixtures.
   a full Unicode review policy or accepted equivalent exists, and invalid
   signing-status vectors reject contradictory `signing_enabled: true` responses
   that still report missing gates plus disabled responses that omit the reason
-  for disabled signing.
+  for disabled signing. Gate lists must also remain duplicate-free.
 - Trusted review vectors preserve raw event kind, created_at, signer author
   pubkey, complete content, complete structured tags, and final decision
   semantics for display-oriented signers. They do not encode inferred kind
@@ -133,7 +133,7 @@ It also checks that every NIP-46 policy-file vector uses
 It also checks the shared pre-signing hardening vectors, including strict
 response-shape rejection for ambiguous success results, error/result mixing,
 unknown top-level response fields, and contradictory signing-status readiness,
-so downstream
+reason-less disabled status, and duplicate signing-status gate entries, so downstream
 implementations get deterministic rejection fixtures before enabling real
 signing or full NIP-46 sessions.
 Those checks are directory-driven: new files under `vectors/invalid/`,

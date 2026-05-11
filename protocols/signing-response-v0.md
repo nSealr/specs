@@ -73,7 +73,8 @@ Unicode review policy. A device must not return `signing_enabled: true` while
 `missing_gates` is non-empty; hosts must reject that contradictory status
 instead of treating it as signing-ready. Conversely, a device that returns
 `signing_enabled: false` must report at least one `missing_gates` entry so the
-disabled state has a deterministic reason.
+disabled state has a deterministic reason. `missing_gates` and
+`development_accepted_gates` must not contain duplicate entries.
 
 `development_accepted_gates` names gates with deterministic implementation
 coverage or manual development evidence in the current scaffold. It is not a

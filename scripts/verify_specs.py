@@ -390,9 +390,14 @@ def check_response_shape(path: Path, value: dict, errors: list[str]) -> None:
             if not isinstance(missing_gates, list):
                 errors.append(f"{path}: signing_status.missing_gates must be an array")
             else:
+                seen_missing_gates: set[str] = set()
                 for gate in missing_gates:
                     if gate not in SIGNING_STATUS_GATES:
                         errors.append(f"{path}: signing_status.missing_gates contains unknown gate {gate!r}")
+                    elif gate in seen_missing_gates:
+                        errors.append(f"{path}: duplicate signing_status missing gate: {gate}")
+                    else:
+                        seen_missing_gates.add(gate)
                 if signing_status.get("signing_enabled") is True and missing_gates:
                     errors.append(f"{path}: signing_status signing_enabled true requires empty missing_gates")
                 if signing_status.get("signing_enabled") is False and not missing_gates:
@@ -401,9 +406,14 @@ def check_response_shape(path: Path, value: dict, errors: list[str]) -> None:
             if not isinstance(accepted_gates, list):
                 errors.append(f"{path}: signing_status.development_accepted_gates must be an array")
             else:
+                seen_accepted_gates: set[str] = set()
                 for gate in accepted_gates:
                     if gate not in SIGNING_STATUS_GATES:
                         errors.append(f"{path}: signing_status.development_accepted_gates contains unknown gate {gate!r}")
+                    elif gate in seen_accepted_gates:
+                        errors.append(f"{path}: duplicate signing_status development_accepted gate: {gate}")
+                    else:
+                        seen_accepted_gates.add(gate)
         if "event" in result:
             event = result["event"]
             if not isinstance(event, dict):
