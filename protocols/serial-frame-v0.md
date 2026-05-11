@@ -20,7 +20,7 @@ nseal1f:<type>:<base64url-json>:<checksum>\n
 
 1. Require the `nseal1f:` prefix.
 2. Split the remaining frame into exactly `type`, `payload`, and `checksum`.
-3. Require a supported type.
+3. Require a supported type: `request`, `response`, or `error`.
 4. Require unpadded base64url payload characters.
 5. Recompute and compare the checksum before JSON parsing.
 6. Decode payload as UTF-8 JSON.
@@ -29,7 +29,8 @@ nseal1f:<type>:<base64url-json>:<checksum>\n
    signing.
 
 Frames larger than `max_serial_frame_bytes` are rejected in v0. Payloads remain
-unpadded base64url.
+unpadded base64url. Unknown frame types are rejected before decoded JSON is
+handled as a request, response, or error payload.
 
 ## Security Notes
 

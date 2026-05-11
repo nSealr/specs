@@ -47,7 +47,9 @@ companion implementation must agree on:
   signers.
 - Shared malicious/rejection vectors for unsafe signing requests, QR envelopes,
   serial frames, invalid device request metadata, NIP-46 payloads, and NIP-46
-  policy files.
+  policy files. Serial-frame rejection vectors include checksum mismatch,
+  malformed payload, oversized frames, unsupported frame types, and invalid
+  decoded request metadata.
 - Review edge-case vectors for unknown kinds, empty content, long content,
   event references, and high tag counts.
 - Transport, device, review, review-screen, review-display-frame,

@@ -97,6 +97,9 @@ fixtures.
 - Invalid-vector discovery tests ensure every malicious request, response, QR
   envelope, serial frame, invalid device request metadata, NIP-46 payload, and
   policy-file vector is included in conformance verification.
+- Invalid serial-frame vectors cover oversized frames, checksum mismatch,
+  malformed payloads, unsupported frame types, and invalid decoded request
+  metadata.
 - Invalid-vector semantic tests ensure each committed malicious fixture is
   rejected for its expected deterministic reason, rather than merely being
   present in a directory.

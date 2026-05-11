@@ -81,6 +81,10 @@ transport frames with invalid decoded request metadata for unsupported
 `version` and invalid `request_id` syntax. Device transports must reject these
 before request handling or signing paths.
 
+Status note, 2026-05-11: invalid serial-frame vectors now also include an
+unsupported frame `type` with a valid checksum. Transports must reject it
+before decoded JSON is treated as a request, response, or error payload.
+
 ## Later
 
 - Full encrypted NIP-46 relay/session mapping.

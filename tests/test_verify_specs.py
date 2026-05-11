@@ -161,6 +161,7 @@ class VerifySpecsTests(unittest.TestCase):
         self.assertEqual(names, vector_names_from_dir("vectors/invalid"))
         self.assertIn("request-event-template-pubkey", names)
         self.assertIn("serial-frame-oversized", names)
+        self.assertIn("serial-frame-unsupported-type", names)
 
     def test_invalid_vectors_validate_expected_rejections(self) -> None:
         for name in invalid_vector_names():
