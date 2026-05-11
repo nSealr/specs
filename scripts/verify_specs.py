@@ -105,6 +105,61 @@ ESP32_S3_SCAFFOLD_DEVELOPMENT_ACCEPTED_SIGNING_GATES = [
     "approval_digest_binding",
 ]
 REVIEW_DETAIL_BODY_LINE_STYLES = {"meta", "normal", "value"}
+FEATURE_TARGETS = {"required", "optional", "not_applicable", "forbidden", "research"}
+FEATURE_CURRENT_STATUSES = {
+    "implemented",
+    "partial",
+    "planned",
+    "hardware_blocked",
+    "research",
+    "not_applicable",
+    "forbidden",
+    "disabled_until_gates_pass",
+}
+FEATURE_SOLUTION_IDS = {
+    "raspberry_qr_vault",
+    "esp32_qr_vault",
+    "esp32_usb_nip46",
+    "smartcard",
+    "custom_hardware_wallet",
+}
+FEATURE_IDS = {
+    "request_validation_v0",
+    "nostr_event_review_universal",
+    "review_detail_pages",
+    "approval_digest_binding",
+    "physical_approval",
+    "sign_event_bip340",
+    "qr_static_request",
+    "qr_animated_request",
+    "qr_response",
+    "stateless_session_custody",
+    "manual_only_policy",
+    "device_display_review",
+    "serial_usb_transport",
+    "nip46_decrypted_bridge",
+    "scoped_policy_automation",
+    "persistent_secret_custody",
+    "smartcard_apdu",
+    "external_review_acknowledgement",
+    "secure_boot_hardening",
+    "response_verification",
+}
+STATELESS_QR_PARITY_FEATURES = {
+    "request_validation_v0",
+    "nostr_event_review_universal",
+    "review_detail_pages",
+    "approval_digest_binding",
+    "physical_approval",
+    "sign_event_bip340",
+    "qr_static_request",
+    "qr_animated_request",
+    "qr_response",
+    "stateless_session_custody",
+    "manual_only_policy",
+    "device_display_review",
+    "response_verification",
+}
 
 
 def load_json(rel: str) -> dict:
@@ -702,6 +757,10 @@ def grant_descriptor_vector_names() -> list[str]:
 
 def policy_decision_vector_names() -> list[str]:
     return sorted(path.stem for path in (ROOT / "vectors" / "policy-decisions").glob("*.json"))
+
+
+def feature_matrix_vector_names() -> list[str]:
+    return sorted(path.stem for path in (ROOT / "vectors" / "features").glob("*.json"))
 
 
 def secret_field_paths(value: object, prefix: str = "") -> list[str]:
@@ -2445,6 +2504,144 @@ def check_nip46_policy_file_vector(rel: str, errors: list[str]) -> None:
             errors.append(f"{vector_path}: approved_permissions[{index}] must be normalized")
 
 
+def check_feature_matrix_feature_shape(
+    path: str,
+    feature_id: str,
+    feature: object,
+    canonical_contracts: dict[str, str],
+    errors: list[str],
+) -> None:
+    if feature_id not in FEATURE_IDS:
+        errors.append(f"{path}: unknown feature {feature_id}")
+    if not isinstance(feature, dict):
+        errors.append(f"{path}: feature {feature_id} must be an object")
+        return
+
+    target = feature.get("target")
+    current = feature.get("current")
+    if target not in FEATURE_TARGETS:
+        errors.append(f"{path}: feature {feature_id} target is unknown")
+    if current not in FEATURE_CURRENT_STATUSES:
+        errors.append(f"{path}: feature {feature_id} current status is unknown")
+
+    contract_id = feature.get("contract_id")
+    active_target = target in {"required", "optional", "research"}
+    if active_target:
+        if not isinstance(contract_id, str) or not contract_id:
+            errors.append(f"{path}: feature {feature_id} active target requires contract_id")
+        elif canonical_contracts.get(feature_id) != contract_id:
+            errors.append(f"{path}: feature {feature_id} contract_id does not match canonical feature contract")
+    elif "contract_id" in feature:
+        errors.append(f"{path}: feature {feature_id} inactive target must not set contract_id")
+
+    notes = feature.get("notes")
+    if not isinstance(notes, str) or not notes:
+        errors.append(f"{path}: feature {feature_id} notes must be a non-empty string")
+
+
+def check_feature_matrix_shape(path: str, matrix: object, errors: list[str]) -> None:
+    if not isinstance(matrix, dict):
+        errors.append(f"{path}: feature matrix must be an object")
+        return
+    if matrix.get("format") != "nseal-signer-feature-matrix-v0":
+        errors.append(f"{path}: format mismatch")
+    if matrix.get("name") != Path(path).stem:
+        errors.append(f"{path}: name mismatch")
+
+    features = matrix.get("features")
+    if not isinstance(features, list):
+        errors.append(f"{path}: features must be a list")
+        return
+    feature_ids: list[str] = []
+    canonical_contracts: dict[str, str] = {}
+    for index, feature in enumerate(features):
+        feature_path = f"{path}: features[{index}]"
+        if not isinstance(feature, dict):
+            errors.append(f"{feature_path}: feature definition must be an object")
+            continue
+        feature_id = feature.get("id")
+        if feature_id not in FEATURE_IDS:
+            errors.append(f"{feature_path}: unknown feature id")
+            continue
+        feature_ids.append(feature_id)
+        contract_id = feature.get("contract_id")
+        if not isinstance(contract_id, str) or not contract_id:
+            errors.append(f"{feature_path}: contract_id must be a non-empty string")
+        else:
+            canonical_contracts[feature_id] = contract_id
+        behavior = feature.get("behavior")
+        if not isinstance(behavior, str) or not behavior:
+            errors.append(f"{feature_path}: behavior must be a non-empty string")
+    if set(feature_ids) != FEATURE_IDS:
+        errors.append(f"{path}: feature definitions must match the canonical feature id set")
+    if len(feature_ids) != len(set(feature_ids)):
+        errors.append(f"{path}: feature definitions contain duplicates")
+
+    solutions = matrix.get("solutions")
+    if not isinstance(solutions, dict):
+        errors.append(f"{path}: solutions must be an object")
+        return
+    if set(solutions) != FEATURE_SOLUTION_IDS:
+        errors.append(f"{path}: solutions must match the five first-class signer families")
+        return
+
+    active_contracts: dict[str, str] = {}
+    for solution_id, solution in sorted(solutions.items()):
+        solution_path = f"{path}: solutions.{solution_id}"
+        if not isinstance(solution, dict):
+            errors.append(f"{solution_path}: solution must be an object")
+            continue
+        if not isinstance(solution.get("label"), str) or not solution["label"]:
+            errors.append(f"{solution_path}: label must be a non-empty string")
+        if not isinstance(solution.get("repository"), str) or not solution["repository"]:
+            errors.append(f"{solution_path}: repository must be a non-empty string")
+        if not isinstance(solution.get("product_goal"), str) or not solution["product_goal"]:
+            errors.append(f"{solution_path}: product_goal must be a non-empty string")
+        solution_features = solution.get("features")
+        if not isinstance(solution_features, dict):
+            errors.append(f"{solution_path}: features must be an object")
+            continue
+        if set(solution_features) != FEATURE_IDS:
+            errors.append(f"{solution_path}: features must match the canonical feature id set")
+            continue
+        for feature_id, feature in sorted(solution_features.items()):
+            feature_path = f"{solution_path}.features.{feature_id}"
+            check_feature_matrix_feature_shape(feature_path, feature_id, feature, canonical_contracts, errors)
+            if not isinstance(feature, dict):
+                continue
+            target = feature.get("target")
+            contract_id = feature.get("contract_id")
+            if target in {"required", "optional", "research"} and isinstance(contract_id, str):
+                previous = active_contracts.setdefault(feature_id, contract_id)
+                if previous != contract_id:
+                    errors.append(
+                        f"{feature_path}: shared feature contract drift for {feature_id}"
+                    )
+
+    parity_targets: dict[str, object] | None = None
+    for solution_id in ("raspberry_qr_vault", "esp32_qr_vault"):
+        solution = solutions.get(solution_id)
+        if not isinstance(solution, dict) or not isinstance(solution.get("features"), dict):
+            continue
+        current_targets = {
+            feature_id: solution["features"].get(feature_id, {}).get("target")
+            for feature_id in STATELESS_QR_PARITY_FEATURES
+            if isinstance(solution["features"].get(feature_id), dict)
+        }
+        if parity_targets is None:
+            parity_targets = current_targets
+        elif current_targets != parity_targets:
+            errors.append(f"{path}: stateless_qr_vault parity mismatch")
+
+
+def check_feature_matrix_vector(rel: str, errors: list[str]) -> None:
+    vector_path = f"vectors/features/{rel}.json"
+    vector = load_required_json(vector_path, errors)
+    if vector is None:
+        return
+    check_feature_matrix_shape(vector_path, vector, errors)
+
+
 def check_nip46_response_message(vector_path: str, message: object, expected_id: str, errors: list[str]) -> dict | None:
     if not isinstance(message, dict):
         errors.append(f"{vector_path}: response_message must be an object")
@@ -2829,6 +3026,9 @@ def main() -> int:
 
     for rel in policy_decision_vector_names():
         check_policy_decision_vector(rel, errors)
+
+    for rel in feature_matrix_vector_names():
+        check_feature_matrix_vector(rel, errors)
 
     for rel in smartcard_apdu_vector_names():
         check_smartcard_apdu_vector(rel, errors)

@@ -7,6 +7,7 @@ from unittest.mock import patch
 
 from scripts.verify_specs import (
     check_smartcard_apdu_vector,
+    check_feature_matrix_vector,
     check_review_detail_page_vector,
     check_review_transcript_vector,
     check_static_qr_vector,
@@ -28,6 +29,7 @@ from scripts.verify_specs import (
     review_vector_names,
     smartcard_apdu_vector_names,
     display_safe_text,
+    feature_matrix_vector_names,
 )
 import scripts.verify_specs as verify_specs
 
@@ -377,6 +379,48 @@ class VerifySpecsTests(unittest.TestCase):
             check_policy_decision_vector(name, errors)
 
             self.assertEqual(errors, [], name)
+
+    def test_feature_matrix_vectors_are_discovered_from_directory(self) -> None:
+        names = feature_matrix_vector_names()
+
+        self.assertEqual(names, vector_names_from_dir("vectors/features"))
+        self.assertIn("signer-feature-matrix-v0", names)
+
+    def test_feature_matrix_vectors_validate_solution_behavior_contracts(self) -> None:
+        for name in feature_matrix_vector_names():
+            errors: list[str] = []
+
+            check_feature_matrix_vector(name, errors)
+
+            self.assertEqual(errors, [], name)
+
+    def test_feature_matrix_rejects_shared_feature_contract_drift(self) -> None:
+        matrix = deepcopy(load_json("vectors/features/signer-feature-matrix-v0.json"))
+        matrix["solutions"]["esp32_qr_vault"]["features"]["nostr_event_review_universal"][
+            "contract_id"
+        ] = "esp32-special-review"
+        errors: list[str] = []
+
+        verify_specs.check_feature_matrix_shape(
+            "vectors/features/mutated-contract-drift.json",
+            matrix,
+            errors,
+        )
+
+        self.assertIn("shared feature contract drift", "\n".join(errors))
+
+    def test_feature_matrix_keeps_stateless_qr_vault_targets_in_parity(self) -> None:
+        matrix = deepcopy(load_json("vectors/features/signer-feature-matrix-v0.json"))
+        matrix["solutions"]["esp32_qr_vault"]["features"]["qr_response"]["target"] = "not_applicable"
+        errors: list[str] = []
+
+        verify_specs.check_feature_matrix_shape(
+            "vectors/features/mutated-vault-parity.json",
+            matrix,
+            errors,
+        )
+
+        self.assertIn("stateless_qr_vault parity mismatch", "\n".join(errors))
 
     def test_account_descriptors_reject_embedded_secret_material(self) -> None:
         account = deepcopy(load_json("vectors/accounts/raspberry-qr-nip06-account-0.json"))

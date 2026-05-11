@@ -27,6 +27,8 @@
 - Policy-decision transcript vectors for grant allowance, expired/revoked
   denial, decrypt/manual-review routing, export denial, unknown-method manual
   review, and audit-event output.
+- Feature conformance matrix for the five first-class signer families,
+  including stateless QR vault parity between Raspberry and ESP32.
 - NostrSeal v0 implementation limit profile for constrained signer safety.
 - Malicious/rejection vectors for unsafe signing requests, unsafe responses, QR
   envelopes, serial frames, invalid device request metadata, NIP-46 payloads,
@@ -61,6 +63,13 @@ scoped `sign_event`, expired or revoked grants are denied, decrypt requests
 fall back to manual review, secret export is denied, unknown methods require
 manual review, and every decision emits a deterministic
 `nseal-grant-audit-event-v0` record.
+
+Status note, 2026-05-11: the feature conformance matrix is now a shared
+contract. It records required, optional, planned, forbidden, and not-applicable
+features per first-class signer family, while requiring one canonical behavior
+contract for each shared feature. Raspberry and ESP32 stateless QR vault
+targets are pinned in parity even though current implementation status can
+differ by hardware readiness.
 
 ## M3: Transport Contracts
 

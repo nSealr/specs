@@ -78,6 +78,12 @@ signer implementation.
   denial, decrypt/manual-review routing, export-secret denial, unknown-method
   manual review, and `nseal-grant-audit-event-v0` output without authorizing
   companion key custody or production policy automation.
+- Publish a deterministic feature conformance matrix for the five first-class
+  signer families. The matrix separates final product targets from current
+  implementation status and requires the same `contract_id` wherever a feature
+  is active on more than one solution. It also keeps Raspberry and ESP32
+  stateless QR vault targets in parity while allowing their current hardware
+  readiness to differ.
 - Publish one named v0 implementation limit profile for constrained signers.
   These limits bound request size, static QR envelope size, animated QR decoded
   size, animated QR frame payload size/count, serial frame size, NIP-46 message

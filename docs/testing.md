@@ -109,6 +109,11 @@ fixtures.
   valid grants, expired grants, revoked grants, decrypt requests, secret export
   requests, and unknown methods before persistent grant storage or relay
   sessions are implemented.
+- Feature-matrix discovery tests ensure every file under `vectors/features/`
+  is included in conformance verification.
+- Feature-matrix semantic tests reject shared feature contract drift, unknown
+  signer families, unknown features, missing notes, inactive features that
+  still claim a contract, and Raspberry/ESP32 stateless QR vault target drift.
 - Implementation-limit tests ensure the v0 limit profile is named, documented,
   and consumed by invalid-vector verification.
 - Invalid-vector discovery tests ensure every malicious request, response, QR
@@ -157,6 +162,10 @@ automation constraints for persistent routes.
 It also checks that policy-decision transcript vectors match the deterministic
 pure policy evaluator and emit the expected `nseal-grant-audit-event-v0`
 records for allowed, denied, and manual-review decisions.
+It also checks the feature conformance matrix so each active shared feature
+uses the same canonical `contract_id`, every first-class signer family reports
+the same feature set, and Raspberry/ESP32 stateless QR vault targets remain in
+parity while current status can differ.
 It also checks the shared pre-signing hardening vectors, including strict
 response-shape rejection for ambiguous success results, error/result mixing,
 unknown top-level response fields, malformed response request ids,
@@ -167,8 +176,8 @@ implementations get deterministic rejection fixtures before enabling real
 signing or full NIP-46 sessions.
 Those checks are directory-driven: new files under `vectors/invalid/`,
 `vectors/review-detail-pages/`, `vectors/accounts/`, `vectors/policies/`,
-`vectors/grants/`, `vectors/policy-decisions/`, and the single profile under
-`vectors/limits/`
+`vectors/grants/`, `vectors/policy-decisions/`, `vectors/features/`, and the
+single profile under `vectors/limits/`
 are picked up by tests and
 `scripts/verify_specs.py` without hardcoding individual vector filenames in the
 verifier.

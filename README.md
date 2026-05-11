@@ -50,6 +50,10 @@ companion implementation must agree on:
   vectors for secretless companion routing across the five signer families.
 - JSON schemas for account descriptors, policy profiles, grant descriptors, and
   policy-decision vectors.
+- Feature conformance matrix for the five first-class signer families. The
+  matrix records which features are required, optional, planned, forbidden, or
+  not applicable per family, and enforces one shared behavior contract whenever
+  a feature exists on more than one implementation.
 - Named NostrSeal v0 implementation safety-limit profile for constrained
   signers.
 - Shared malicious/rejection vectors for unsafe signing requests, QR envelopes,
@@ -62,9 +66,9 @@ companion implementation must agree on:
 - Transport, device, review, review-screen, review-display-frame,
   review-detail-page, review-transcript, NIP-46, NIP-46 policy-file,
   account-descriptor, policy-profile, grant-descriptor, policy-decision,
-  invalid-vector, limit-profile, and smartcard vectors shared by implementation
-  repositories, including APDU success and deterministic status-word rejection
-  cases.
+  feature-matrix, invalid-vector, limit-profile, and smartcard vectors shared
+  by implementation repositories, including APDU success and deterministic
+  status-word rejection cases.
 
 ## Initial Layout
 
