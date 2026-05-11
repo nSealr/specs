@@ -132,9 +132,9 @@ It also checks that every NIP-46 policy-file vector uses
 `nseal-nip46-policy-v0` and normalized explicit approved permissions.
 It also checks the shared pre-signing hardening vectors, including strict
 response-shape rejection for ambiguous success results, error/result mixing,
-unknown top-level response fields, signed-event response content/tag limit
-violations, and contradictory signing-status readiness, reason-less disabled
-status, and duplicate signing-status gate entries, so downstream
+unknown top-level response fields, signed-event response integer-safety and
+content/tag limit violations, and contradictory signing-status readiness,
+reason-less disabled status, and duplicate signing-status gate entries, so downstream
 implementations get deterministic rejection fixtures before enabling real
 signing or full NIP-46 sessions.
 Those checks are directory-driven: new files under `vectors/invalid/`,

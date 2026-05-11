@@ -232,6 +232,16 @@ def check_safe_integer(path: Path, field: str, value: object, errors: list[str],
         errors.append(f"{path}: event_template {field} exceeds max_safe_integer")
 
 
+def check_signed_event_safe_integer(path: Path, field: str, value: object, errors: list[str], limits: dict) -> None:
+    if type(value) is not int:
+        errors.append(f"{path}: signed event {field} must be a non-negative safe integer")
+        return
+    if value < 0:
+        errors.append(f"{path}: signed event {field} must be a non-negative safe integer")
+    if value > limits["max_safe_integer"]:
+        errors.append(f"{path}: signed event {field} exceeds max_safe_integer")
+
+
 def check_request_shape(path: Path, value: object, errors: list[str]) -> None:
     limits = implementation_limit_values()
     if not isinstance(value, dict):
@@ -430,6 +440,10 @@ def check_response_shape(path: Path, value: dict, errors: list[str]) -> None:
                 errors.append(f"{path}: event id must be 32-byte lowercase hex")
             if "pubkey" in event and (not isinstance(event["pubkey"], str) or not HEX32_RE.fullmatch(event["pubkey"])):
                 errors.append(f"{path}: pubkey must be 32-byte lowercase hex")
+            if "created_at" in event:
+                check_signed_event_safe_integer(path, "created_at", event["created_at"], errors, limits)
+            if "kind" in event:
+                check_signed_event_safe_integer(path, "kind", event["kind"], errors, limits)
             if "tags" in event:
                 tags = event["tags"]
                 if not isinstance(tags, list):

@@ -120,7 +120,7 @@ The companion must verify:
 
 - response `request_id` matches the request;
 - signed event shape remains inside the NostrSeal v0 implementation limit
-  profile, including content and tag resource limits;
+  profile, including integer safety plus content and tag resource limits;
 - signed event fields match the requested template;
 - event id matches NIP-01 canonical serialization;
 - signature verifies against event id and public key.

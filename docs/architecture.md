@@ -70,8 +70,9 @@ signer implementation.
   explainer is `protocols/implementation-limits-v0.md`.
 - Publish malicious/rejection vectors that define deterministic failure
   behavior before review, approval, response acceptance, or signing. These
-  include signed-event response limit checks so hosts cannot accept oversized
-  content or tag payloads after a device signs. They live under
+  include signed-event response integer and limit checks so hosts cannot accept
+  unsafe timestamps, kinds, oversized content, or tag payloads after a device
+  signs. They live under
   `vectors/invalid/` and are discovered automatically by the specs verifier.
 - Keep schemas and examples usable by independent implementations.
 
