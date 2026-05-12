@@ -2,7 +2,7 @@
 
 Every response echoes the request version and request id.
 
-The echoed `request_id` must use the same NostrSeal v0 request-id profile as
+The echoed `request_id` must use the same nSealr v0 request-id profile as
 requests; hosts must reject malformed response ids before interpreting result
 payloads.
 
@@ -16,11 +16,11 @@ payloads.
   "result": {
     "capabilities": {
       "device": {
-        "name": "NostrSeal ESP32-S3 USB Signer Scaffold",
-        "firmware": "nostrseal-esp32-s3-usb-signer",
+        "name": "nSealr ESP32-S3 USB Signer Scaffold",
+        "firmware": "nsealr-esp32-s3-usb-signer",
         "hardware": "esp32-s3-devkitc-1"
       },
-      "protocols": ["nseal.signing.v0", "nseal.serial-frame.v0"],
+      "protocols": ["nsealr.signing.v0", "nsealr.serial-frame.v0"],
       "methods": ["get_capabilities", "get_signing_status", "get_public_key", "sign_event"],
       "transports": ["usb-serial-jtag"],
       "signing_enabled": false,
@@ -113,7 +113,7 @@ but production acceptance, provisioning, or hardening is still incomplete.
       "created_at": 1710000000,
       "kind": 1,
       "tags": [],
-      "content": "NostrSeal fixture: basic kind 1 event.",
+      "content": "nSealr fixture: basic kind 1 event.",
       "sig": "<128 lowercase hex chars>"
     }
   }
@@ -123,7 +123,7 @@ but production acceptance, provisioning, or hardening is still incomplete.
 The companion must verify:
 
 - response `request_id` matches the request;
-- signed event shape remains inside the NostrSeal v0 implementation limit
+- signed event shape remains inside the nSealr v0 implementation limit
   profile, including integer safety plus content and tag resource limits;
 - signed event fields match the requested template;
 - event id matches NIP-01 canonical serialization;

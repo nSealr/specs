@@ -1,6 +1,6 @@
 # Feature Conformance v0
 
-NostrSeal has multiple signer families with different hardware constraints.
+nSealr has multiple signer families with different hardware constraints.
 Not every family implements every feature. When two families do implement the
 same feature, the user-visible behavior and security boundary must be the same
 unless this repository defines an explicit, reviewed equivalent.

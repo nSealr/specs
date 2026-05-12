@@ -1,7 +1,7 @@
 # Testing
 
 The specs repository starts with baseline structural verification and will grow
-into the conformance suite for all NostrSeal implementations.
+into the conformance suite for all nSealr implementations.
 
 ## Current Baseline
 
@@ -76,7 +76,7 @@ fixtures.
   `vectors/review-transcripts/*.json` file is included in conformance
   verification.
 - NIP-46 decrypted payload vectors preserve `get_public_key`, `sign_event`, and
-  local `ping` mapping between NIP-46 JSON-RPC-like messages and NostrSeal
+  local `ping` mapping between NIP-46 JSON-RPC-like messages and nSealr
   request/response payloads, plus `connect` parsing into policy-review intents
   and deterministic review pages without `ack` or permission grants. The
   review pages show the remote signer pubkey, secret presence, and requested
@@ -150,17 +150,17 @@ It also checks that every review-transcript vector matches the deterministic
 frame/button/decision sequence expected from QR signer review adapters,
 including detail-mode scroll-window navigation.
 It also checks that every NIP-46 decrypted payload vector maps to the expected
-NostrSeal request, local response, signer response payload, or `connect`
+nSealr request, local response, signer response payload, or `connect`
 policy-review intent and review pages, and that every non-`connect` NIP-46
 vector has matching permission requirements, permission-check decisions, and
 bridge decisions.
 It also checks that every NIP-46 policy-file vector uses
-`nseal-nip46-policy-v0` and normalized explicit approved permissions.
+`nsealr-nip46-policy-v0` and normalized explicit approved permissions.
 It also checks that account, policy, and grant descriptor vectors preserve the
 secretless companion boundary, manual-only QR-vault policy, and scoped
 automation constraints for persistent routes.
 It also checks that policy-decision transcript vectors match the deterministic
-pure policy evaluator and emit the expected `nseal-grant-audit-event-v0`
+pure policy evaluator and emit the expected `nsealr-grant-audit-event-v0`
 records for allowed, denied, and manual-review decisions.
 It also checks the feature conformance matrix so each active shared feature
 uses the same canonical `contract_id`, every first-class signer family reports

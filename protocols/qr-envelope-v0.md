@@ -5,12 +5,12 @@ The first QR envelope is intentionally simple.
 ## Format
 
 ```text
-nseal1:<base64url-json>
-nseal1a:<payload-sha256-hex>:<index>/<total>:<base64url-json-chunk>:<frame-checksum-hex16>
+nsealr1:<base64url-json>
+nsealr1a:<payload-sha256-hex>:<index>/<total>:<base64url-json-chunk>:<frame-checksum-hex16>
 ```
 
-- Static prefix: `nseal1:`.
-- Animated frame prefix: `nseal1a:`.
+- Static prefix: `nsealr1:`.
+- Animated frame prefix: `nsealr1a:`.
 - Static payload: unpadded base64url of UTF-8 JSON.
 - Animated payload: the same unpadded base64url JSON split across ordered
   frame chunks.
@@ -18,11 +18,11 @@ nseal1a:<payload-sha256-hex>:<index>/<total>:<base64url-json-chunk>:<frame-check
 
 ## Decoding
 
-1. Require the `nseal1:` prefix.
+1. Require the `nsealr1:` prefix.
 2. Decode unpadded base64url payload.
 3. Parse UTF-8 JSON.
 4. Validate the decoded object against the relevant request or response schema.
-5. Enforce the NostrSeal v0 implementation safety profile before review or
+5. Enforce the nSealr v0 implementation safety profile before review or
    signing.
 
 Static QR payloads whose decoded JSON exceeds
@@ -33,7 +33,7 @@ Encoders must apply the same decoded JSON byte limit before emitting a static
 QR envelope. v0 does not silently produce oversized static QR payloads; larger
 valid requests or responses must use the animated frame set.
 
-Animated QR frames use the `nseal1a:` prefix and are decoded as a complete
+Animated QR frames use the `nsealr1a:` prefix and are decoded as a complete
 frame set:
 
 1. Require at least one frame.
@@ -45,7 +45,7 @@ frame set:
    `max_animated_qr_frame_payload_chars`.
 5. Verify each frame checksum, computed as the first 16 lowercase hex
    characters of SHA-256 over
-   `nseal1a:<digest>:<index>/<total>:<chunk>`.
+   `nsealr1a:<digest>:<index>/<total>:<chunk>`.
 6. Concatenate chunks by index, decode the resulting unpadded base64url payload,
    require decoded JSON bytes no larger than
    `max_animated_qr_decoded_json_bytes`, and require the decoded-byte SHA-256 to

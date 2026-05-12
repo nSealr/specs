@@ -1,12 +1,12 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://nostrseal.dev/schemas/policy-decision-vector-v0.schema.json",
-  "title": "NostrSeal Policy Decision Vector v0",
+  "$id": "https://nsealr.dev/schemas/policy-decision-vector-v0.schema.json",
+  "title": "nSealr Policy Decision Vector v0",
   "type": "object",
   "required": ["name", "format", "policy_profile_id", "request", "decision"],
   "properties": {
     "name": { "type": "string", "pattern": "^[A-Za-z0-9._:-]{1,128}$" },
-    "format": { "const": "nseal-policy-decision-vector-v0" },
+    "format": { "const": "nsealr-policy-decision-vector-v0" },
     "policy_profile_id": { "type": "string", "pattern": "^policy-[A-Za-z0-9._:-]+$" },
     "request": {
       "type": "object",
@@ -43,7 +43,7 @@
       "type": "object",
       "required": ["format", "decision", "reason", "audit_event"],
       "properties": {
-        "format": { "const": "nseal-policy-decision-v0" },
+        "format": { "const": "nsealr-policy-decision-v0" },
         "decision": { "enum": ["allow", "deny", "manual_review"] },
         "reason": {
           "enum": [
@@ -62,7 +62,7 @@
           "type": "object",
           "required": ["format", "occurred_at", "account_id", "route_type", "client_pubkey", "permission", "decision", "reason"],
           "properties": {
-            "format": { "const": "nseal-grant-audit-event-v0" },
+            "format": { "const": "nsealr-grant-audit-event-v0" },
             "occurred_at": { "type": "integer", "minimum": 1 },
             "account_id": { "type": "string", "pattern": "^[A-Za-z0-9._:-]{1,128}$" },
             "route_type": {

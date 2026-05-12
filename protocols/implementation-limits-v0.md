@@ -1,22 +1,22 @@
 # Implementation Limits v0
 
-NostrSeal v0 uses a named safety profile for constrained signers. These are
-NostrSeal implementation limits, not Nostr protocol limits. They bound what
-pre-production NostrSeal firmware and companion tooling must accept before
+nSealr v0 uses a named safety profile for constrained signers. These are
+nSealr implementation limits, not Nostr protocol limits. They bound what
+pre-production nSealr firmware and companion tooling must accept before
 review, approval, or signing.
 
 The canonical machine-readable profile is:
 
-- `vectors/limits/nseal-v0.json`
-- `format`: `nostrseal-implementation-limits-v0`
-- `name`: `nostrseal-v0`
+- `vectors/limits/nsealr-v0.json`
+- `format`: `nsealr-implementation-limits-v0`
+- `name`: `nsealr-v0`
 
 ## Limits
 
 | Limit | Value | Applies to |
 | --- | ---: | --- |
 | `max_request_id_length` | 128 | Signing request and NIP-46 request ids. |
-| `max_decoded_request_json_bytes` | 704 | Compact UTF-8 decoded NostrSeal request JSON. |
+| `max_decoded_request_json_bytes` | 704 | Compact UTF-8 decoded nSealr request JSON. |
 | `max_static_qr_decoded_json_bytes` | 704 | Static QR envelope decoded UTF-8 JSON payloads. |
 | `max_animated_qr_decoded_json_bytes` | 4096 | Reassembled animated QR decoded UTF-8 JSON payloads before schema validation. |
 | `max_animated_qr_frame_payload_chars` | 256 | Base64url chunk characters inside one animated QR frame. |
@@ -43,7 +43,7 @@ rejected before review or signing.
 
 Changing these values requires:
 
-1. Updating `vectors/limits/nseal-v0.json`.
+1. Updating `vectors/limits/nsealr-v0.json`.
 2. Updating malicious/rejection vectors when behavior changes.
 3. Updating companion, Raspberry, and ESP32 conformance tests.
 4. Keeping ESP32 production signing disabled until all affected parser,

@@ -1,6 +1,6 @@
 # Identity, Recovery, And Policy Contracts v0
 
-NostrSeal v0 separates signer custody from companion routing. These contracts
+nSealr v0 separates signer custody from companion routing. These contracts
 describe which signer owns an identity, how that identity can be recovered, and
 which policy or grant metadata may be stored by the companion or test harnesses.
 
@@ -9,7 +9,7 @@ are routing and safety metadata for the five existing signer families.
 
 ## Current Product Model
 
-The current official NostrSeal model is key-source first and account second. A
+The current official nSealr model is key-source first and account second. A
 key source can be a BIP-39 mnemonic, the same mnemonic with a BIP-39
 passphrase, a standalone imported or generated Nostr private key, a smartcard
 slot, a future persistent device slot, or an external NIP-46 signer route. The
@@ -87,7 +87,7 @@ that can silently change a device policy.
 
 ## Account Descriptor
 
-`nseal-account-descriptor-v0` binds an `account_id` and public key to an
+`nsealr-account-descriptor-v0` binds an `account_id` and public key to an
 explicit signer route, recovery metadata, capability metadata, and a policy
 profile id.
 
@@ -120,13 +120,13 @@ They must not reference TROPIC01 or any persistent key-at-rest mechanism.
 
 ## Policy Profile
 
-`nseal-policy-profile-v0` describes the policy mode for one or more route
+`nsealr-policy-profile-v0` describes the policy mode for one or more route
 types. `manual_only` means every signing operation needs explicit review and
 approval. `scoped_automation` is only allowed for persistent/daily-use signer
 routes after expiry, rate-limit, revocation, audit-log, and device-policy
 confirmation constraints are present.
 
-Policy profiles are internal NostrSeal records. They are not Nostr events, are
+Policy profiles are internal nSealr records. They are not Nostr events, are
 not accepted from relays as authority, and are not updated by the companion
 alone. Installing, updating, disabling, or deleting an authoritative device
 policy requires local device review and physical approval on routes that have a
@@ -150,7 +150,7 @@ until a later risk model adds stricter source-backed semantics.
 
 ## Grant Descriptor
 
-`nseal-grant-descriptor-v0` records one explicit grant for a non-QR route.
+`nsealr-grant-descriptor-v0` records one explicit grant for a non-QR route.
 Grants must be scoped by account, route, client pubkey, method, and method
 parameter when relevant. `sign_event` grants must pin both the string
 permission parameter and the integer event kind.
@@ -167,7 +167,7 @@ Wildcards are invalid. Stateless QR vault routes are invalid grant targets.
 
 ## Policy Decision Transcript
 
-`nseal-policy-decision-vector-v0` records deterministic policy outcomes for
+`nsealr-policy-decision-vector-v0` records deterministic policy outcomes for
 future persistent-route automation without creating a grant store or relay
 session. v0 decisions are:
 
@@ -178,7 +178,7 @@ session. v0 decisions are:
 - `manual_review` when decrypt requests, unknown methods, manual-only routes,
   or requests without a matching grant must stay outside automation.
 
-Every decision carries a deterministic `nseal-grant-audit-event-v0` object so
+Every decision carries a deterministic `nsealr-grant-audit-event-v0` object so
 future stores can be audited without changing the decision semantics. These
 vectors do not authorize companion-side private-key custody, persistent grant
 storage, `connect` acknowledgements, or NIP-46 relay sessions.

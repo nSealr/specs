@@ -1,7 +1,7 @@
 # Smartcard APDU v0
 
 This document defines the first display-less smartcard command boundary for
-NostrSeal experiments.
+nSealr experiments.
 
 ## Scope
 

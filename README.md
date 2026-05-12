@@ -1,6 +1,6 @@
-# NostrSeal Specs
+# nSealr Specs
 
-Shared specifications for NostrSeal signers and compatible implementations.
+Shared specifications for nSealr signers and compatible implementations.
 
 This repository will define the interfaces that every hardware line and
 companion implementation must agree on:
@@ -19,7 +19,7 @@ companion implementation must agree on:
 - Capability discovery request and ESP32-S3 scaffold response examples.
 - ESP32-S3 scaffold signing-disabled response vector.
 - Error object v0.
-- Static `nseal1:` and animated `nseal1a:` QR envelope v0.
+- Static `nsealr1:` and animated `nsealr1a:` QR envelope v0.
 - Serial frame v0.
 - Smartcard APDU v0.
 - Deterministic Nostr/BIP-340 fixtures.
@@ -57,7 +57,7 @@ companion implementation must agree on:
   matrix records which features are required, optional, planned, forbidden, or
   not applicable per family, and enforces one shared behavior contract whenever
   a feature exists on more than one implementation.
-- Named NostrSeal v0 implementation safety-limit profile for constrained
+- Named nSealr v0 implementation safety-limit profile for constrained
   signers.
 - Shared malicious/rejection vectors for unsafe signing requests, QR envelopes,
   serial frames, invalid device request metadata, NIP-46 payloads, and NIP-46

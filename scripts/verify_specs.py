@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Verify NostrSeal M1 specs, examples, and cryptographic fixtures."""
+"""Verify nSealr M1 specs, examples, and cryptographic fixtures."""
 
 from __future__ import annotations
 
@@ -19,11 +19,11 @@ HEX64_RE = re.compile(r"^[0-9a-f]{128}$")
 HEX8_RE = re.compile(r"^[0-9a-f]{16}$")
 REQUEST_ID_RE = re.compile(r"^[A-Za-z0-9._:-]{1,128}$")
 B64URL_RE = re.compile(r"^[A-Za-z0-9_-]+$")
-QR_PREFIX = "nseal1:"
-ANIMATED_QR_PREFIX = "nseal1a:"
-SERIAL_PREFIX = "nseal1f:"
+QR_PREFIX = "nsealr1:"
+ANIMATED_QR_PREFIX = "nsealr1a:"
+SERIAL_PREFIX = "nsealr1f:"
 APDU_HEX_RE = re.compile(r"^[0-9a-f]+$")
-LIMIT_PROFILE = "vectors/limits/nseal-v0.json"
+LIMIT_PROFILE = "vectors/limits/nsealr-v0.json"
 DEVICE_METHODS = {"get_capabilities", "get_signing_status", "get_public_key", "sign_event"}
 ROUTE_TYPES = {
     "raspberry_qr_vault",
@@ -276,9 +276,9 @@ def check_implementation_limits(errors: list[str]) -> None:
     profile = load_required_json(LIMIT_PROFILE, errors)
     if profile is None:
         return
-    if profile.get("format") != "nostrseal-implementation-limits-v0":
+    if profile.get("format") != "nsealr-implementation-limits-v0":
         errors.append(f"{LIMIT_PROFILE}: format mismatch")
-    if profile.get("name") != "nostrseal-v0":
+    if profile.get("name") != "nsealr-v0":
         errors.append(f"{LIMIT_PROFILE}: name mismatch")
     limits = profile.get("limits")
     if not isinstance(limits, dict):
@@ -820,7 +820,7 @@ def check_account_descriptor_shape(path: str, value: object, errors: list[str]) 
         errors.append(f"{path}: account descriptor must be an object")
         return
     check_no_secret_fields(path, value, errors)
-    if value.get("format") != "nseal-account-descriptor-v0":
+    if value.get("format") != "nsealr-account-descriptor-v0":
         errors.append(f"{path}: format mismatch")
     check_string_id(path, "account_id", value.get("account_id"), errors)
     if not isinstance(value.get("label"), str) or not value["label"]:
@@ -839,7 +839,7 @@ def check_account_descriptor_shape(path: str, value: object, errors: list[str]) 
     if expected_repository is not None and route.get("repository") != expected_repository:
         errors.append(f"{path}: signer_route.repository must be {expected_repository}")
     if expected_repository is None and "repository" in route:
-        errors.append(f"{path}: external signer routes must not claim a NostrSeal repository")
+        errors.append(f"{path}: external signer routes must not claim a nSealr repository")
     if route.get("transport") not in ROUTE_TRANSPORTS:
         errors.append(f"{path}: signer_route.transport is unknown")
     if route.get("custody") not in ROUTE_CUSTODY_MODES:
@@ -915,7 +915,7 @@ def check_policy_profile_shape(path: str, value: object, errors: list[str]) -> N
         errors.append(f"{path}: policy profile must be an object")
         return
     check_no_secret_fields(path, value, errors)
-    if value.get("format") != "nseal-policy-profile-v0":
+    if value.get("format") != "nsealr-policy-profile-v0":
         errors.append(f"{path}: format mismatch")
     policy_id = value.get("policy_id")
     if not isinstance(policy_id, str) or not policy_id.startswith("policy-"):
@@ -970,7 +970,7 @@ def check_grant_descriptor_shape(path: str, value: object, errors: list[str]) ->
         errors.append(f"{path}: grant descriptor must be an object")
         return
     check_no_secret_fields(path, value, errors)
-    if value.get("format") != "nseal-grant-descriptor-v0":
+    if value.get("format") != "nsealr-grant-descriptor-v0":
         errors.append(f"{path}: format mismatch")
     check_string_id(path, "grant_id", value.get("grant_id"), errors)
     check_string_id(path, "account_id", value.get("account_id"), errors)
@@ -1001,7 +1001,7 @@ def check_grant_descriptor_shape(path: str, value: object, errors: list[str]) ->
         errors.append(f"{path}: requires_device_policy_confirmation must be true")
     if value.get("revocable") is not True:
         errors.append(f"{path}: revocable must be true")
-    if value.get("audit_event_format") != "nseal-grant-audit-event-v0":
+    if value.get("audit_event_format") != "nsealr-grant-audit-event-v0":
         errors.append(f"{path}: audit_event_format mismatch")
 
 
@@ -1062,7 +1062,7 @@ def permissions_match(grant_permission: dict, request_permission: dict) -> bool:
 
 def policy_audit_event(request: dict, decision: str, reason: str, grant_id: str | None = None) -> dict:
     event = {
-        "format": "nseal-grant-audit-event-v0",
+        "format": "nsealr-grant-audit-event-v0",
         "occurred_at": request["now"],
         "account_id": request["account_id"],
         "route_type": request["route_type"],
@@ -1078,7 +1078,7 @@ def policy_audit_event(request: dict, decision: str, reason: str, grant_id: str 
 
 def policy_decision(decision: str, reason: str, request: dict, grant_id: str | None = None) -> dict:
     result = {
-        "format": "nseal-policy-decision-v0",
+        "format": "nsealr-policy-decision-v0",
         "decision": decision,
         "reason": reason,
         "audit_event": policy_audit_event(request, decision, reason, grant_id),
@@ -1166,7 +1166,7 @@ def check_policy_decision_shape(path: str, decision: object, errors: list[str]) 
     if not isinstance(decision, dict):
         errors.append(f"{path}: decision must be an object")
         return
-    if decision.get("format") != "nseal-policy-decision-v0":
+    if decision.get("format") != "nsealr-policy-decision-v0":
         errors.append(f"{path}: decision format mismatch")
     if decision.get("decision") not in POLICY_DECISIONS:
         errors.append(f"{path}: decision is unknown")
@@ -1176,7 +1176,7 @@ def check_policy_decision_shape(path: str, decision: object, errors: list[str]) 
     if not isinstance(audit, dict):
         errors.append(f"{path}: audit_event must be an object")
         return
-    if audit.get("format") != "nseal-grant-audit-event-v0":
+    if audit.get("format") != "nsealr-grant-audit-event-v0":
         errors.append(f"{path}: audit_event format mismatch")
     if audit.get("decision") != decision.get("decision") or audit.get("reason") != decision.get("reason"):
         errors.append(f"{path}: audit_event decision/reason mismatch")
@@ -1193,7 +1193,7 @@ def check_policy_decision_vector(rel: str, errors: list[str]) -> None:
     check_no_secret_fields(vector_path, vector, errors)
     if vector.get("name") != rel:
         errors.append(f"{vector_path}: name mismatch")
-    if vector.get("format") != "nseal-policy-decision-vector-v0":
+    if vector.get("format") != "nsealr-policy-decision-vector-v0":
         errors.append(f"{vector_path}: format mismatch")
     check_policy_decision_request_shape(vector_path, vector.get("request"), errors)
     check_policy_decision_shape(vector_path, vector.get("decision"), errors)
@@ -1917,7 +1917,7 @@ def check_qr_envelope_payload(vector_path: str, envelope: object, errors: list[s
         errors.append(f"{vector_path}: QR envelope must be a string")
         return
     if not envelope.startswith(QR_PREFIX):
-        errors.append(f"{vector_path}: QR envelope requires nseal1 prefix")
+        errors.append(f"{vector_path}: QR envelope requires nsealr1 prefix")
         return
     payload = envelope[len(QR_PREFIX) :]
     decoded = decode_unpadded_base64url(payload, vector_path, "QR envelope", errors)
@@ -1944,10 +1944,10 @@ def parse_animated_qr_frame(vector_path: str, frame: object, errors: list[str]) 
         errors.append(f"{vector_path}: animated QR frame must be a string")
         return None
     if not frame.startswith(ANIMATED_QR_PREFIX):
-        errors.append(f"{vector_path}: animated QR frame requires nseal1a prefix")
+        errors.append(f"{vector_path}: animated QR frame requires nsealr1a prefix")
         return None
     parts = frame.split(":")
-    if len(parts) != 5 or parts[0] != "nseal1a":
+    if len(parts) != 5 or parts[0] != "nsealr1a":
         errors.append(f"{vector_path}: animated QR frame is malformed")
         return None
     digest, index_total, chunk, checksum = parts[1], parts[2], parts[3], parts[4]
@@ -2071,7 +2071,7 @@ def check_serial_frame_payload(vector_path: str, frame: object, errors: list[str
     if utf8_size(frame) > limits["max_serial_frame_bytes"]:
         errors.append(f"{vector_path}: serial frame exceeds max_serial_frame_bytes")
     if not frame.startswith(SERIAL_PREFIX):
-        errors.append(f"{vector_path}: serial frame requires nseal1f prefix")
+        errors.append(f"{vector_path}: serial frame requires nsealr1f prefix")
         return
     if not frame.endswith("\n"):
         errors.append(f"{vector_path}: serial frame must end with newline")
@@ -2149,7 +2149,7 @@ def check_invalid_vector(rel: str, errors: list[str]) -> None:
         if not isinstance(policy, dict):
             rejection_errors.append(f"{vector_path}: policy_file must be an object")
         else:
-            if policy.get("format") != "nseal-nip46-policy-v0":
+            if policy.get("format") != "nsealr-nip46-policy-v0":
                 rejection_errors.append(f"{vector_path}: format mismatch")
             approved_permissions = policy.get("approved_permissions")
             if not isinstance(approved_permissions, list):
@@ -2178,7 +2178,7 @@ def check_nip46_connect_intent(vector_path: str, vector: dict, message: dict, er
     expected_review = expected_nip46_connect_review(expected)
     if vector.get("connect_review") != expected_review:
         errors.append(f"{vector_path}: connect_review mismatch")
-    for forbidden in ("nostrseal_request", "nostrseal_response", "response_message", "local_response_message"):
+    for forbidden in ("nsealr_request", "nsealr_response", "response_message", "local_response_message"):
         if forbidden in vector:
             errors.append(f"{vector_path}: connect must not include {forbidden}")
     for forbidden in ("permission_requirement", "permission_checks"):
@@ -2209,7 +2209,7 @@ def expected_nip46_connect_review(intent: dict) -> dict:
     permissions = intent.get("requested_permissions", [])
     permission_lines = [permission_label(permission) for permission in permissions]
     return {
-        "format": "nseal-nip46-connect-review-v0",
+        "format": "nsealr-nip46-connect-review-v0",
         "id": intent["id"],
         "remote_signer_pubkey": intent["remote_signer_pubkey"],
         "secret_present": "secret" in intent,
@@ -2368,7 +2368,7 @@ def expected_nip46_permission_requirement(vector_path: str, message: dict, error
     return None
 
 
-def expected_nostrseal_request_from_nip46_message(
+def expected_nsealr_request_from_nip46_message(
     vector_path: str, message: dict, errors: list[str]
 ) -> dict | None:
     method = message.get("method")
@@ -2395,7 +2395,7 @@ def expected_nostrseal_request_from_nip46_message(
                 "event_template": event_template,
             },
         }
-    errors.append(f"{vector_path}: cannot create NostrSeal request for NIP-46 method")
+    errors.append(f"{vector_path}: cannot create nSealr request for NIP-46 method")
     return None
 
 
@@ -2447,13 +2447,13 @@ def expected_nip46_bridge_decision(
             },
         }
 
-    nostrseal_request = expected_nostrseal_request_from_nip46_message(vector_path, message, errors)
-    if nostrseal_request is None:
+    nsealr_request = expected_nsealr_request_from_nip46_message(vector_path, message, errors)
+    if nsealr_request is None:
         return None
     return {
         "type": "signer_request",
         "permission_requirement": requirement,
-        "nostrseal_request": nostrseal_request,
+        "nsealr_request": nsealr_request,
     }
 
 
@@ -2492,7 +2492,7 @@ def check_nip46_policy_file_vector(rel: str, errors: list[str]) -> None:
     vector = load_required_json(vector_path, errors)
     if vector is None:
         return
-    if vector.get("format") != "nseal-nip46-policy-v0":
+    if vector.get("format") != "nsealr-nip46-policy-v0":
         errors.append(f"{vector_path}: format mismatch")
     approved_permissions = vector.get("approved_permissions")
     if not isinstance(approved_permissions, list):
@@ -2543,7 +2543,7 @@ def check_feature_matrix_shape(path: str, matrix: object, errors: list[str]) -> 
     if not isinstance(matrix, dict):
         errors.append(f"{path}: feature matrix must be an object")
         return
-    if matrix.get("format") != "nseal-signer-feature-matrix-v0":
+    if matrix.get("format") != "nsealr-signer-feature-matrix-v0":
         errors.append(f"{path}: format mismatch")
     if matrix.get("name") != Path(path).stem:
         errors.append(f"{path}: name mismatch")
@@ -2685,8 +2685,8 @@ def check_nip46_vector(rel: str, errors: list[str]) -> None:
     if method == "ping":
         if params:
             errors.append(f"{vector_path}: ping params must be empty")
-        if "nostrseal_request" in vector or "nostrseal_response" in vector:
-            errors.append(f"{vector_path}: ping must not include NostrSeal request/response")
+        if "nsealr_request" in vector or "nsealr_response" in vector:
+            errors.append(f"{vector_path}: ping must not include nSealr request/response")
         if vector.get("local_response_message") != {"id": request_id, "result": "pong"}:
             errors.append(f"{vector_path}: local_response_message mismatch")
         check_nip46_permission_policy(vector_path, vector, {"method": "ping"}, errors)
@@ -2696,15 +2696,15 @@ def check_nip46_vector(rel: str, errors: list[str]) -> None:
         check_nip46_connect_intent(vector_path, vector, message, errors)
         return
 
-    nostrseal_request = vector.get("nostrseal_request")
-    if not isinstance(nostrseal_request, dict):
-        errors.append(f"{vector_path}: nostrseal_request must be an object")
+    nsealr_request = vector.get("nsealr_request")
+    if not isinstance(nsealr_request, dict):
+        errors.append(f"{vector_path}: nsealr_request must be an object")
         return
-    check_request_shape(Path(vector_path), nostrseal_request, errors)
-    if nostrseal_request.get("request_id") != request_id:
-        errors.append(f"{vector_path}: nostrseal_request request_id mismatch")
-    if nostrseal_request.get("method") != method:
-        errors.append(f"{vector_path}: nostrseal_request method mismatch")
+    check_request_shape(Path(vector_path), nsealr_request, errors)
+    if nsealr_request.get("request_id") != request_id:
+        errors.append(f"{vector_path}: nsealr_request request_id mismatch")
+    if nsealr_request.get("method") != method:
+        errors.append(f"{vector_path}: nsealr_request method mismatch")
 
     if method == "get_public_key" and params:
         errors.append(f"{vector_path}: get_public_key params must be empty")
@@ -2719,8 +2719,8 @@ def check_nip46_vector(rel: str, errors: list[str]) -> None:
             except json.JSONDecodeError:
                 errors.append(f"{vector_path}: sign_event param must be valid JSON")
             else:
-                if event_template != nostrseal_request.get("params", {}).get("event_template"):
-                    errors.append(f"{vector_path}: sign_event param must match NostrSeal event_template")
+                if event_template != nsealr_request.get("params", {}).get("event_template"):
+                    errors.append(f"{vector_path}: sign_event param must match nSealr event_template")
                 if not isinstance(event_template, dict) or not isinstance(event_template.get("kind"), int):
                     errors.append(f"{vector_path}: sign_event event kind is invalid")
                 else:
@@ -2735,24 +2735,24 @@ def check_nip46_vector(rel: str, errors: list[str]) -> None:
                         errors,
                     )
 
-    nostrseal_response = vector.get("nostrseal_response")
-    if not isinstance(nostrseal_response, dict):
-        errors.append(f"{vector_path}: nostrseal_response must be an object")
+    nsealr_response = vector.get("nsealr_response")
+    if not isinstance(nsealr_response, dict):
+        errors.append(f"{vector_path}: nsealr_response must be an object")
         return
-    check_response_shape(Path(vector_path), nostrseal_response, errors)
-    if nostrseal_response.get("request_id") != request_id:
-        errors.append(f"{vector_path}: nostrseal_response request_id mismatch")
+    check_response_shape(Path(vector_path), nsealr_response, errors)
+    if nsealr_response.get("request_id") != request_id:
+        errors.append(f"{vector_path}: nsealr_response request_id mismatch")
 
     response_message = check_nip46_response_message(vector_path, vector.get("response_message"), request_id, errors)
     if response_message is None:
         return
-    if nostrseal_response.get("ok") is False:
-        error = nostrseal_response.get("error", {})
+    if nsealr_response.get("ok") is False:
+        error = nsealr_response.get("error", {})
         if response_message.get("error") != f"{error.get('code')}: {error.get('message')}":
             errors.append(f"{vector_path}: response_message error mismatch")
         return
 
-    result = nostrseal_response.get("result", {})
+    result = nsealr_response.get("result", {})
     if method == "get_public_key":
         if response_message.get("result") != result.get("public_key"):
             errors.append(f"{vector_path}: public-key result mismatch")
@@ -2772,6 +2772,7 @@ SMARTCARD_APDU_EXPECTATIONS = {
     "sign-event-id-kind-1-basic": {
         "cla": "80",
         "ins": "20",
+        "event_id": lambda: load_json("vectors/events/kind-1-basic.json")["event_id"],
         "command_hex": lambda: f"8020000020{load_json('vectors/events/kind-1-basic.json')['event_id']}",
         "status_word": "9000",
         "expected_data_length": 64,
@@ -2825,7 +2826,9 @@ def check_smartcard_apdu_vector(rel: str, errors: list[str]) -> None:
         errors.append(f"{vector_path}: name mismatch")
     if vector.get("format") != "smartcard-apdu-v0":
         errors.append(f"{vector_path}: format mismatch")
-    for field in ("cla", "ins", "command_hex"):
+    for field in ("cla", "ins", "event_id", "command_hex"):
+        if field not in expectation:
+            continue
         expected = expected_apdu_value(expectation[field])
         if vector.get(field) != expected:
             errors.append(f"{vector_path}: {field} mismatch")
@@ -3067,7 +3070,7 @@ def main() -> int:
             print(f"ERROR: {error}")
         return 1
 
-    print("NostrSeal specs v0 verification passed")
+    print("nSealr specs v0 verification passed")
     return 0
 
 

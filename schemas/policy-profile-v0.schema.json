@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://nostrseal.dev/schemas/policy-profile-v0.schema.json",
-  "title": "NostrSeal Policy Profile v0",
+  "$id": "https://nsealr.dev/schemas/policy-profile-v0.schema.json",
+  "title": "nSealr Policy Profile v0",
   "type": "object",
   "required": [
     "format",
@@ -15,7 +15,7 @@
     "risk_tiers"
   ],
   "properties": {
-    "format": { "const": "nseal-policy-profile-v0" },
+    "format": { "const": "nsealr-policy-profile-v0" },
     "policy_id": { "type": "string", "pattern": "^policy-[A-Za-z0-9._:-]+$" },
     "label": { "type": "string", "minLength": 1 },
     "route_types": {

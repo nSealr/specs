@@ -5,7 +5,7 @@
 - Signing request v0.
 - Signing response v0.
 - Common error response.
-- Static `nseal1:` and animated `nseal1a:` QR envelope v0.
+- Static `nsealr1:` and animated `nsealr1a:` QR envelope v0.
 - Serial frame v0.
 - Smartcard APDU v0.
 - Capability discovery and disabled-signing request/response vectors for
@@ -29,7 +29,7 @@
   review, and audit-event output.
 - Feature conformance matrix for the five first-class signer families,
   including stateless QR vault parity between Raspberry and ESP32.
-- NostrSeal v0 implementation limit profile for constrained signer safety.
+- nSealr v0 implementation limit profile for constrained signer safety.
 - Malicious/rejection vectors for unsafe signing requests, unsafe responses, QR
   envelopes, serial frames, invalid device request metadata, NIP-46 payloads,
   and policy files.
@@ -62,7 +62,7 @@ pre-storage automation boundary for persistent routes: valid grants may allow a
 scoped `sign_event`, expired or revoked grants are denied, decrypt requests
 fall back to manual review, secret export is denied, unknown methods require
 manual review, and every decision emits a deterministic
-`nseal-grant-audit-event-v0` record.
+`nsealr-grant-audit-event-v0` record.
 
 Status note, 2026-05-11: the identity/policy contract now also records the
 official account and custody model. Policies attach to final signing public
@@ -87,19 +87,19 @@ differ by hardware readiness.
 
 ## M4.5/M7.5: Pre-Signing Contract Hardening
 
-- Define named NostrSeal v0 parser and resource limits in one contract.
+- Define named nSealr v0 parser and resource limits in one contract.
 - Add shared invalid vectors for event-template signed fields, unsafe integer
   values, oversized content/tags/messages, malformed or ambiguous responses,
   malformed QR envelopes, malformed serial frames, invalid device request
   metadata, malformed NIP-46 payloads, and invalid policy files.
-- Keep these as NostrSeal implementation safety limits for constrained
+- Keep these as nSealr implementation safety limits for constrained
   signers, not Nostr protocol limits.
 - Require companion, Raspberry, and ESP32 implementations to consume the
   vectors where their parsers support the relevant boundary before real signing
   or full NIP-46 sessions are enabled.
 
 Status: shared contract and first downstream consumers are implemented. The
-specs profile and invalid vectors are part of `NostrSeal/specs`, companion
+specs profile and invalid vectors are part of `nSealr/specs`, companion
 validates the shared fixtures and NIP-46 policy-file vectors, Raspberry rejects
 applicable unsafe QR/signing requests while preserving RAM-only custody, ESP32
 host-core rejects applicable QR/signing/serial hardening vectors before review,

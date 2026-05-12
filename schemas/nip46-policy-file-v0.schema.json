@@ -1,11 +1,11 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://nostrseal.dev/schemas/nip46-policy-file-v0.schema.json",
-  "title": "NostrSeal NIP-46 Policy File v0",
+  "$id": "https://nsealr.dev/schemas/nip46-policy-file-v0.schema.json",
+  "title": "nSealr NIP-46 Policy File v0",
   "type": "object",
   "required": ["format", "approved_permissions"],
   "properties": {
-    "format": { "const": "nseal-nip46-policy-v0" },
+    "format": { "const": "nsealr-nip46-policy-v0" },
     "approved_permissions": {
       "type": "array",
       "items": { "$ref": "#/$defs/permission" },

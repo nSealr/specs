@@ -1,6 +1,6 @@
 # Signing Request Protocol v0
 
-This document defines the first NostrSeal signer request contract. It is the
+This document defines the first nSealr signer request contract. It is the
 shared protocol used by companion software, QR vaults, ESP32 signers, smartcard
 adapters, and future compatible implementations.
 
@@ -27,8 +27,8 @@ Fields:
 
 Unknown top-level fields are invalid in v0.
 
-Requests must also satisfy the NostrSeal v0 implementation safety profile in
-`implementation-limits-v0.md`. Those limits are local NostrSeal safety bounds
+Requests must also satisfy the nSealr v0 implementation safety profile in
+`implementation-limits-v0.md`. Those limits are local nSealr safety bounds
 for constrained signers and are not Nostr protocol limits.
 
 ## Methods
@@ -96,7 +96,7 @@ Request:
       "created_at": 1710000000,
       "kind": 1,
       "tags": [],
-      "content": "NostrSeal fixture: basic kind 1 event."
+      "content": "nSealr fixture: basic kind 1 event."
     }
   }
 }

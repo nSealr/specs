@@ -6,10 +6,10 @@ simulators. It frames one JSON request or response envelope as one ASCII line.
 ## Format
 
 ```text
-nseal1f:<type>:<base64url-json>:<checksum>\n
+nsealr1f:<type>:<base64url-json>:<checksum>\n
 ```
 
-- Prefix: `nseal1f:`.
+- Prefix: `nsealr1f:`.
 - Type: `request`, `response`, or `error`.
 - Payload: unpadded base64url of UTF-8 JSON.
 - Checksum: first 16 lowercase hexadecimal characters of SHA-256 over
@@ -18,14 +18,14 @@ nseal1f:<type>:<base64url-json>:<checksum>\n
 
 ## Decoding
 
-1. Require the `nseal1f:` prefix.
+1. Require the `nsealr1f:` prefix.
 2. Split the remaining frame into exactly `type`, `payload`, and `checksum`.
 3. Require a supported type: `request`, `response`, or `error`.
 4. Require unpadded base64url payload characters.
 5. Recompute and compare the checksum before JSON parsing.
 6. Decode payload as UTF-8 JSON.
 7. Validate decoded JSON against the relevant request or response schema.
-8. Enforce the NostrSeal v0 implementation safety profile before review or
+8. Enforce the nSealr v0 implementation safety profile before review or
    signing.
 
 Frames larger than `max_serial_frame_bytes` are rejected in v0. Payloads remain

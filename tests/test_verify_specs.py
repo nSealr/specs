@@ -173,8 +173,8 @@ class VerifySpecsTests(unittest.TestCase):
     def test_implementation_limits_are_named_and_conservative(self) -> None:
         limits = implementation_limits()
 
-        self.assertEqual(limits["format"], "nostrseal-implementation-limits-v0")
-        self.assertEqual(limits["name"], "nostrseal-v0")
+        self.assertEqual(limits["format"], "nsealr-implementation-limits-v0")
+        self.assertEqual(limits["name"], "nsealr-v0")
         self.assertEqual(limits["limits"]["max_request_id_length"], 128)
         self.assertLessEqual(limits["limits"]["max_decoded_request_json_bytes"], 4096)
         self.assertLessEqual(limits["limits"]["max_static_qr_decoded_json_bytes"], 4096)
@@ -237,7 +237,7 @@ class VerifySpecsTests(unittest.TestCase):
     def test_nip46_policy_file_schema_declares_required_contract(self) -> None:
         schema = load_json("schemas/nip46-policy-file-v0.schema.json")
 
-        self.assertEqual(schema["title"], "NostrSeal NIP-46 Policy File v0")
+        self.assertEqual(schema["title"], "nSealr NIP-46 Policy File v0")
         self.assertEqual(schema["required"], ["format", "approved_permissions"])
 
     def test_nip46_permission_policy_vectors_pin_request_decisions(self) -> None:
@@ -482,12 +482,12 @@ class VerifySpecsTests(unittest.TestCase):
         policy_schema = load_json("schemas/policy-profile-v0.schema.json")
         grant_schema = load_json("schemas/grant-descriptor-v0.schema.json")
 
-        self.assertEqual(account_schema["title"], "NostrSeal Account Descriptor v0")
+        self.assertEqual(account_schema["title"], "nSealr Account Descriptor v0")
         self.assertIn("signer_route", account_schema["required"])
         self.assertNotIn("secret_key", account_schema["properties"])
-        self.assertEqual(policy_schema["title"], "NostrSeal Policy Profile v0")
+        self.assertEqual(policy_schema["title"], "nSealr Policy Profile v0")
         self.assertIn("grants_allowed", policy_schema["required"])
-        self.assertEqual(grant_schema["title"], "NostrSeal Grant Descriptor v0")
+        self.assertEqual(grant_schema["title"], "nSealr Grant Descriptor v0")
         self.assertIn("expires_at", grant_schema["required"])
 
 

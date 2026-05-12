@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://nostrseal.dev/schemas/signing-response-v0.schema.json",
-  "title": "NostrSeal Signing Response v0",
+  "$id": "https://nsealr.dev/schemas/signing-response-v0.schema.json",
+  "title": "nSealr Signing Response v0",
   "type": "object",
   "oneOf": [
     {

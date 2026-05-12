@@ -1,6 +1,6 @@
 # Architecture
 
-`NostrSeal/specs` is the canonical contract repository for every NostrSeal
+`nSealr/specs` is the canonical contract repository for every nSealr
 signer implementation.
 
 ## Responsibilities
@@ -43,11 +43,11 @@ signer implementation.
   constrained-display scroll-window behavior without requiring every scroll
   window to be visited before approval.
 - Publish deterministic animated QR envelope vectors for larger valid payloads.
-  The `nseal1a:` contract pins decoded JSON digest, one-based frame ordering,
+  The `nsealr1a:` contract pins decoded JSON digest, one-based frame ordering,
   frame checksums, payload chunk limits, frame-count limits, and response-schema
   validation without adding compression or fountain-code recovery.
 - Publish deterministic NIP-46 decrypted payload vectors that bind
-  JSON-RPC-like request messages to NostrSeal request/response payloads or
+  JSON-RPC-like request messages to nSealr request/response payloads or
   non-committal `connect` policy-review intents. Non-`connect` request vectors
   also pin the derived permission requirement and explicit grant/no-grant check
   decisions. Bridge decision vectors pin whether a payload becomes a signer
@@ -82,7 +82,7 @@ signer implementation.
   automation boundaries before any grant store or relay session exists. These
   vectors pin valid grant allowance, expired-grant denial, revoked-grant
   denial, decrypt/manual-review routing, export-secret denial, unknown-method
-  manual review, and `nseal-grant-audit-event-v0` output without authorizing
+  manual review, and `nsealr-grant-audit-event-v0` output without authorizing
   companion key custody or production policy automation.
 - Publish a deterministic feature conformance matrix for the five first-class
   signer families. The matrix separates final product targets from current
@@ -94,8 +94,8 @@ signer implementation.
   These limits bound request size, static QR envelope size, animated QR decoded
   size, animated QR frame payload size/count, serial frame size, NIP-46 message
   size, content size, tag count, tag field size, total tag text, and integer
-  safety. They are NostrSeal safety limits, not Nostr protocol limits. The
-  machine-readable source is `vectors/limits/nseal-v0.json`; the human protocol
+  safety. They are nSealr safety limits, not Nostr protocol limits. The
+  machine-readable source is `vectors/limits/nsealr-v0.json`; the human protocol
   explainer is `protocols/implementation-limits-v0.md`.
 - Publish malicious/rejection vectors that define deterministic failure
   behavior before review, approval, response acceptance, or signing. These

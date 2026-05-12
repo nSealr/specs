@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate deterministic M1 NostrSeal protocol fixtures."""
+"""Generate deterministic M1 nSealr protocol fixtures."""
 
 from __future__ import annotations
 
@@ -154,7 +154,7 @@ def main() -> int:
             "created_at": 1710000000,
             "kind": 1,
             "tags": [],
-            "content": "NostrSeal fixture: basic kind 1 event.",
+            "content": "nSealr fixture: basic kind 1 event.",
         },
     )
     sign_fixture(
@@ -166,9 +166,9 @@ def main() -> int:
             "kind": 1,
             "tags": [
                 ["p", public_key, "", "mention"],
-                ["t", "nostrseal"],
+                ["t", "nsealr"],
             ],
-            "content": "NostrSeal fixture: tagged kind 1 event.",
+            "content": "nSealr fixture: tagged kind 1 event.",
         },
     )
     return 0
