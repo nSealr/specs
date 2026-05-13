@@ -48,11 +48,13 @@ companion implementation must agree on:
 - JSON schema for the read-only NIP-46 policy-file format.
 - Identity, recovery, policy, grant descriptor, and policy-decision transcript
   vectors for secretless companion routing across the five signer families.
+- Route-selection vectors that bind an account descriptor plus requested
+  method to a secretless selected signer route without dispatching signer I/O.
 - Account/custody product model for QR vault session keyrings, persistent
   device vaults, per-public-key policy authority, and SeedSigner-compatible
   SeedQR import goals without turning policy records into Nostr events.
 - JSON schemas for account descriptors, policy profiles, grant descriptors, and
-  policy-decision vectors.
+  policy-decision and route-selection vectors.
 - Feature conformance matrix for the five first-class signer families. The
   matrix records which features are required, optional, planned, forbidden, or
   not applicable per family, and enforces one shared behavior contract whenever
@@ -69,9 +71,9 @@ companion implementation must agree on:
 - Transport, device, review, review-screen, review-display-frame,
   review-detail-page, review-transcript, NIP-46, NIP-46 policy-file,
   account-descriptor, policy-profile, grant-descriptor, policy-decision,
-  feature-matrix, invalid-vector, limit-profile, and smartcard vectors shared
-  by implementation repositories, including APDU success and deterministic
-  status-word rejection cases.
+  route-selection, feature-matrix, invalid-vector, limit-profile, and
+  smartcard vectors shared by implementation repositories, including APDU
+  success and deterministic status-word rejection cases.
 
 ## Initial Layout
 

@@ -84,6 +84,11 @@ signer implementation.
   denial, decrypt/manual-review routing, export-secret denial, unknown-method
   manual review, and `nsealr-grant-audit-event-v0` output without authorizing
   companion key custody or production policy automation.
+- Publish deterministic route-selection vectors that bind an account descriptor
+  and requested method to the selected signer route metadata. These vectors are
+  secretless routing contracts only: they do not approve a client, create a
+  grant, select a transport session, dispatch signer I/O, or claim that the
+  selected route is production-ready.
 - Publish a deterministic feature conformance matrix for the five first-class
   signer families. The matrix separates final product targets from current
   implementation status and requires the same `contract_id` wherever a feature

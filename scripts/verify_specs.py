@@ -759,6 +759,10 @@ def policy_decision_vector_names() -> list[str]:
     return sorted(path.stem for path in (ROOT / "vectors" / "policy-decisions").glob("*.json"))
 
 
+def route_selection_vector_names() -> list[str]:
+    return sorted(path.stem for path in (ROOT / "vectors" / "route-selections").glob("*.json"))
+
+
 def feature_matrix_vector_names() -> list[str]:
     return sorted(path.stem for path in (ROOT / "vectors" / "features").glob("*.json"))
 
@@ -1200,6 +1204,141 @@ def check_policy_decision_vector(rel: str, errors: list[str]) -> None:
     expected = expected_policy_decision(vector_path, vector, errors)
     if expected is not None and vector.get("decision") != expected:
         errors.append(f"{vector_path}: decision mismatch")
+
+
+def route_selection_from_account(account: dict) -> dict:
+    route = account["signer_route"]
+    capabilities = account["capabilities"]
+    selection = {
+        "format": "nsealr-route-selection-v0",
+        "account_id": account["account_id"],
+        "public_key": account["public_key"],
+        "route_type": route["type"],
+        "transport": route["transport"],
+        "custody": route["custody"],
+        "trusted_review": route["trusted_review"],
+        "policy_support": route["policy_support"],
+        "policy_profile_id": account["policy_profile_id"],
+        "physical_review": capabilities["physical_review"],
+        "physical_approval": capabilities["physical_approval"],
+        "persistent_grants": capabilities["persistent_grants"],
+        "contains_secret_material": False,
+    }
+    if "repository" in route:
+        selection["repository"] = route["repository"]
+    return selection
+
+
+def check_route_selection_request_shape(path: str, request: object, errors: list[str]) -> None:
+    if not isinstance(request, dict):
+        errors.append(f"{path}: request must be an object")
+        return
+    unknown = sorted(set(request) - {"account_id", "method", "route_type"})
+    if unknown:
+        errors.append(f"{path}: request has unknown fields {unknown}")
+    check_string_id(path, "request.account_id", request.get("account_id"), errors)
+    if not isinstance(request.get("method"), str) or not request["method"]:
+        errors.append(f"{path}: request.method must be a non-empty string")
+    if "route_type" in request and request.get("route_type") not in ROUTE_TYPES:
+        errors.append(f"{path}: request.route_type is unknown")
+
+
+def check_route_selection_shape(path: str, selection: object, errors: list[str]) -> None:
+    if not isinstance(selection, dict):
+        errors.append(f"{path}: selection must be an object")
+        return
+    expected_fields = {
+        "format",
+        "account_id",
+        "public_key",
+        "route_type",
+        "repository",
+        "transport",
+        "custody",
+        "trusted_review",
+        "policy_support",
+        "policy_profile_id",
+        "physical_review",
+        "physical_approval",
+        "persistent_grants",
+        "contains_secret_material",
+    }
+    unknown = sorted(set(selection) - expected_fields)
+    if unknown:
+        errors.append(f"{path}: selection has unknown fields {unknown}")
+    if selection.get("format") != "nsealr-route-selection-v0":
+        errors.append(f"{path}: selection format mismatch")
+    check_string_id(path, "selection.account_id", selection.get("account_id"), errors)
+    if not isinstance(selection.get("public_key"), str) or not HEX32_RE.fullmatch(selection["public_key"]):
+        errors.append(f"{path}: selection.public_key must be 32-byte lowercase hex")
+    if selection.get("route_type") not in ROUTE_TYPES:
+        errors.append(f"{path}: selection.route_type is unknown")
+    expected_repository = ROUTE_REPOSITORIES.get(selection.get("route_type"))
+    if expected_repository is not None and selection.get("repository") != expected_repository:
+        errors.append(f"{path}: selection.repository must be {expected_repository}")
+    if expected_repository is None and "repository" in selection:
+        errors.append(f"{path}: external signer selections must not claim a nSealr repository")
+    if selection.get("transport") not in ROUTE_TRANSPORTS:
+        errors.append(f"{path}: selection.transport is unknown")
+    if selection.get("custody") not in ROUTE_CUSTODY_MODES:
+        errors.append(f"{path}: selection.custody is unknown")
+    if selection.get("trusted_review") not in ROUTE_REVIEW_MODES:
+        errors.append(f"{path}: selection.trusted_review is unknown")
+    if selection.get("policy_support") not in POLICY_SUPPORT_MODES:
+        errors.append(f"{path}: selection.policy_support is unknown")
+    for field in ("physical_review", "physical_approval", "persistent_grants"):
+        if not isinstance(selection.get(field), bool):
+            errors.append(f"{path}: selection.{field} must be boolean")
+    if selection.get("contains_secret_material") is not False:
+        errors.append(f"{path}: selection.contains_secret_material must be false")
+
+
+def expected_route_selection(vector_path: str, vector: dict, errors: list[str]) -> dict | None:
+    request = vector.get("request")
+    if not isinstance(request, dict):
+        return None
+    account_id = request.get("account_id")
+    matches = []
+    for name in account_descriptor_vector_names():
+        account = load_json(f"vectors/accounts/{name}.json")
+        if account.get("account_id") == account_id:
+            matches.append(account)
+    if not matches:
+        errors.append(f"{vector_path}: request.account_id target is missing")
+        return None
+    if len(matches) > 1:
+        errors.append(f"{vector_path}: request.account_id is ambiguous")
+        return None
+    account = matches[0]
+    route = account.get("signer_route", {})
+    capabilities = account.get("capabilities", {})
+    if request.get("route_type") is not None and request.get("route_type") != route.get("type"):
+        errors.append(f"{vector_path}: request.route_type does not match account route")
+        return None
+    if request.get("method") not in capabilities.get("methods", []):
+        errors.append(f"{vector_path}: request.method is not supported by account")
+        return None
+    return route_selection_from_account(account)
+
+
+def check_route_selection_vector(rel: str, errors: list[str]) -> None:
+    vector_path = f"vectors/route-selections/{rel}.json"
+    vector = load_required_json(vector_path, errors)
+    if vector is None:
+        return
+    if not isinstance(vector, dict):
+        errors.append(f"{vector_path}: route selection vector must be an object")
+        return
+    check_no_secret_fields(vector_path, vector, errors)
+    if vector.get("name") != rel:
+        errors.append(f"{vector_path}: name mismatch")
+    if vector.get("format") != "nsealr-route-selection-vector-v0":
+        errors.append(f"{vector_path}: format mismatch")
+    check_route_selection_request_shape(vector_path, vector.get("request"), errors)
+    check_route_selection_shape(vector_path, vector.get("selection"), errors)
+    expected = expected_route_selection(vector_path, vector, errors)
+    if expected is not None and vector.get("selection") != expected:
+        errors.append(f"{vector_path}: selection mismatch")
 
 
 def check_review_screen_vector(rel: str, errors: list[str]) -> None:
@@ -2867,6 +3006,7 @@ def main() -> int:
         "policy-profile-v0.schema.json",
         "grant-descriptor-v0.schema.json",
         "policy-decision-vector-v0.schema.json",
+        "route-selection-vector-v0.schema.json",
     ):
         load_json(f"schemas/{schema}")
 
@@ -3029,6 +3169,9 @@ def main() -> int:
 
     for rel in policy_decision_vector_names():
         check_policy_decision_vector(rel, errors)
+
+    for rel in route_selection_vector_names():
+        check_route_selection_vector(rel, errors)
 
     for rel in feature_matrix_vector_names():
         check_feature_matrix_vector(rel, errors)
