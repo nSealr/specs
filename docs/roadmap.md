@@ -126,5 +126,9 @@ before decoded JSON is treated as a request, response, or error payload.
 
 ## Later
 
+- Access-surface vectors for local companion service, NIP-07 browser provider,
+  npm SDK client behavior, and full NIP-46 relay sessions once those behaviors
+  become cross-repository contracts. These remain companion access surfaces,
+  not signer families.
 - Full encrypted NIP-46 relay/session mapping.
 - Firmware conformance vectors.

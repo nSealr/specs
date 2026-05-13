@@ -90,6 +90,11 @@ signer implementation.
   is active on more than one solution. It also keeps Raspberry and ESP32
   stateless QR vault targets in parity while allowing their current hardware
   readiness to differ.
+- Publish access-surface contracts when browser extension, local companion
+  service, npm SDK, or full NIP-46 relay behavior becomes shared conformance
+  behavior. Access surfaces are not signer families; they are adapters above
+  companion and must still use shared request validation, policy contracts,
+  transport semantics, and signed-output verification.
 - Publish one named v0 implementation limit profile for constrained signers.
   These limits bound request size, static QR envelope size, animated QR decoded
   size, animated QR frame payload size/count, serial frame size, NIP-46 message
@@ -112,6 +117,8 @@ signer implementation.
 - No production private key custody.
 - No hardware-specific policy.
 - No companion UI behavior beyond protocol requirements.
+- No browser-extension or npm SDK product behavior unless it is promoted to a
+  shared access-surface contract.
 - No compatibility path without an explicit route type, validator coverage, and
   ownership. Stale or unowned legacy behavior should be removed or rewritten.
 

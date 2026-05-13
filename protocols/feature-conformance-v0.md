@@ -38,6 +38,12 @@ Infrastructure repositories such as `companion`, `specs`, `lab`, `hardware`,
 and `website` are not signer families by themselves. They implement, validate,
 or document the contracts used by the families above.
 
+Browser extension, npm SDK, CLI, local companion service, desktop UI, and full
+NIP-46 relay-session work are also not signer families. They are companion
+access surfaces. If an access-surface behavior becomes shared conformance
+behavior, it should receive its own specs contract or vector without changing
+the signer-family taxonomy.
+
 ## Stateless QR Vault Parity
 
 `raspberry_qr_vault` and `esp32_qr_vault` are different platforms for the same
