@@ -16,6 +16,11 @@ signer implementation.
 - Define QR, serial, USB, and smartcard envelope semantics before
   implementation repositories depend on them.
 - Publish deterministic fixtures for NIP-01 event ids and BIP-340 signatures.
+- Publish deterministic SeedSigner Standard SeedQR and CompactSeedQR
+  compatibility vectors for QR-vault BIP-39 session import. These vectors
+  define how nSealr consumes SeedSigner-compatible seed material for NIP-06
+  Nostr derivation; they do not import Bitcoin descriptors, xpubs, PSBTs, or
+  wallet policy.
 - Publish deterministic trusted-review vectors for event details that hardware
   displays must render before approval.
 - Publish deterministic trusted review-screen vectors and approval digests that
@@ -74,7 +79,7 @@ signer implementation.
   automation.
 - Publish the current account/custody product model for all signer families:
   policies attach to final signing public keys and routes, QR vaults use a
-  RAM-only session keyring with SeedSigner-compatible SeedQR import goals, and
+  RAM-only session keyring with SeedSigner-compatible SeedQR import vectors, and
   persistent-device policy authority lives on the device rather than in the
   companion. The current scoped-automation vectors are boundary fixtures, not
   the final user-facing policy menu.

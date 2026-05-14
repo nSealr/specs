@@ -24,6 +24,10 @@ companion implementation must agree on:
 - Smartcard APDU v0.
 - Deterministic Nostr/BIP-340 fixtures.
 - Canonical NIP-06 account `0` mnemonic derivation test vector.
+- SeedSigner Standard SeedQR and CompactSeedQR compatibility vectors for
+  QR-vault BIP-39 session import. These vectors cover seed material for NIP-06
+  Nostr derivation only, not Bitcoin descriptors, xpubs, PSBTs, or wallet
+  policy.
 - Trusted event review vectors for display-oriented signer flows.
 - Trusted review-screen vectors with request-bound `approval_digest` values for
   display-oriented signer approval flows.
@@ -52,7 +56,7 @@ companion implementation must agree on:
   method to a secretless selected signer route without dispatching signer I/O.
 - Account/custody product model for QR vault session keyrings, persistent
   device vaults, per-public-key policy authority, and SeedSigner-compatible
-  SeedQR import goals without turning policy records into Nostr events.
+  SeedQR import vectors without turning policy records into Nostr events.
 - JSON schemas for account descriptors, policy profiles, grant descriptors, and
   policy-decision and route-selection vectors.
 - Feature conformance matrix for the five first-class signer families. The
@@ -69,11 +73,11 @@ companion implementation must agree on:
 - Review edge-case vectors for unknown kinds, empty content, long content,
   event references, and high tag counts.
 - Transport, device, review, review-screen, review-display-frame,
-  review-detail-page, review-transcript, NIP-46, NIP-46 policy-file,
+  review-detail-page, review-transcript, NIP-46, NIP-46 policy-file, SeedQR,
   account-descriptor, policy-profile, grant-descriptor, policy-decision,
-  route-selection, feature-matrix, invalid-vector, limit-profile, and
-  smartcard vectors shared by implementation repositories, including APDU
-  success and deterministic status-word rejection cases.
+  route-selection, feature-matrix, invalid-vector, limit-profile, and smartcard
+  vectors shared by implementation repositories, including APDU success and
+  deterministic status-word rejection cases.
 
 ## Initial Layout
 

@@ -24,6 +24,8 @@
 - NIP-46 read-only policy-file JSON schema.
 - Secretless account-descriptor, policy-profile, and grant-descriptor
   contracts for identity routing, recovery metadata, and scoped automation.
+- SeedSigner Standard SeedQR and CompactSeedQR compatibility vectors for
+  QR-vault BIP-39 session import into NIP-06 Nostr accounts.
 - Policy-decision transcript vectors for grant allowance, expired/revoked
   denial, decrypt/manual-review routing, export denial, unknown-method manual
   review, and audit-event output.
@@ -68,10 +70,16 @@ Status note, 2026-05-11: the identity/policy contract now also records the
 official account and custody model. Policies attach to final signing public
 keys, not mnemonic containers; BIP-39 passphrases create separate seed
 namespaces; QR vaults use RAM-only session keyrings with SeedSigner
-SeedQR/CompactSeedQR import as a product goal; and ESP32/custom persistent
-devices keep policy authority at the device authorization boundary. The current
-scoped-automation fixtures remain minimal conformance vectors, not the final
-policy UX.
+SeedQR/CompactSeedQR import as a shared vector contract; and ESP32/custom
+persistent devices keep policy authority at the device authorization boundary.
+The current scoped-automation fixtures remain minimal conformance vectors, not
+the final policy UX.
+
+Status note, 2026-05-13: SeedSigner Standard SeedQR and CompactSeedQR import
+is now a shared vector contract rather than a Raspberry-only product note. QR
+vault implementations must decode the same BIP-39 session seed material for
+NIP-06 Nostr derivation, while Bitcoin descriptors, xpubs, PSBTs, and wallet
+policy remain out of scope.
 
 Status note, 2026-05-11: the feature conformance matrix is now a shared
 contract. It records required, optional, planned, forbidden, and not-applicable

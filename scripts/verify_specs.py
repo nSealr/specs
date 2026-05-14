@@ -735,6 +735,10 @@ def nip46_policy_file_vector_names() -> list[str]:
     return sorted(path.stem for path in (ROOT / "vectors" / "nip46-policy-files").glob("*.json"))
 
 
+def seedqr_vector_names() -> list[str]:
+    return sorted(path.stem for path in (ROOT / "vectors" / "seedqr").glob("*.json"))
+
+
 def smartcard_apdu_vector_names() -> list[str]:
     return sorted(path.stem for path in (ROOT / "vectors" / "smartcard").glob("*.json"))
 
@@ -2643,6 +2647,59 @@ def check_nip46_policy_file_vector(rel: str, errors: list[str]) -> None:
             errors.append(f"{vector_path}: approved_permissions[{index}] must be normalized")
 
 
+def compact_seedqr_hex_from_indexes(indexes: list[int], word_count: int) -> str:
+    bit_stream = "".join(f"{index:011b}" for index in indexes)
+    checksum_bits = 4 if word_count == 12 else 8
+    entropy_bits = bit_stream[:-checksum_bits]
+    return int(entropy_bits, 2).to_bytes(len(entropy_bits) // 8, "big").hex()
+
+
+def check_seedqr_vector(rel: str, errors: list[str]) -> None:
+    vector_path = f"vectors/seedqr/{rel}.json"
+    vector = load_required_json(vector_path, errors)
+    if vector is None:
+        return
+    if not isinstance(vector, dict):
+        errors.append(f"{vector_path}: SeedQR vector must be an object")
+        return
+    if vector.get("format") != "nsealr-seedqr-vector-v0":
+        errors.append(f"{vector_path}: format mismatch")
+    if vector.get("name") != rel:
+        errors.append(f"{vector_path}: name mismatch")
+    if not isinstance(vector.get("source"), str) or not vector["source"]:
+        errors.append(f"{vector_path}: source must be a non-empty string")
+    word_count = vector.get("word_count")
+    if word_count not in {12, 24}:
+        errors.append(f"{vector_path}: word_count must be 12 or 24")
+        return
+    mnemonic = vector.get("mnemonic")
+    if not isinstance(mnemonic, str) or len(mnemonic.split()) != word_count:
+        errors.append(f"{vector_path}: mnemonic word count mismatch")
+    digits = vector.get("standard_seedqr_digits")
+    if not isinstance(digits, str) or not digits.isdigit() or len(digits) != word_count * 4:
+        errors.append(f"{vector_path}: standard_seedqr_digits must contain four digits per word")
+        return
+    indexes = [int(digits[index : index + 4]) for index in range(0, len(digits), 4)]
+    if any(index > 2047 for index in indexes):
+        errors.append(f"{vector_path}: standard_seedqr_digits contains an out-of-range BIP-39 index")
+    if vector.get("standard_word_indexes") != indexes:
+        errors.append(f"{vector_path}: standard_word_indexes mismatch")
+    compact = vector.get("compact_seedqr_hex")
+    expected_hex_chars = 32 if word_count == 12 else 64
+    if not isinstance(compact, str) or not re.fullmatch(r"[0-9a-f]+", compact) or len(compact) != expected_hex_chars:
+        errors.append(f"{vector_path}: compact_seedqr_hex length or encoding mismatch")
+    elif compact != compact_seedqr_hex_from_indexes(indexes, word_count):
+        errors.append(f"{vector_path}: compact_seedqr_hex mismatch")
+    scope = vector.get("compatibility_scope")
+    if not isinstance(scope, str) or not scope:
+        errors.append(f"{vector_path}: compatibility_scope must be a non-empty string")
+    else:
+        scope_lower = scope.lower()
+        for required in ("bip-39", "nip-06", "not bitcoin descriptors", "xpubs", "psbts", "wallet policy"):
+            if required not in scope_lower:
+                errors.append(f"{vector_path}: compatibility_scope must mention {required}")
+
+
 def check_feature_matrix_feature_shape(
     path: str,
     feature_id: str,
@@ -3157,6 +3214,9 @@ def main() -> int:
 
     for rel in nip46_policy_file_vector_names():
         check_nip46_policy_file_vector(rel, errors)
+
+    for rel in seedqr_vector_names():
+        check_seedqr_vector(rel, errors)
 
     for rel in account_descriptor_vector_names():
         check_account_descriptor_vector(rel, errors)
