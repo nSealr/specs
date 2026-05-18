@@ -89,6 +89,10 @@ Status note, 2026-05-18: NIP-19 `nsec` private-key import is now a shared
 vector contract for RAM-only QR vault migration/recovery sessions. It decodes
 to one 32-byte Nostr private key for the current session only and does not
 create a persistent key slot, policy record, mnemonic, or NIP-49 backup path.
+Raspberry consumes the vector in an end-to-end RAM-only QR vault flow; ESP32
+now consumes it in host-core as a partial QR-vault key-source parser while
+camera input, session keyring wiring, import review, response QR output, and
+real signing remain pending.
 
 Status note, 2026-05-11: the feature conformance matrix is now a shared
 contract. It records required, optional, planned, forbidden, and not-applicable
