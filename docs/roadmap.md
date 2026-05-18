@@ -98,6 +98,12 @@ now consumes it in host-core as a partial QR-vault key-source parser while
 camera input, session keyring wiring, import review, response QR output, and
 real signing remain pending.
 
+Status note, 2026-05-18: ESP32 stateless session custody is now partial rather
+than merely planned. The host-core owns a bounded RAM-only session keyring model
+for already parsed `nsec` and SeedQR sources, but camera/import UX, device
+lifecycle wipe tests, hardware reset behavior, local import review, NIP-06
+derivation wiring, response QR output, and real signing remain pending.
+
 Status note, 2026-05-11: the feature conformance matrix is now a shared
 contract. It records required, optional, planned, forbidden, and not-applicable
 features per first-class signer family, while requiring one canonical behavior
