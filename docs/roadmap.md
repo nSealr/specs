@@ -83,7 +83,11 @@ Status note, 2026-05-13: SeedSigner Standard SeedQR and CompactSeedQR import
 is now a shared vector contract rather than a Raspberry-only product note. QR
 vault implementations must decode the same BIP-39 session seed material for
 NIP-06 Nostr derivation, while Bitcoin descriptors, xpubs, PSBTs, and wallet
-policy remain out of scope.
+policy remain out of scope. Raspberry consumes this vector in the QR vault
+flow; ESP32 now consumes it in host-core as a partial QR-vault key-source
+parser while camera input, BIP-39 wordlist display, NIP-06 derivation, session
+keyring wiring, import review, response QR output, and real signing remain
+pending.
 
 Status note, 2026-05-18: NIP-19 `nsec` private-key import is now a shared
 vector contract for RAM-only QR vault migration/recovery sessions. It decodes
