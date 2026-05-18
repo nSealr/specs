@@ -85,8 +85,9 @@ vault implementations must decode the same BIP-39 session seed material for
 NIP-06 Nostr derivation, while Bitcoin descriptors, xpubs, PSBTs, and wallet
 policy remain out of scope. Raspberry consumes this vector in the QR vault
 flow; ESP32 now consumes it in host-core as a partial QR-vault key-source
-parser while camera input, BIP-39 wordlist display, NIP-06 derivation, session
-keyring wiring, import review, response QR output, and real signing remain
+parser. ESP32 host-core also validates BIP-39 English mnemonic text and renders
+checked word indexes back to mnemonic words, but camera input, NIP-06
+derivation, import review screens, response QR output, and real signing remain
 pending.
 
 Status note, 2026-05-18: NIP-19 `nsec` private-key import is now a shared
@@ -94,13 +95,13 @@ vector contract for RAM-only QR vault migration/recovery sessions. It decodes
 to one 32-byte Nostr private key for the current session only and does not
 create a persistent key slot, policy record, mnemonic, or NIP-49 backup path.
 Raspberry consumes the vector in an end-to-end RAM-only QR vault flow; ESP32
-now consumes it in host-core as a partial QR-vault key-source parser while
-camera input, session keyring wiring, import review, response QR output, and
-real signing remain pending.
+now consumes it in host-core as a partial QR-vault key-source parser, and the
+bounded session keyring can hold parsed `nsec` material. Camera input, import
+review screens, response QR output, and real signing remain pending.
 
 Status note, 2026-05-18: ESP32 stateless session custody is now partial rather
 than merely planned. The host-core owns a bounded RAM-only session keyring model
-for already parsed `nsec` and SeedQR sources, but camera/import UX, device
+for already parsed `nsec` and BIP-39 sources, but camera/import UX, device
 lifecycle wipe tests, hardware reset behavior, local import review, NIP-06
 derivation wiring, response QR output, and real signing remain pending.
 
