@@ -32,7 +32,9 @@
   denial, decrypt/manual-review routing, export denial, unknown-method manual
   review, and audit-event output.
 - Feature conformance matrix for the five first-class signer families,
-  including stateless QR vault parity between Raspberry and ESP32.
+  including stateless QR vault parity between Raspberry and ESP32 for review,
+  approval, transport, response verification, and RAM-only SeedQR/NIP-19
+  `nsec` session import.
 - nSealr v0 implementation limit profile for constrained signer safety.
 - Malicious/rejection vectors for unsafe signing requests, unsafe responses, QR
   envelopes, serial frames, invalid device request metadata, NIP-46 payloads,

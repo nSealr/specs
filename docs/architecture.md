@@ -102,7 +102,8 @@ signer implementation.
   signer families. The matrix separates final product targets from current
   implementation status and requires the same `contract_id` wherever a feature
   is active on more than one solution. It also keeps Raspberry and ESP32
-  stateless QR vault targets in parity while allowing their current hardware
+  stateless QR vault targets in parity, including SeedQR/CompactSeedQR and
+  NIP-19 `nsec` RAM-only session import, while allowing their current hardware
   readiness to differ.
 - Publish access-surface contracts when browser extension, local companion
   service, npm SDK, or full NIP-46 relay behavior becomes shared conformance
