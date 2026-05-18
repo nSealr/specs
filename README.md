@@ -28,6 +28,9 @@ companion implementation must agree on:
   QR-vault BIP-39 session import. These vectors cover seed material for NIP-06
   Nostr derivation only, not Bitcoin descriptors, xpubs, PSBTs, or wallet
   policy.
+- NIP-19 `nsec` private-key import vectors for RAM-only QR vault session
+  loading. These vectors cover migration/recovery inputs only; they are not
+  persistent key slots, policy records, mnemonics, or NIP-49 encrypted backups.
 - Trusted event review vectors for display-oriented signer flows.
 - Trusted review-screen vectors with request-bound `approval_digest` values for
   display-oriented signer approval flows.
@@ -74,7 +77,8 @@ companion implementation must agree on:
   event references, and high tag counts.
 - Transport, device, review, review-screen, review-display-frame,
   review-detail-page, review-transcript, NIP-46, NIP-46 policy-file, SeedQR,
-  account-descriptor, policy-profile, grant-descriptor, policy-decision,
+  NIP-19 `nsec`, account-descriptor, policy-profile, grant-descriptor,
+  policy-decision,
   route-selection, feature-matrix, invalid-vector, limit-profile, and smartcard
   vectors shared by implementation repositories, including APDU success and
   deterministic status-word rejection cases.

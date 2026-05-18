@@ -21,6 +21,10 @@ signer implementation.
   define how nSealr consumes SeedSigner-compatible seed material for NIP-06
   Nostr derivation; they do not import Bitcoin descriptors, xpubs, PSBTs, or
   wallet policy.
+- Publish deterministic NIP-19 `nsec` vectors for direct private-key import
+  into RAM-only QR vault sessions. These vectors are migration/recovery
+  fixtures only; they do not define persistent key slots, policy records,
+  mnemonics, or NIP-49 encrypted backups.
 - Publish deterministic trusted-review vectors for event details that hardware
   displays must render before approval.
 - Publish deterministic trusted review-screen vectors and approval digests that
@@ -79,10 +83,10 @@ signer implementation.
   automation.
 - Publish the current account/custody product model for all signer families:
   policies attach to final signing public keys and routes, QR vaults use a
-  RAM-only session keyring with SeedSigner-compatible SeedQR import vectors, and
-  persistent-device policy authority lives on the device rather than in the
-  companion. The current scoped-automation vectors are boundary fixtures, not
-  the final user-facing policy menu.
+  RAM-only session keyring with SeedSigner-compatible SeedQR and NIP-19 `nsec`
+  import vectors, and persistent-device policy authority lives on the device
+  rather than in the companion. The current scoped-automation vectors are
+  boundary fixtures, not the final user-facing policy menu.
 - Publish deterministic policy-decision transcript vectors for persistent-route
   automation boundaries before any grant store or relay session exists. These
   vectors pin valid grant allowance, expired-grant denial, revoked-grant

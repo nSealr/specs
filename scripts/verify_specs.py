@@ -23,6 +23,8 @@ QR_PREFIX = "nsealr1:"
 ANIMATED_QR_PREFIX = "nsealr1a:"
 SERIAL_PREFIX = "nsealr1f:"
 APDU_HEX_RE = re.compile(r"^[0-9a-f]+$")
+BECH32_CHARSET = "qpzry9x8gf2tvdw0s3jn54khce6mua7l"
+BECH32_CHARSET_REV = {char: index for index, char in enumerate(BECH32_CHARSET)}
 LIMIT_PROFILE = "vectors/limits/nsealr-v0.json"
 DEVICE_METHODS = {"get_capabilities", "get_signing_status", "get_public_key", "sign_event"}
 ROUTE_TYPES = {
@@ -236,6 +238,81 @@ def utf8_size(value: str) -> int:
 
 def serial_checksum(frame_type: str, payload: str) -> str:
     return hashlib.sha256(f"{frame_type}:{payload}".encode("utf-8")).hexdigest()[:16]
+
+
+def bech32_polymod(values: list[int]) -> int:
+    generators = (0x3B6A57B2, 0x26508E6D, 0x1EA119FA, 0x3D4233DD, 0x2A1462B3)
+    checksum = 1
+    for value in values:
+        top = checksum >> 25
+        checksum = ((checksum & 0x1FFFFFF) << 5) ^ value
+        for index, generator in enumerate(generators):
+            if (top >> index) & 1:
+                checksum ^= generator
+    return checksum
+
+
+def bech32_hrp_expand(hrp: str) -> list[int]:
+    return [ord(char) >> 5 for char in hrp] + [0] + [ord(char) & 31 for char in hrp]
+
+
+def decode_lower_bech32(path: str, value: object, errors: list[str]) -> tuple[str, list[int]] | None:
+    if not isinstance(value, str):
+        errors.append(f"{path}: nsec must be a string")
+        return None
+    if value != value.lower():
+        errors.append(f"{path}: nsec must be canonical lowercase bech32")
+        return None
+    separator = value.rfind("1")
+    if separator <= 0 or separator + 7 > len(value):
+        errors.append(f"{path}: nsec bech32 payload is malformed")
+        return None
+    hrp = value[:separator]
+    payload = value[separator + 1:]
+    if any(char not in BECH32_CHARSET_REV for char in payload):
+        errors.append(f"{path}: nsec bech32 payload contains unsupported characters")
+        return None
+    data = [BECH32_CHARSET_REV[char] for char in payload]
+    if bech32_polymod(bech32_hrp_expand(hrp) + data) != 1:
+        errors.append(f"{path}: nsec bech32 checksum is invalid")
+        return None
+    return hrp, data[:-6]
+
+
+def convert_5bit_words_to_bytes(path: str, words: list[int], errors: list[str]) -> bytes | None:
+    accumulator = 0
+    bit_count = 0
+    out = bytearray()
+    for word in words:
+        if word < 0 or word > 31:
+            errors.append(f"{path}: nsec bech32 word is out of range")
+            return None
+        accumulator = (accumulator << 5) | word
+        bit_count += 5
+        while bit_count >= 8:
+            bit_count -= 8
+            out.append((accumulator >> bit_count) & 0xFF)
+    if bit_count >= 5 or ((accumulator << (8 - bit_count)) & 0xFF) != 0:
+        errors.append(f"{path}: nsec bech32 payload has invalid padding")
+        return None
+    return bytes(out)
+
+
+def secret_key_from_nsec(path: str, value: object, errors: list[str]) -> str | None:
+    decoded = decode_lower_bech32(path, value, errors)
+    if decoded is None:
+        return None
+    hrp, words = decoded
+    if hrp != "nsec":
+        errors.append(f"{path}: nsec bech32 prefix must be nsec")
+        return None
+    secret = convert_5bit_words_to_bytes(path, words, errors)
+    if secret is None:
+        return None
+    if len(secret) != 32:
+        errors.append(f"{path}: nsec payload must decode to a 32-byte secret key")
+        return None
+    return secret.hex()
 
 
 def verify_schnorr(pubkey_hex: str, msg_hex: str, sig_hex: str) -> bool:
@@ -737,6 +814,10 @@ def nip46_policy_file_vector_names() -> list[str]:
 
 def seedqr_vector_names() -> list[str]:
     return sorted(path.stem for path in (ROOT / "vectors" / "seedqr").glob("*.json"))
+
+
+def nip19_nsec_vector_names() -> list[str]:
+    return sorted(path.stem for path in (ROOT / "vectors" / "nip19").glob("*.json"))
 
 
 def smartcard_apdu_vector_names() -> list[str]:
@@ -2700,6 +2781,48 @@ def check_seedqr_vector(rel: str, errors: list[str]) -> None:
                 errors.append(f"{vector_path}: compatibility_scope must mention {required}")
 
 
+def check_nip19_nsec_vector(rel: str, errors: list[str]) -> None:
+    vector_path = f"vectors/nip19/{rel}.json"
+    vector = load_required_json(vector_path, errors)
+    if vector is None:
+        return
+    if not isinstance(vector, dict):
+        errors.append(f"{vector_path}: NIP-19 nsec vector must be an object")
+        return
+    if vector.get("format") != "nsealr-nip19-nsec-vector-v0":
+        errors.append(f"{vector_path}: format mismatch")
+    if vector.get("name") != rel:
+        errors.append(f"{vector_path}: name mismatch")
+    if not isinstance(vector.get("source"), str) or not vector["source"]:
+        errors.append(f"{vector_path}: source must be a non-empty string")
+    warning = vector.get("warning")
+    if not isinstance(warning, str) or "Never use in production" not in warning:
+        errors.append(f"{vector_path}: warning must identify the fixture key as non-production")
+    expected_secret = vector.get("secret_key")
+    if not isinstance(expected_secret, str) or not HEX32_RE.fullmatch(expected_secret):
+        errors.append(f"{vector_path}: secret_key must be 32-byte lowercase hex")
+        expected_secret = None
+    expected_public = vector.get("public_key")
+    if not isinstance(expected_public, str) or not HEX32_RE.fullmatch(expected_public):
+        errors.append(f"{vector_path}: public_key must be 32-byte lowercase hex")
+        expected_public = None
+    decoded_secret = secret_key_from_nsec(vector_path, vector.get("nsec"), errors)
+    if expected_secret is not None and decoded_secret is not None and decoded_secret != expected_secret:
+        errors.append(f"{vector_path}: nsec decoded secret_key mismatch")
+    if expected_secret is not None and expected_public is not None:
+        actual_public = xonly_pubkey_from_secret(expected_secret)
+        if actual_public != expected_public:
+            errors.append(f"{vector_path}: public_key mismatch")
+    scope = vector.get("compatibility_scope")
+    if not isinstance(scope, str) or not scope:
+        errors.append(f"{vector_path}: compatibility_scope must be a non-empty string")
+    else:
+        scope_lower = scope.lower()
+        for required in ("nip-19", "nsec", "private-key", "ram-only", "not a persistent policy", "nip-49"):
+            if required not in scope_lower:
+                errors.append(f"{vector_path}: compatibility_scope must mention {required}")
+
+
 def check_feature_matrix_feature_shape(
     path: str,
     feature_id: str,
@@ -3217,6 +3340,9 @@ def main() -> int:
 
     for rel in seedqr_vector_names():
         check_seedqr_vector(rel, errors)
+
+    for rel in nip19_nsec_vector_names():
+        check_nip19_nsec_vector(rel, errors)
 
     for rel in account_descriptor_vector_names():
         check_account_descriptor_vector(rel, errors)

@@ -23,6 +23,10 @@ fixtures.
   BIP-39 seed-material import for NIP-06 Nostr derivation. The verifier checks
   four-digit word indexes, BIP-39 index bounds, and CompactSeedQR entropy bytes
   derived from the same indexes after checksum-bit removal.
+- NIP-19 `nsec` vectors preserve deterministic direct private-key import for
+  RAM-only QR vault sessions. The verifier checks lowercase Bech32 checksum,
+  `nsec` prefix, 32-byte payload, x-only public key derivation, and scope text
+  that excludes persistent policy/key-slot semantics.
 - NIP-01 event id fixtures match canonical serialization.
 - BIP-340 signatures verify against deterministic test keys.
 - QR envelope roundtrips preserve the request payload exactly,
@@ -97,6 +101,8 @@ fixtures.
   permissions.
 - SeedQR vector discovery tests ensure every `vectors/seedqr/*.json` file is
   included in conformance verification.
+- NIP-19 `nsec` vector discovery tests ensure every `vectors/nip19/*.json`
+  file is included in conformance verification.
 - NIP-46 policy-file schema tests ensure
   `schemas/nip46-policy-file-v0.schema.json` declares the required envelope
   fields.
@@ -169,6 +175,9 @@ It also checks that every NIP-46 policy-file vector uses
 `nsealr-nip46-policy-v0` and normalized explicit approved permissions.
 It also checks SeedSigner-compatible SeedQR vectors so Standard SeedQR digits
 and CompactSeedQR entropy bytes stay bound to the same BIP-39 word indexes.
+It also checks NIP-19 `nsec` vectors so direct private-key import stays
+lowercase Bech32/checksum validated and scoped to RAM-only migration/recovery
+sessions.
 It also checks that account, policy, and grant descriptor vectors preserve the
 secretless companion boundary, manual-only QR-vault policy, and scoped
 automation constraints for persistent routes.
@@ -193,8 +202,8 @@ signing or full NIP-46 sessions.
 Those checks are directory-driven: new files under `vectors/invalid/`,
 `vectors/review-detail-pages/`, `vectors/accounts/`, `vectors/policies/`,
 `vectors/grants/`, `vectors/policy-decisions/`, `vectors/route-selections/`,
-`vectors/features/`, `vectors/seedqr/`, and the single profile under
-`vectors/limits/` are picked up by tests and
+`vectors/features/`, `vectors/seedqr/`, `vectors/nip19/`, and the single
+profile under `vectors/limits/` are picked up by tests and
 `scripts/verify_specs.py` without hardcoding individual vector filenames in the
 verifier.
 

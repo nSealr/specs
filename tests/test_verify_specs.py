@@ -13,6 +13,7 @@ from scripts.verify_specs import (
     check_seedqr_vector,
     check_static_qr_vector,
     check_nip46_bridge_decisions,
+    check_nip19_nsec_vector,
     check_nip46_policy_file_vector,
     check_policy_decision_vector,
     check_invalid_vector,
@@ -21,6 +22,7 @@ from scripts.verify_specs import (
     invalid_vector_names,
     load_json,
     nip46_policy_file_vector_names,
+    nip19_nsec_vector_names,
     nip46_vector_names,
     policy_decision_vector_names,
     review_detail_page_vector_names,
@@ -183,6 +185,20 @@ class VerifySpecsTests(unittest.TestCase):
             errors: list[str] = []
 
             check_seedqr_vector(name, errors)
+
+            self.assertEqual(errors, [], name)
+
+    def test_nip19_nsec_vectors_are_discovered_from_directory(self) -> None:
+        names = nip19_nsec_vector_names()
+
+        self.assertEqual(names, vector_names_from_dir("vectors/nip19"))
+        self.assertIn("nsec-test-key-1", names)
+
+    def test_nip19_nsec_vectors_validate_private_key_payloads(self) -> None:
+        for name in nip19_nsec_vector_names():
+            errors: list[str] = []
+
+            check_nip19_nsec_vector(name, errors)
 
             self.assertEqual(errors, [], name)
 
