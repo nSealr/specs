@@ -11,6 +11,7 @@ from scripts.verify_specs import (
     check_review_detail_page_vector,
     check_review_transcript_vector,
     check_seedqr_vector,
+    check_session_import_review_vector,
     check_static_qr_vector,
     check_nip46_bridge_decisions,
     check_nip19_nsec_vector,
@@ -32,6 +33,7 @@ from scripts.verify_specs import (
     seedqr_vector_names,
     review_vector_names,
     smartcard_apdu_vector_names,
+    session_import_review_vector_names,
     display_safe_text,
     feature_matrix_vector_names,
 )
@@ -201,6 +203,37 @@ class VerifySpecsTests(unittest.TestCase):
             check_nip19_nsec_vector(name, errors)
 
             self.assertEqual(errors, [], name)
+
+    def test_session_import_review_vectors_are_discovered_from_directory(self) -> None:
+        names = session_import_review_vector_names()
+
+        self.assertEqual(names, vector_names_from_dir("vectors/session-import-reviews"))
+        self.assertIn("seedqr-vector-1", names)
+        self.assertIn("nsec-test-key-1", names)
+
+    def test_session_import_review_vectors_validate_secret_hidden_pages(self) -> None:
+        for name in session_import_review_vector_names():
+            errors: list[str] = []
+
+            check_session_import_review_vector(name, errors)
+
+            self.assertEqual(errors, [], name)
+
+    def test_session_import_review_vectors_reject_secret_leakage(self) -> None:
+        vector = deepcopy(load_json("vectors/session-import-reviews/seedqr-vector-1.json"))
+        vector["pages"][0]["lines"].append("attack")
+        errors: list[str] = []
+
+        with patch("scripts.verify_specs.load_required_json") as load_mock:
+            def load_mutation(path: str, errors_arg: list[str]) -> dict:
+                if path == "vectors/session-import-reviews/mutated-seed-leak.json":
+                    return vector
+                return load_json(path)
+
+            load_mock.side_effect = load_mutation
+            check_session_import_review_vector("mutated-seed-leak", errors)
+
+        self.assertIn("must not expose mnemonic word 'attack'", "\n".join(errors))
 
     def test_implementation_limits_are_named_and_conservative(self) -> None:
         limits = implementation_limits()

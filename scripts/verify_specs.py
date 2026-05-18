@@ -824,6 +824,10 @@ def nip19_nsec_vector_names() -> list[str]:
     return sorted(path.stem for path in (ROOT / "vectors" / "nip19").glob("*.json"))
 
 
+def session_import_review_vector_names() -> list[str]:
+    return sorted(path.stem for path in (ROOT / "vectors" / "session-import-reviews").glob("*.json"))
+
+
 def smartcard_apdu_vector_names() -> list[str]:
     return sorted(path.stem for path in (ROOT / "vectors" / "smartcard").glob("*.json"))
 
@@ -2827,6 +2831,198 @@ def check_nip19_nsec_vector(rel: str, errors: list[str]) -> None:
                 errors.append(f"{vector_path}: compatibility_scope must mention {required}")
 
 
+def session_key_source_kind_label(source_type: str) -> str:
+    if source_type == "bip39_seed":
+        return "BIP-39 seed"
+    if source_type == "nsec":
+        return "NIP-19 nsec"
+    return "Unknown"
+
+
+def session_key_source_fingerprint_for_vector(vector_path: str, source_type: str, source: dict, errors: list[str]) -> str | None:
+    kind_label = session_key_source_kind_label(source_type)
+    material = bytearray(f"nsealr.session-key-source.v0\n{kind_label}\n".encode("utf-8"))
+    if source_type == "bip39_seed":
+        indexes = source.get("standard_word_indexes")
+        if not isinstance(indexes, list) or not all(type(index) is int for index in indexes):
+            errors.append(f"{vector_path}: source SeedQR standard_word_indexes must be integer array")
+            return None
+        material.extend(f"{len(indexes)}\n".encode("utf-8"))
+        for index in indexes:
+            if index < 0 or index > 2047:
+                errors.append(f"{vector_path}: source SeedQR word index out of range")
+                return None
+            material.extend(index.to_bytes(2, "big"))
+        return sha256_hex(bytes(material))[:16]
+    if source_type == "nsec":
+        secret_key = source.get("secret_key")
+        if not isinstance(secret_key, str) or not HEX32_RE.fullmatch(secret_key):
+            errors.append(f"{vector_path}: source nsec secret_key must be 32-byte lowercase hex")
+            return None
+        material.extend(bytes.fromhex(secret_key))
+        return sha256_hex(bytes(material))[:16]
+    errors.append(f"{vector_path}: source_type is unknown")
+    return None
+
+
+def session_import_approval_digest(source_type: str, label: str, fingerprint: str) -> str:
+    kind_label = session_key_source_kind_label(source_type)
+    material = f"nsealr.session-import-review.v0\n{kind_label}\n{label}\n{fingerprint}".encode("utf-8")
+    return sha256_hex(material)
+
+
+def expected_session_import_review_pages(
+    source_type: str,
+    label: str,
+    fingerprint: str,
+    word_count: int | None,
+) -> list[dict]:
+    lines = [
+        f"Type: {session_key_source_kind_label(source_type)}",
+        f"Label: {label}",
+        f"Fingerprint: {fingerprint}",
+    ]
+    if source_type == "bip39_seed":
+        lines.append(f"Words: {word_count}")
+    lines.append("Secret: hidden")
+    return [
+        {
+            "title": "Import source",
+            "lines": lines,
+            "action": "next",
+            "page_indicator": "Page 1/2",
+            "logical_page_id": "session-import-summary",
+        },
+        {
+            "title": "Import?",
+            "lines": [
+                "Session RAM only",
+                "No signing enabled",
+                "Approve to load",
+            ],
+            "action": "approve_or_reject",
+            "page_indicator": "Page 2/2",
+            "logical_page_id": "session-import-decision",
+        },
+    ]
+
+
+def check_session_import_review_vector(rel: str, errors: list[str]) -> None:
+    vector_path = f"vectors/session-import-reviews/{rel}.json"
+    vector = load_required_json(vector_path, errors)
+    if vector is None:
+        return
+    if not isinstance(vector, dict):
+        errors.append(f"{vector_path}: session import review vector must be an object")
+        return
+    unknown_fields = sorted(
+        set(vector)
+        - {
+            "format",
+            "name",
+            "source_type",
+            "source_vector",
+            "label",
+            "word_count",
+            "fingerprint",
+            "review_id",
+            "approval_digest",
+            "pages",
+            "security_scope",
+        }
+    )
+    if unknown_fields:
+        errors.append(f"{vector_path}: unknown fields {unknown_fields}")
+    if vector.get("format") != "nsealr-session-import-review-v0":
+        errors.append(f"{vector_path}: format mismatch")
+    if vector.get("name") != rel:
+        errors.append(f"{vector_path}: name mismatch")
+    source_type = vector.get("source_type")
+    if source_type not in {"bip39_seed", "nsec"}:
+        errors.append(f"{vector_path}: source_type must be bip39_seed or nsec")
+        return
+    label = vector.get("label")
+    if not isinstance(label, str) or not label:
+        errors.append(f"{vector_path}: label must be a non-empty string")
+        return
+    source_vector = vector.get("source_vector")
+    if not isinstance(source_vector, str):
+        errors.append(f"{vector_path}: source_vector must be a string")
+        return
+    expected_prefix = "vectors/seedqr/" if source_type == "bip39_seed" else "vectors/nip19/"
+    if not source_vector.startswith(expected_prefix):
+        errors.append(f"{vector_path}: source_vector must point under {expected_prefix}")
+        return
+    source = load_required_json(source_vector, errors)
+    if source is None:
+        return
+
+    fingerprint = vector.get("fingerprint")
+    if not isinstance(fingerprint, str) or not HEX8_RE.fullmatch(fingerprint):
+        errors.append(f"{vector_path}: fingerprint must be 8-byte lowercase hex")
+        fingerprint = None
+    expected_fingerprint = session_key_source_fingerprint_for_vector(vector_path, source_type, source, errors)
+    if fingerprint is not None and expected_fingerprint is not None and fingerprint != expected_fingerprint:
+        errors.append(f"{vector_path}: fingerprint mismatch")
+
+    if fingerprint is not None:
+        if vector.get("review_id") != f"session-import-{fingerprint}":
+            errors.append(f"{vector_path}: review_id mismatch")
+        expected_digest = session_import_approval_digest(source_type, label, fingerprint)
+        if vector.get("approval_digest") != expected_digest:
+            errors.append(f"{vector_path}: approval_digest mismatch")
+    if not isinstance(vector.get("approval_digest"), str) or not HEX32_RE.fullmatch(vector["approval_digest"]):
+        errors.append(f"{vector_path}: approval_digest must be 32-byte lowercase hex")
+
+    word_count = None
+    if source_type == "bip39_seed":
+        source_indexes = source.get("standard_word_indexes")
+        expected_word_count = len(source_indexes) if isinstance(source_indexes, list) else None
+        word_count = vector.get("word_count")
+        if word_count != expected_word_count:
+            errors.append(f"{vector_path}: word_count must match source standard_word_indexes length")
+    elif "word_count" in vector:
+        errors.append(f"{vector_path}: word_count is only valid for bip39_seed")
+
+    pages = vector.get("pages")
+    if not isinstance(pages, list) or len(pages) != 2:
+        errors.append(f"{vector_path}: pages must contain exactly two pages")
+    elif fingerprint is not None:
+        expected_pages = expected_session_import_review_pages(source_type, label, fingerprint, word_count)
+        if pages != expected_pages:
+            errors.append(f"{vector_path}: pages mismatch")
+    if isinstance(pages, list):
+        for page_index, page in enumerate(pages):
+            if not isinstance(page, dict):
+                errors.append(f"{vector_path}: pages[{page_index}] must be an object")
+                continue
+            if not isinstance(page.get("lines"), list) or not all(isinstance(line, str) for line in page["lines"]):
+                errors.append(f"{vector_path}: pages[{page_index}].lines must be an array of strings")
+    serialized_pages = json.dumps(pages, ensure_ascii=False, separators=(",", ":"))
+    if "Secret: hidden" not in serialized_pages:
+        errors.append(f"{vector_path}: pages must explicitly state Secret: hidden")
+    if source_type == "bip39_seed":
+        mnemonic = source.get("mnemonic")
+        if isinstance(mnemonic, str):
+            for word in mnemonic.split():
+                if word and word in serialized_pages:
+                    errors.append(f"{vector_path}: pages must not expose mnemonic word {word!r}")
+    if source_type == "nsec":
+        for secret_field in ("nsec", "secret_key"):
+            secret_value = source.get(secret_field)
+            if isinstance(secret_value, str) and secret_value in serialized_pages:
+                errors.append(f"{vector_path}: pages must not expose source {secret_field}")
+
+    scope = vector.get("security_scope")
+    if not isinstance(scope, str) or not scope:
+        errors.append(f"{vector_path}: security_scope must be a non-empty string")
+    else:
+        scope_lower = scope.lower()
+        for required in ("secret-hidden", "ram-only", "does not persist", "does not approve signing"):
+            if required not in scope_lower:
+                errors.append(f"{vector_path}: security_scope must mention {required}")
+
+
 def check_feature_matrix_feature_shape(
     path: str,
     feature_id: str,
@@ -3347,6 +3543,9 @@ def main() -> int:
 
     for rel in nip19_nsec_vector_names():
         check_nip19_nsec_vector(rel, errors)
+
+    for rel in session_import_review_vector_names():
+        check_session_import_review_vector(rel, errors)
 
     for rel in account_descriptor_vector_names():
         check_account_descriptor_vector(rel, errors)

@@ -25,6 +25,12 @@ signer implementation.
   into RAM-only QR vault sessions. These vectors are migration/recovery
   fixtures only; they do not define persistent key slots, policy records,
   mnemonics, or NIP-49 encrypted backups.
+- Publish deterministic session import review vectors for RAM-only QR vault
+  source loading. These vectors bind SeedQR/BIP-39 and NIP-19 `nsec` source
+  material to a secret-hidden local review, source fingerprint, `review_id`,
+  and import approval digest before a source is loaded into session RAM. They
+  do not expose mnemonic words or raw private keys, do not persist material,
+  do not derive NIP-06 keys, and do not approve signing.
 - Publish deterministic trusted-review vectors for event details that hardware
   displays must render before approval.
 - Publish deterministic trusted review-screen vectors and approval digests that

@@ -27,6 +27,13 @@ fixtures.
   RAM-only QR vault sessions. The verifier checks lowercase Bech32 checksum,
   `nsec` prefix, 32-byte payload, x-only public key derivation, and scope text
   that excludes persistent policy/key-slot semantics.
+- Session import review vectors preserve deterministic, secret-hidden local
+  review for RAM-only SeedQR/BIP-39 and NIP-19 `nsec` QR vault session
+  sources. The verifier checks source-vector binding, source fingerprint,
+  `review_id`, import `approval_digest`, two-page review shape, `Secret:
+  hidden` wording, and absence of mnemonic words, `nsec`, or raw private-key
+  bytes. These vectors do not derive NIP-06 keys, persist source material, or
+  approve signing.
 - NIP-01 event id fixtures match canonical serialization.
 - BIP-340 signatures verify against deterministic test keys.
 - QR envelope roundtrips preserve the request payload exactly,
@@ -103,6 +110,9 @@ fixtures.
   included in conformance verification.
 - NIP-19 `nsec` vector discovery tests ensure every `vectors/nip19/*.json`
   file is included in conformance verification.
+- Session import review discovery tests ensure every
+  `vectors/session-import-reviews/*.json` file is included in conformance
+  verification.
 - NIP-46 policy-file schema tests ensure
   `schemas/nip46-policy-file-v0.schema.json` declares the required envelope
   fields.
@@ -179,6 +189,10 @@ and CompactSeedQR entropy bytes stay bound to the same BIP-39 word indexes.
 It also checks NIP-19 `nsec` vectors so direct private-key import stays
 lowercase Bech32/checksum validated and scoped to RAM-only migration/recovery
 sessions.
+It also checks session import review vectors so parsed QR vault key sources get
+the same secret-hidden review pages, source fingerprints, `review_id`, and
+import approval digests across Raspberry and ESP32 implementations before any
+local load action.
 It also checks that account, policy, and grant descriptor vectors preserve the
 secretless companion boundary, manual-only QR-vault policy, and scoped
 automation constraints for persistent routes.
@@ -203,8 +217,9 @@ signing or full NIP-46 sessions.
 Those checks are directory-driven: new files under `vectors/invalid/`,
 `vectors/review-detail-pages/`, `vectors/accounts/`, `vectors/policies/`,
 `vectors/grants/`, `vectors/policy-decisions/`, `vectors/route-selections/`,
-`vectors/features/`, `vectors/seedqr/`, `vectors/nip19/`, and the single
-profile under `vectors/limits/` are picked up by tests and
+`vectors/features/`, `vectors/seedqr/`, `vectors/nip19/`,
+`vectors/session-import-reviews/`, and the single profile under
+`vectors/limits/` are picked up by tests and
 `scripts/verify_specs.py` without hardcoding individual vector filenames in the
 verifier.
 
