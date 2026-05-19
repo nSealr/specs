@@ -186,7 +186,8 @@ sessions, or production signing.
 - Add shared invalid vectors for event-template signed fields, unsafe integer
   values, oversized content/tags/messages, malformed or ambiguous responses,
   malformed QR envelopes, malformed serial frames, invalid device request
-  metadata, malformed NIP-46 payloads, and invalid policy files.
+  metadata, malformed NIP-46 payloads, invalid policy files, and malformed
+  NIP-46 connection URIs.
 - Keep these as nSealr implementation safety limits for constrained
   signers, not Nostr protocol limits.
 - Require companion, Raspberry, and ESP32 implementations to consume the

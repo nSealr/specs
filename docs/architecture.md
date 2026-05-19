@@ -150,9 +150,10 @@ signer implementation.
   include signed-event response integer and limit checks so hosts cannot accept
   unsafe timestamps, kinds, oversized content, or tag payloads after a device
   signs. Serial-frame vectors also include unsupported frame types so transport
-  adapters reject them before JSON is treated as a request or response. They
-  live under `vectors/invalid/` and are discovered automatically by the specs
-  verifier.
+  adapters reject them before JSON is treated as a request or response.
+  NIP-46 connection URI rejection vectors pin malformed token parsing without
+  starting relay sessions or echoing secrets. They live under
+  `vectors/invalid/` and are discovered automatically by the specs verifier.
 - Keep schemas and examples usable by independent implementations.
 
 ## Non-Responsibilities

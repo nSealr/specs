@@ -2728,6 +2728,10 @@ def check_invalid_nip46_payload(vector_path: str, vector: dict, errors: list[str
     expected_nip46_permission_requirement(vector_path, message, errors)
 
 
+def check_invalid_nip46_connection_uri(vector_path: str, vector: dict, errors: list[str]) -> None:
+    expected_nip46_connection_uri_descriptor(vector_path, vector.get("uri"), errors)
+
+
 def check_invalid_vector(rel: str, errors: list[str]) -> None:
     vector_path = f"vectors/invalid/{rel}.json"
     vector = load_required_json(vector_path, errors)
@@ -2754,6 +2758,8 @@ def check_invalid_vector(rel: str, errors: list[str]) -> None:
         check_response_shape(Path(vector_path), vector.get("response"), rejection_errors)
     elif category == "nip46":
         check_invalid_nip46_payload(vector_path, vector, rejection_errors)
+    elif category == "nip46-connection-uri":
+        check_invalid_nip46_connection_uri(vector_path, vector, rejection_errors)
     elif category == "nip46-policy-file":
         policy = vector.get("policy_file")
         if not isinstance(policy, dict):
