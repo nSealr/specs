@@ -71,7 +71,8 @@ companion implementation must agree on:
   the five signer families, plus an external NIP-46 adapter route.
 - Route-selection vectors that bind each shared account descriptor plus a
   requested method to a secretless selected signer route without dispatching
-  signer I/O.
+  signer I/O. NIP-06 account descriptors also bind to the same reviewed source
+  fingerprint used by RAM-only import review.
 - Access-surface vectors for stable companion-facing adapters that are not
   signer families. The current vector pins a NIP-07 browser provider over the
   local companion service: authorized route selection returns the selected

@@ -103,10 +103,12 @@ conformance vectors that require a separate device-reviewed policy-change
 proposal before they can be active policy.
 
 Status note, 2026-05-19: NIP-06 account descriptors now require their
-`recovery.source_vector` to exist and to match the descriptor public key. The
-ESP32 QR account descriptor was aligned with the same canonical NIP-06 account
-0 vector used by the Raspberry QR vault, preserving route separation while
-removing a stale missing-source reference.
+`recovery.source_vector` to exist, match the descriptor public key, and expose
+a `recovery.source_fingerprint` matching the same RAM-only import-review
+fingerprint used by QR vault session-source review. The ESP32 QR account
+descriptor was aligned with the same canonical NIP-06 account 0 vector used by
+the Raspberry QR vault, preserving route separation while removing a stale
+missing-source reference.
 
 Status note, 2026-05-19: policy-change review vectors now pin the pre-storage
 policy mutation boundary. A secretless companion/browser/SDK proposal may
@@ -200,15 +202,15 @@ Status note, 2026-05-19: ESP32 host-core now also normalizes decoded session
 source QR inputs into the same RAM-only `SessionKeySource` boundary. This
 covers canonical NIP-19 `nsec` text, plain BIP-39 English mnemonic QR text,
 SeedSigner Standard SeedQR digit streams, and CompactSeedQR entropy bytes.
-Physical camera capture, NIP-06 derivation, source/public-key proof,
+Physical camera capture, NIP-06 derivation, public-key derivation proof,
 persistence, response QR display hardware, and real signing remain pending.
 
 Status note, 2026-05-19: ESP32 host-core now validates secretless QR
-session-account metadata against the RAM-only session keyring and can pass the
-selected public key into QR review flow identity. This updates the Feature
-Conformance v0 notes for `approval_digest_binding` and
-`stateless_session_custody` without adding a new feature or claiming NIP-06
-derivation, persistence, or signing.
+session-account metadata against the RAM-only session keyring, including the
+reviewed source fingerprint, and can pass the selected public key into QR
+review flow identity. This updates the Feature Conformance v0 notes for
+`approval_digest_binding` and `stateless_session_custody` without adding a new
+feature or claiming NIP-06 derivation, persistence, or signing.
 
 Status note, 2026-05-11: the feature conformance matrix is now a shared
 contract. It records required, optional, planned, forbidden, and not-applicable

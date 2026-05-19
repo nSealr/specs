@@ -1152,6 +1152,12 @@ def check_account_descriptor_shape(path: str, value: object, errors: list[str]) 
             source = load_json(source_vector)
             if source.get("public_key") != value.get("public_key"):
                 errors.append(f"{path}: NIP-06 recovery source_vector public_key mismatch")
+            expected_fingerprint = session_key_source_fingerprint_for_vector(path, "bip39_seed", source, errors)
+            source_fingerprint = recovery.get("source_fingerprint")
+            if not isinstance(source_fingerprint, str) or not HEX8_RE.fullmatch(source_fingerprint):
+                errors.append(f"{path}: NIP-06 recovery source_fingerprint must be 8-byte lowercase hex")
+            elif expected_fingerprint is not None and source_fingerprint != expected_fingerprint:
+                errors.append(f"{path}: NIP-06 recovery source_fingerprint mismatch")
     elif recovery_type == "device_slot":
         if not isinstance(recovery.get("slot_id"), str) or not recovery["slot_id"]:
             errors.append(f"{path}: device_slot recovery requires slot_id")
@@ -3626,9 +3632,10 @@ def check_session_import_review_vector(rel: str, errors: list[str]) -> None:
     if not isinstance(source_vector, str):
         errors.append(f"{vector_path}: source_vector must be a string")
         return
-    expected_prefix = "vectors/seedqr/" if source_type == "bip39_seed" else "vectors/nip19/"
-    if not source_vector.startswith(expected_prefix):
-        errors.append(f"{vector_path}: source_vector must point under {expected_prefix}")
+    expected_prefixes = ("vectors/seedqr/", "vectors/keys/") if source_type == "bip39_seed" else ("vectors/nip19/",)
+    if not source_vector.startswith(expected_prefixes):
+        expected = " or ".join(expected_prefixes)
+        errors.append(f"{vector_path}: source_vector must point under {expected}")
         return
     source = load_required_json(source_vector, errors)
     if source is None:

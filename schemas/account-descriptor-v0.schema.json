@@ -81,12 +81,13 @@
       "oneOf": [
         {
           "type": "object",
-          "required": ["type", "path", "account", "source_vector"],
+          "required": ["type", "path", "account", "source_vector", "source_fingerprint"],
           "properties": {
             "type": { "const": "nip06" },
             "path": { "type": "string", "pattern": "^m/44'/1237'/" },
             "account": { "type": "integer", "minimum": 0 },
-            "source_vector": { "type": "string", "minLength": 1 }
+            "source_vector": { "type": "string", "minLength": 1 },
+            "source_fingerprint": { "type": "string", "pattern": "^[0-9a-f]{16}$" }
           },
           "additionalProperties": false
         },

@@ -581,6 +581,19 @@ class VerifySpecsTests(unittest.TestCase):
 
         self.assertIn("NIP-06 recovery source_vector is missing", "\n".join(errors))
 
+    def test_account_descriptors_reject_nip06_source_fingerprint_mismatch(self) -> None:
+        account = deepcopy(load_json("vectors/accounts/esp32-qr-nip06-account-0.json"))
+        account["recovery"]["source_fingerprint"] = "0000000000000000"
+        errors: list[str] = []
+
+        verify_specs.check_account_descriptor_shape(
+            "vectors/accounts/mutated-source-fingerprint.json",
+            account,
+            errors,
+        )
+
+        self.assertIn("NIP-06 recovery source_fingerprint mismatch", "\n".join(errors))
+
     def test_policy_profiles_reject_automation_for_qr_vault_routes(self) -> None:
         policy = deepcopy(load_json("vectors/policies/manual-only-qr-vault.json"))
         policy["mode"] = "scoped_automation"
