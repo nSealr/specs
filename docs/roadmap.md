@@ -111,8 +111,9 @@ Status note, 2026-05-19: local session-source generation is now a shared
 feature contract for stateless QR vault targets. Raspberry owns the first
 package-level boundary for generated 12- or 24-word BIP-39 sources and
 standalone `nsec`-equivalent private-key sources in RAM with deterministic
-entropy injection for tests. ESP32 QR vault generation, local backup/export UI,
-hardware review acceptance, and lifecycle-loss evidence remain pending.
+entropy injection for tests. ESP32 host-core now has the matching generation
+boundary for explicit entropy inputs. Hardware RNG wiring, local backup/export
+UI, hardware review acceptance, and lifecycle-loss evidence remain pending.
 
 Status note, 2026-05-18: ESP32 stateless session custody is now partial rather
 than merely planned. The host-core owns a bounded RAM-only session keyring model
