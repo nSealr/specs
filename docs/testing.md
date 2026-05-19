@@ -141,7 +141,8 @@ fixtures.
 - Feature-matrix semantic tests reject shared feature contract drift, unknown
   signer families, unknown features, missing notes, inactive features that
   still claim a contract, and Raspberry/ESP32 stateless QR vault target drift,
-  including SeedQR/CompactSeedQR and NIP-19 `nsec` session import parity.
+  including SeedQR/CompactSeedQR import, NIP-19 `nsec` import, and local
+  RAM-only source-generation parity.
 - Implementation-limit tests ensure the v0 limit profile is named, documented,
   and consumed by invalid-vector verification.
 - Invalid-vector discovery tests ensure every malicious request, response, QR

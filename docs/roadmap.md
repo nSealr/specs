@@ -34,7 +34,7 @@
 - Feature conformance matrix for the five first-class signer families,
   including stateless QR vault parity between Raspberry and ESP32 for review,
   approval, transport, response verification, and RAM-only SeedQR/NIP-19
-  `nsec` session import.
+  `nsec` session import plus local RAM-only source generation.
 - nSealr v0 implementation limit profile for constrained signer safety.
 - Malicious/rejection vectors for unsafe signing requests, unsafe responses, QR
   envelopes, serial frames, invalid device request metadata, NIP-46 payloads,
@@ -106,6 +106,13 @@ Raspberry consumes the vector in an end-to-end RAM-only QR vault flow; ESP32
 now consumes it in host-core as a partial QR-vault key-source parser, and the
 bounded session keyring can hold parsed `nsec` material. Camera input, import
 review screens, response QR output, and real signing remain pending.
+
+Status note, 2026-05-19: local session-source generation is now a shared
+feature contract for stateless QR vault targets. Raspberry owns the first
+package-level boundary for generated 12- or 24-word BIP-39 sources and
+standalone `nsec`-equivalent private-key sources in RAM with deterministic
+entropy injection for tests. ESP32 QR vault generation, local backup/export UI,
+hardware review acceptance, and lifecycle-loss evidence remain pending.
 
 Status note, 2026-05-18: ESP32 stateless session custody is now partial rather
 than merely planned. The host-core owns a bounded RAM-only session keyring model

@@ -36,6 +36,11 @@ companion implementation must agree on:
   approval digest for SeedQR/BIP-39 and NIP-19 `nsec` inputs without exposing
   mnemonic words, raw private keys, persistence, derivation, or signing
   approval.
+- Feature contract for local RAM-only session-source generation on stateless QR
+  vaults. The v0 contract covers generated BIP-39 mnemonic sources and
+  standalone NIP-19 `nsec`-equivalent private-key sources; it does not define
+  persistent key slots, automated policy, or the final visible backup/export
+  ceremony.
 - Trusted event review vectors for display-oriented signer flows.
 - Trusted review-screen vectors with request-bound `approval_digest` values for
   display-oriented signer approval flows.

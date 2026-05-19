@@ -31,6 +31,11 @@ signer implementation.
   and import approval digest before a source is loaded into session RAM. They
   do not expose mnemonic words or raw private keys, do not persist material,
   do not derive NIP-06 keys, and do not approve signing.
+- Publish the shared feature contract for local RAM-only QR-vault source
+  generation. The target behavior covers generated BIP-39 mnemonic sources and
+  standalone NIP-19 `nsec`-equivalent private-key sources, but implementations
+  must still add a local visible backup/export ceremony before treating
+  generated material as usable user custody.
 - Publish deterministic trusted-review vectors for event details that hardware
   displays must render before approval.
 - Publish deterministic trusted review-screen vectors and approval digests that
@@ -111,8 +116,8 @@ signer implementation.
   implementation status and requires the same `contract_id` wherever a feature
   is active on more than one solution. It also keeps Raspberry and ESP32
   stateless QR vault targets in parity, including SeedQR/CompactSeedQR and
-  NIP-19 `nsec` RAM-only session import, while allowing their current hardware
-  readiness to differ.
+  NIP-19 `nsec` RAM-only session import plus local RAM-only source generation,
+  while allowing their current hardware readiness to differ.
 - Publish access-surface contracts when browser extension, local companion
   service, npm SDK, or full NIP-46 relay behavior becomes shared conformance
   behavior. Access surfaces are not signer families; they are adapters above
