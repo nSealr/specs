@@ -123,6 +123,10 @@ fixtures.
 - Session import review discovery tests ensure every
   `vectors/session-import-reviews/*.json` file is included in conformance
   verification.
+- Session-source backup review discovery tests ensure every
+  `vectors/session-source-backups/*.json` file is included in conformance
+  verification, that review pages are secret-hidden danger-zone pages, and
+  that backup payloads match their source vectors exactly.
 - NIP-46 policy-file schema tests ensure
   `schemas/nip46-policy-file-v0.schema.json` declares the required envelope
   fields.
@@ -261,7 +265,7 @@ Those checks are directory-driven: new files under `vectors/invalid/`,
 `vectors/grants/`, `vectors/policy-changes/`, `vectors/policy-decisions/`,
 `vectors/route-selections/`, `vectors/access-surfaces/`, `vectors/features/`,
 `vectors/nip46-connection-uris/`, `vectors/seedqr/`, `vectors/nip19/`,
-`vectors/session-import-reviews/`, and the single profile under
+`vectors/session-import-reviews/`, `vectors/session-source-backups/`, and the single profile under
 `vectors/limits/` are picked up by tests and
 `scripts/verify_specs.py` without hardcoding individual vector filenames in the
 verifier.

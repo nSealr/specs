@@ -155,8 +155,12 @@ feature contract for stateless QR vault targets. Raspberry owns the first
 package-level boundary for generated 12- or 24-word BIP-39 sources and
 standalone `nsec`-equivalent private-key sources in RAM with deterministic
 entropy injection for tests. ESP32 host-core now has the matching generation
-boundary for explicit entropy inputs. Hardware RNG wiring, local backup/export
-UI, hardware review acceptance, and lifecycle-loss evidence remain pending.
+boundary for explicit entropy inputs. The shared specs now also include
+danger-zone backup review vectors for BIP-39 words/SeedQR and NIP-19 `nsec`
+payload reveal, so implementations can test explicit physical approval before
+generated material is shown for recovery. Hardware RNG wiring, physical backup
+display/output acceptance, hardware review acceptance, and lifecycle-loss
+evidence remain pending.
 
 Status note, 2026-05-19: ESP32 host-core now consumes the shared signed
 response QR envelope vector in the encode direction. It can turn already

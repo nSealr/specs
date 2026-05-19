@@ -14,6 +14,7 @@ from scripts.verify_specs import (
     check_review_transcript_vector,
     check_seedqr_vector,
     check_session_import_review_vector,
+    check_session_source_backup_vector,
     check_static_qr_vector,
     check_nip46_bridge_decisions,
     check_nip19_nsec_vector,
@@ -40,6 +41,7 @@ from scripts.verify_specs import (
     review_vector_names,
     smartcard_apdu_vector_names,
     session_import_review_vector_names,
+    session_source_backup_vector_names,
     access_surface_vector_names,
     display_safe_text,
     device_security_profile_vector_names,
@@ -249,6 +251,37 @@ class VerifySpecsTests(unittest.TestCase):
             check_session_import_review_vector("mutated-seed-leak", errors)
 
         self.assertIn("must not expose mnemonic word 'attack'", "\n".join(errors))
+
+    def test_session_source_backup_vectors_are_discovered_from_directory(self) -> None:
+        names = session_source_backup_vector_names()
+
+        self.assertEqual(names, vector_names_from_dir("vectors/session-source-backups"))
+        self.assertIn("seedqr-vector-1-backup", names)
+        self.assertIn("nsec-test-key-1-backup", names)
+
+    def test_session_source_backup_vectors_validate_danger_zone_reviews(self) -> None:
+        for name in session_source_backup_vector_names():
+            errors: list[str] = []
+
+            check_session_source_backup_vector(name, errors)
+
+            self.assertEqual(errors, [], name)
+
+    def test_session_source_backup_vectors_reject_review_secret_leakage(self) -> None:
+        vector = deepcopy(load_json("vectors/session-source-backups/nsec-test-key-1-backup.json"))
+        vector["pages"][0]["lines"].append(vector["backup_payload"]["nsec"])
+        errors: list[str] = []
+
+        with patch("scripts.verify_specs.load_required_json") as load_mock:
+            def load_mutation(path: str, errors_arg: list[str]) -> dict:
+                if path == "vectors/session-source-backups/mutated-backup-leak.json":
+                    return vector
+                return load_json(path)
+
+            load_mock.side_effect = load_mutation
+            check_session_source_backup_vector("mutated-backup-leak", errors)
+
+        self.assertIn("review pages must not expose source nsec", "\n".join(errors))
 
     def test_implementation_limits_are_named_and_conservative(self) -> None:
         limits = implementation_limits()

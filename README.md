@@ -39,8 +39,11 @@ companion implementation must agree on:
 - Feature contract for local RAM-only session-source generation on stateless QR
   vaults. The v0 contract covers generated BIP-39 mnemonic sources and
   standalone NIP-19 `nsec`-equivalent private-key sources; it does not define
-  persistent key slots, automated policy, or the final visible backup/export
-  ceremony.
+  persistent key slots or automated policy.
+- Danger-zone session-source backup review vectors for generated or imported
+  RAM-only QR vault sources. The review pages are secret-hidden and require
+  explicit physical approval before a BIP-39 words/SeedQR or NIP-19 `nsec`
+  backup payload can be revealed for user recovery.
 - Trusted event review vectors for display-oriented signer flows.
 - Trusted review-screen vectors with request-bound `approval_digest` values for
   display-oriented signer approval flows.
@@ -99,6 +102,7 @@ companion implementation must agree on:
 - Transport, device, review, review-screen, review-display-frame,
   review-detail-page, review-transcript, NIP-46, NIP-46 policy-file, NIP-46
   connection URI, SeedQR, NIP-19 `nsec`, session-import-review,
+  session-source-backup,
   account-descriptor, policy-profile, grant-descriptor, policy-change review,
   policy-decision,
   route-selection, access-surface, feature-matrix, invalid-vector,

@@ -38,9 +38,13 @@ signer implementation.
   do not derive NIP-06 keys, and do not approve signing.
 - Publish the shared feature contract for local RAM-only QR-vault source
   generation. The target behavior covers generated BIP-39 mnemonic sources and
-  standalone NIP-19 `nsec`-equivalent private-key sources, but implementations
-  must still add a local visible backup/export ceremony before treating
-  generated material as usable user custody.
+  standalone NIP-19 `nsec`-equivalent private-key sources.
+- Publish deterministic danger-zone backup review vectors for RAM-only QR-vault
+  sources. These vectors bind the same source fingerprint to a secret-hidden
+  warning review and approval digest before BIP-39 words/SeedQR or NIP-19
+  `nsec` payloads may be revealed for user recovery. They are not normal
+  signing review, do not persist material, and do not authorize host-side
+  secret export.
 - Publish deterministic trusted-review vectors for event details that hardware
   displays must render before approval.
 - Publish deterministic trusted review-screen vectors and approval digests that
