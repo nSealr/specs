@@ -200,8 +200,15 @@ Status note, 2026-05-19: ESP32 host-core now also normalizes decoded session
 source QR inputs into the same RAM-only `SessionKeySource` boundary. This
 covers canonical NIP-19 `nsec` text, plain BIP-39 English mnemonic QR text,
 SeedSigner Standard SeedQR digit streams, and CompactSeedQR entropy bytes.
-Physical camera capture, NIP-06 derivation, account selection, persistence,
-response QR display hardware, and real signing remain pending.
+Physical camera capture, NIP-06 derivation, source/public-key proof,
+persistence, response QR display hardware, and real signing remain pending.
+
+Status note, 2026-05-19: ESP32 host-core now validates secretless QR
+session-account metadata against the RAM-only session keyring and can pass the
+selected public key into QR review flow identity. This updates the Feature
+Conformance v0 notes for `approval_digest_binding` and
+`stateless_session_custody` without adding a new feature or claiming NIP-06
+derivation, persistence, or signing.
 
 Status note, 2026-05-11: the feature conformance matrix is now a shared
 contract. It records required, optional, planned, forbidden, and not-applicable
