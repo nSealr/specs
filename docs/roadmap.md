@@ -79,6 +79,12 @@ ESP32/custom persistent devices keep policy authority at the device
 authorization boundary. The current scoped-automation fixtures remain minimal
 conformance vectors, not the final policy UX.
 
+Status note, 2026-05-19: Raspberry's package-owned session keyring now keeps
+mutable internal copies of imported QR-vault sources and wipes those slots on
+`clear()` and destruction as best-effort Python process hygiene. This does not
+claim interpreter-wide secure memory erasure; real Pi power-cycle/session-loss
+evidence remains a hardware acceptance blocker.
+
 Status note, 2026-05-13: SeedSigner Standard SeedQR and CompactSeedQR import
 is now a shared vector contract rather than a Raspberry-only product note. QR
 vault implementations must decode the same BIP-39 session seed material for
