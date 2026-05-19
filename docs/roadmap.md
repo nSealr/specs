@@ -115,6 +115,12 @@ entropy injection for tests. ESP32 host-core now has the matching generation
 boundary for explicit entropy inputs. Hardware RNG wiring, local backup/export
 UI, hardware review acceptance, and lifecycle-loss evidence remain pending.
 
+Status note, 2026-05-19: ESP32 host-core now consumes the shared signed
+response QR envelope vector in the encode direction. It can turn already
+produced response JSON into static `nsealr1:` and animated `nsealr1a:` output,
+but real signing, display hardware, scan-back, and hardware acceptance remain
+pending.
+
 Status note, 2026-05-18: ESP32 stateless session custody is now partial rather
 than merely planned. The host-core owns a bounded RAM-only session keyring model
 for already parsed `nsec` and BIP-39 sources, but camera/import UX, device
