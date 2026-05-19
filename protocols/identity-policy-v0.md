@@ -102,8 +102,9 @@ Allowed route types are:
 
 Account descriptors must not contain `secret_key`, `private_key`, `nsec`,
 `mnemonic`, `seed`, `passphrase`, or `nip49_ciphertext` fields. Recovery data
-may identify a NIP-06 path, device slot, card slot, or external signer, but it
-must not embed the recoverable secret.
+may identify a NIP-06 path, ESP32/device slot, display-less smartcard slot,
+custom hardware-wallet slot, or external signer, but it must not embed the
+recoverable secret.
 
 Account descriptors identify public routing state for a resulting signing
 identity. They are not key-source backup files and are not a substitute for a
@@ -121,10 +122,15 @@ They must not reference TROPIC01 or any persistent key-at-rest mechanism.
 ## Policy Profile
 
 `nsealr-policy-profile-v0` describes the policy mode for one or more route
-types. `manual_only` means every signing operation needs explicit review and
-approval. `scoped_automation` is only allowed for persistent/daily-use signer
-routes after expiry, rate-limit, revocation, audit-log, and device-policy
-confirmation constraints are present.
+types. `manual_only` means every signing operation needs route-specific
+explicit approval: local review and physical approval on trusted-display
+devices, or explicit external review acknowledgement for display-less custody.
+`scoped_automation` is only allowed for route families that have an explicit
+policy authority, expiry, rate-limit, revocation, audit-log, and
+device-policy confirmation constraints. In v0 this means ESP32 USB/NIP-46 and
+custom hardware-wallet routes, plus external NIP-46 interoperability where the
+external signer owns the policy. It does not apply to stateless QR vaults or
+display-less smartcards.
 
 Policy profiles are internal nSealr records. They are not Nostr events, are
 not accepted from relays as authority, and are not updated by the companion
@@ -142,7 +148,8 @@ future route should expose many policy knobs. Default product behavior remains
 manual review unless a later specs revision promotes a small, reviewed policy
 profile set.
 
-QR vault policies must remain `manual_only` with `grants_allowed: false`.
+QR vault policies and display-less smartcard policies must remain
+`manual_only` with `grants_allowed: false`.
 
 Policy profiles must forbid wildcard grants and secret export. Decrypt,
 unknown, relay-switching, delete, and other high-risk methods remain manual

@@ -120,8 +120,8 @@ fixtures.
   ensure every file under `vectors/accounts/`, `vectors/policies/`, and
   `vectors/grants/` is included in conformance verification.
 - Identity/policy semantic tests reject embedded secret fields, QR-vault
-  automation, wildcard grants, and grant targets that point at stateless QR
-  vault routes.
+  automation, display-less smartcard automation, wildcard grants, route/policy
+  mismatches, and grant targets that point at stateless QR vault routes.
 - Identity/policy schema tests ensure account descriptors, policy profiles, and
   grant descriptors expose the expected required contract surface without
   adding secret-key fields.
@@ -194,8 +194,9 @@ the same secret-hidden review pages, source fingerprints, `review_id`, and
 import approval digests across Raspberry and ESP32 implementations before any
 local load action.
 It also checks that account, policy, and grant descriptor vectors preserve the
-secretless companion boundary, manual-only QR-vault policy, and scoped
-automation constraints for persistent routes.
+secretless companion boundary, manual-only QR-vault and display-less
+smartcard policies, route/policy membership, and scoped automation constraints
+for ESP32 USB/NIP-46 and custom hardware-wallet routes.
 It also checks that policy-decision transcript vectors match the deterministic
 pure policy evaluator and emit the expected `nsealr-grant-audit-event-v0`
 records for allowed, denied, and manual-review decisions.

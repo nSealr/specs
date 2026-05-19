@@ -59,9 +59,11 @@ companion implementation must agree on:
   by companion decision harnesses.
 - JSON schema for the read-only NIP-46 policy-file format.
 - Identity, recovery, policy, grant descriptor, and policy-decision transcript
-  vectors for secretless companion routing across the five signer families.
-- Route-selection vectors that bind an account descriptor plus requested
-  method to a secretless selected signer route without dispatching signer I/O.
+  vectors for secretless companion routing across the five signer families,
+  plus an external NIP-46 adapter route.
+- Route-selection vectors that bind each shared account descriptor plus a
+  requested method to a secretless selected signer route without dispatching
+  signer I/O.
 - Account/custody product model for QR vault session keyrings, persistent
   device vaults, per-public-key policy authority, and SeedSigner-compatible
   SeedQR import vectors without turning policy records into Nostr events.

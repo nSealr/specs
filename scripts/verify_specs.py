@@ -971,6 +971,56 @@ def check_account_descriptor_shape(path: str, value: object, errors: list[str]) 
             errors.append(f"{path}: stateless QR vault routes must use manual_only policy support")
         if capabilities.get("persistent_grants") is not False:
             errors.append(f"{path}: stateless QR vault routes must not support persistent grants")
+    elif route_type == "esp32_usb_nip46":
+        if route.get("transport") != "usb":
+            errors.append(f"{path}: ESP32 USB/NIP-46 routes must use usb transport")
+        if route.get("custody") != "device_persistent":
+            errors.append(f"{path}: ESP32 USB/NIP-46 routes must use device_persistent custody")
+        if route.get("trusted_review") != "device_display":
+            errors.append(f"{path}: ESP32 USB/NIP-46 routes must use device_display review")
+        if route.get("policy_support") != "scoped_automation":
+            errors.append(f"{path}: ESP32 USB/NIP-46 routes must use scoped_automation policy support")
+        if capabilities.get("physical_review") is not True or capabilities.get("physical_approval") is not True:
+            errors.append(f"{path}: ESP32 USB/NIP-46 routes require physical review and approval")
+        if capabilities.get("persistent_grants") is not True:
+            errors.append(f"{path}: ESP32 USB/NIP-46 routes require persistent grant support")
+    elif route_type == "smartcard":
+        if route.get("transport") != "smartcard":
+            errors.append(f"{path}: smartcard routes must use smartcard transport")
+        if route.get("custody") != "card_persistent":
+            errors.append(f"{path}: smartcard routes must use card_persistent custody")
+        if route.get("trusted_review") != "display_less":
+            errors.append(f"{path}: smartcard routes must remain display_less")
+        if route.get("policy_support") != "manual_only":
+            errors.append(f"{path}: display-less smartcard routes must use manual_only policy support")
+        if capabilities.get("physical_review") is not False or capabilities.get("physical_approval") is not False:
+            errors.append(f"{path}: display-less smartcard routes must not claim physical review or approval")
+        if capabilities.get("persistent_grants") is not False:
+            errors.append(f"{path}: display-less smartcard routes must not support persistent grants")
+    elif route_type == "custom_hardware_wallet":
+        if route.get("transport") != "usb":
+            errors.append(f"{path}: custom hardware-wallet routes must use usb transport in v0")
+        if route.get("custody") != "custom_hardware_persistent":
+            errors.append(f"{path}: custom hardware-wallet routes must use custom_hardware_persistent custody")
+        if route.get("trusted_review") != "device_display":
+            errors.append(f"{path}: custom hardware-wallet routes must use device_display review")
+        if route.get("policy_support") != "scoped_automation":
+            errors.append(f"{path}: custom hardware-wallet routes must use scoped_automation policy support")
+        if capabilities.get("physical_review") is not True or capabilities.get("physical_approval") is not True:
+            errors.append(f"{path}: custom hardware-wallet routes require physical review and approval")
+        if capabilities.get("persistent_grants") is not True:
+            errors.append(f"{path}: custom hardware-wallet routes require persistent grant support")
+    elif route_type == "external_nip46":
+        if route.get("transport") != "nip46_relay":
+            errors.append(f"{path}: external NIP-46 routes must use nip46_relay transport")
+        if route.get("custody") != "external_signer":
+            errors.append(f"{path}: external NIP-46 routes must use external_signer custody")
+        if route.get("trusted_review") != "external_policy":
+            errors.append(f"{path}: external NIP-46 routes must use external_policy review")
+        if route.get("policy_support") != "external":
+            errors.append(f"{path}: external NIP-46 routes must use external policy support")
+        if capabilities.get("physical_review") is not False or capabilities.get("physical_approval") is not False:
+            errors.append(f"{path}: external NIP-46 routes must not claim nSealr physical review or approval")
 
     recovery = value.get("recovery")
     if not isinstance(recovery, dict):
@@ -994,6 +1044,20 @@ def check_account_descriptor_shape(path: str, value: object, errors: list[str]) 
             errors.append(f"{path}: device_slot recovery requires slot_id")
         if not isinstance(recovery.get("backup_required"), bool):
             errors.append(f"{path}: device_slot recovery requires backup_required boolean")
+    elif recovery_type == "card_slot":
+        if not isinstance(recovery.get("card_id"), str) or not recovery["card_id"]:
+            errors.append(f"{path}: card_slot recovery requires card_id")
+        if not isinstance(recovery.get("slot_id"), str) or not recovery["slot_id"]:
+            errors.append(f"{path}: card_slot recovery requires slot_id")
+        if not isinstance(recovery.get("backup_required"), bool):
+            errors.append(f"{path}: card_slot recovery requires backup_required boolean")
+    elif recovery_type == "hardware_wallet_slot":
+        if not isinstance(recovery.get("device_id"), str) or not recovery["device_id"]:
+            errors.append(f"{path}: hardware_wallet_slot recovery requires device_id")
+        if not isinstance(recovery.get("slot_id"), str) or not recovery["slot_id"]:
+            errors.append(f"{path}: hardware_wallet_slot recovery requires slot_id")
+        if not isinstance(recovery.get("backup_required"), bool):
+            errors.append(f"{path}: hardware_wallet_slot recovery requires backup_required boolean")
     elif recovery_type == "external_signer":
         if not isinstance(recovery.get("external_signer_id"), str) or not recovery["external_signer_id"]:
             errors.append(f"{path}: external_signer recovery requires external_signer_id")
@@ -1005,6 +1069,10 @@ def check_account_descriptor_shape(path: str, value: object, errors: list[str]) 
         errors.append(f"{path}: policy_profile_id must reference a policy-* profile")
     elif not (ROOT / "vectors" / "policies" / f"{policy_profile_id.removeprefix('policy-')}.json").exists():
         errors.append(f"{path}: policy_profile_id target is missing")
+    else:
+        policy = load_json(f"vectors/policies/{policy_profile_id.removeprefix('policy-')}.json")
+        if isinstance(route_type, str) and route_type not in policy.get("route_types", []):
+            errors.append(f"{path}: policy_profile_id does not include signer route type {route_type}")
 
 
 def check_policy_profile_shape(path: str, value: object, errors: list[str]) -> None:
@@ -1044,6 +1112,8 @@ def check_policy_profile_shape(path: str, value: object, errors: list[str]) -> N
         errors.append(f"{path}: risk_tiers must be an object")
     if set(route_types) & QR_ROUTE_TYPES and (mode != "manual_only" or value.get("grants_allowed") is not False):
         errors.append(f"{path}: QR vault routes must remain manual_only with grants_allowed false")
+    if "smartcard" in route_types and (mode != "manual_only" or value.get("grants_allowed") is not False):
+        errors.append(f"{path}: display-less smartcard routes must remain manual_only with grants_allowed false")
     if mode == "manual_only" and value.get("grants_allowed") is True:
         errors.append(f"{path}: manual_only profiles must not allow grants")
     if value.get("grants_allowed") is True:

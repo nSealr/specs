@@ -60,8 +60,10 @@ an acknowledgement, grant, relay session, or NIP-44 state.
 Status note, 2026-05-11: account descriptors, policy profiles, and grant
 descriptors now exist as shared vectors and schemas. They keep companion
 account metadata secretless, keep Raspberry and ESP32 stateless QR vaults
-manual-only, and require scoped grants to carry expiry, rate-limit, revocation,
-audit, and device-policy-confirmation constraints.
+manual-only, keep display-less smartcard routes manual-only with external
+review acknowledgement, and require scoped grants to carry expiry, rate-limit,
+revocation, audit, and device-policy-confirmation constraints for ESP32
+USB/NIP-46 and custom hardware-wallet routes.
 
 Status note, 2026-05-11: policy-decision transcript vectors now pin the
 pre-storage automation boundary for persistent routes: valid grants may allow a

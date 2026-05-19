@@ -402,7 +402,11 @@ class VerifySpecsTests(unittest.TestCase):
             vector_names_from_dir("vectors/grants"),
         )
         self.assertIn("raspberry-qr-nip06-account-0", verify_specs.account_descriptor_vector_names())
+        self.assertIn("esp32-qr-nip06-account-0", verify_specs.account_descriptor_vector_names())
+        self.assertIn("smartcard-slot-0", verify_specs.account_descriptor_vector_names())
+        self.assertIn("custom-hardware-wallet-slot-0", verify_specs.account_descriptor_vector_names())
         self.assertIn("manual-only-qr-vault", verify_specs.policy_profile_vector_names())
+        self.assertIn("manual-only-displayless-smartcard", verify_specs.policy_profile_vector_names())
         self.assertIn("esp32-usb-kind-1-session", verify_specs.grant_descriptor_vector_names())
 
     def test_identity_policy_contract_vectors_validate(self) -> None:
@@ -513,6 +517,53 @@ class VerifySpecsTests(unittest.TestCase):
         )
 
         self.assertIn("QR vault routes must remain manual_only with grants_allowed false", "\n".join(errors))
+
+    def test_policy_profiles_reject_automation_for_display_less_smartcard_routes(self) -> None:
+        policy = deepcopy(load_json("vectors/policies/manual-only-displayless-smartcard.json"))
+        policy["mode"] = "scoped_automation"
+        policy["grants_allowed"] = True
+        errors: list[str] = []
+
+        verify_specs.check_policy_profile_shape(
+            "vectors/policies/mutated-smartcard-automation.json",
+            policy,
+            errors,
+        )
+
+        self.assertIn("display-less smartcard routes must remain manual_only", "\n".join(errors))
+
+    def test_account_descriptors_reject_display_less_smartcard_trusted_review_claims(self) -> None:
+        account = deepcopy(load_json("vectors/accounts/smartcard-slot-0.json"))
+        account["signer_route"]["trusted_review"] = "device_display"
+        account["signer_route"]["policy_support"] = "scoped_automation"
+        account["capabilities"]["physical_review"] = True
+        account["capabilities"]["persistent_grants"] = True
+        errors: list[str] = []
+
+        verify_specs.check_account_descriptor_shape(
+            "vectors/accounts/mutated-smartcard-trusted-review.json",
+            account,
+            errors,
+        )
+
+        joined = "\n".join(errors)
+        self.assertIn("smartcard routes must remain display_less", joined)
+        self.assertIn("display-less smartcard routes must use manual_only policy support", joined)
+        self.assertIn("display-less smartcard routes must not claim physical review or approval", joined)
+        self.assertIn("display-less smartcard routes must not support persistent grants", joined)
+
+    def test_account_descriptors_reject_policy_route_mismatch(self) -> None:
+        account = deepcopy(load_json("vectors/accounts/smartcard-slot-0.json"))
+        account["policy_profile_id"] = "policy-scoped-automation-daily-use"
+        errors: list[str] = []
+
+        verify_specs.check_account_descriptor_shape(
+            "vectors/accounts/mutated-smartcard-policy-route.json",
+            account,
+            errors,
+        )
+
+        self.assertIn("policy_profile_id does not include signer route type smartcard", "\n".join(errors))
 
     def test_grant_descriptors_reject_wildcard_or_qr_automation(self) -> None:
         grant = deepcopy(load_json("vectors/grants/esp32-usb-kind-1-session.json"))

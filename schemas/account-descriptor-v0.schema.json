@@ -56,7 +56,7 @@
       },
       "additionalProperties": false
     },
-    "recovery": { "type": "object" },
+    "recovery": { "$ref": "#/$defs/recovery" },
     "capabilities": {
       "type": "object",
       "required": ["methods", "physical_review", "physical_approval", "persistent_grants"],
@@ -75,6 +75,64 @@
       "additionalProperties": false
     },
     "policy_profile_id": { "type": "string", "pattern": "^policy-[A-Za-z0-9._:-]+$" }
+  },
+  "$defs": {
+    "recovery": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["type", "path", "account", "source_vector"],
+          "properties": {
+            "type": { "const": "nip06" },
+            "path": { "type": "string", "pattern": "^m/44'/1237'/" },
+            "account": { "type": "integer", "minimum": 0 },
+            "source_vector": { "type": "string", "minLength": 1 }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["type", "slot_id", "backup_required"],
+          "properties": {
+            "type": { "const": "device_slot" },
+            "slot_id": { "type": "string", "minLength": 1 },
+            "backup_required": { "type": "boolean" }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["type", "card_id", "slot_id", "backup_required"],
+          "properties": {
+            "type": { "const": "card_slot" },
+            "card_id": { "type": "string", "minLength": 1 },
+            "slot_id": { "type": "string", "minLength": 1 },
+            "backup_required": { "type": "boolean" }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["type", "device_id", "slot_id", "backup_required"],
+          "properties": {
+            "type": { "const": "hardware_wallet_slot" },
+            "device_id": { "type": "string", "minLength": 1 },
+            "slot_id": { "type": "string", "minLength": 1 },
+            "backup_required": { "type": "boolean" }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["type", "external_signer_id"],
+          "properties": {
+            "type": { "const": "external_signer" },
+            "external_signer_id": { "type": "string", "minLength": 1 }
+          },
+          "additionalProperties": false
+        }
+      ]
+    }
   },
   "additionalProperties": false
 }
