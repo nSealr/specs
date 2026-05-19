@@ -9,6 +9,7 @@ import re
 import base64
 import binascii
 from pathlib import Path
+from urllib.parse import urlparse
 
 import secp256k1
 
@@ -50,6 +51,15 @@ ROUTE_CUSTODY_MODES = {
     "card_persistent",
     "custom_hardware_persistent",
     "external_signer",
+}
+ACCESS_SURFACES = {"browser_provider_nip07"}
+ACCESS_SURFACE_TRANSPORTS = {"local_service"}
+LOCAL_CLIENT_SURFACES = {"browser_extension", "desktop_app", "cli", "sdk", "native_host_test"}
+LOCAL_SERVICE_PAIRABLE_OPERATIONS = {
+    "select_account_route",
+    "validate_signer_request",
+    "dispatch_signer_request",
+    "verify_signer_response",
 }
 ROUTE_REVIEW_MODES = {"device_display", "external_review", "external_policy", "display_less"}
 POLICY_SUPPORT_MODES = {"manual_only", "scoped_automation", "external"}
@@ -858,6 +868,10 @@ def route_selection_vector_names() -> list[str]:
     return sorted(path.stem for path in (ROOT / "vectors" / "route-selections").glob("*.json"))
 
 
+def access_surface_vector_names() -> list[str]:
+    return sorted(path.stem for path in (ROOT / "vectors" / "access-surfaces").glob("*.json"))
+
+
 def feature_matrix_vector_names() -> list[str]:
     return sorted(path.stem for path in (ROOT / "vectors" / "features").glob("*.json"))
 
@@ -889,6 +903,86 @@ def check_no_secret_fields(path: str, value: object, errors: list[str]) -> None:
 def check_string_id(path: str, field: str, value: object, errors: list[str]) -> None:
     if not isinstance(value, str) or not re.fullmatch(r"[A-Za-z0-9._:-]{1,128}", value):
         errors.append(f"{path}: {field} must be a stable string id")
+
+
+def client_id_for_identity(client: dict) -> str:
+    payload = {
+        "surface": client.get("surface"),
+        "origin": client.get("origin"),
+        "app_name": client.get("app_name", ""),
+        "instance_id": client.get("instance_id", ""),
+    }
+    return sha256_hex(compact_json(payload).encode("utf-8"))
+
+
+def is_supported_local_client_origin(origin: str) -> bool:
+    if origin.startswith(("extension:", "app:", "cli:", "sdk:")):
+        return True
+    parsed = urlparse(origin)
+    if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+        return False
+    if f"{parsed.scheme}://{parsed.netloc}" != origin:
+        return False
+    if parsed.scheme == "https":
+        return True
+    return parsed.hostname in {"localhost", "127.0.0.1"}
+
+
+def check_local_client_identity(path: str, value: object, errors: list[str]) -> dict | None:
+    if not isinstance(value, dict):
+        errors.append(f"{path}: client must be an object")
+        return None
+    unknown = sorted(set(value) - {"surface", "origin", "app_name", "instance_id"})
+    if unknown:
+        errors.append(f"{path}: client contains unknown fields {unknown}")
+    if value.get("surface") not in LOCAL_CLIENT_SURFACES:
+        errors.append(f"{path}: client.surface is unsupported")
+    origin = value.get("origin")
+    if not isinstance(origin, str) or not origin or len(origin) > 256:
+        errors.append(f"{path}: client.origin is invalid")
+    elif not is_supported_local_client_origin(origin):
+        errors.append(f"{path}: client.origin scheme is unsupported")
+    if "app_name" in value and (not isinstance(value["app_name"], str) or len(value["app_name"]) > 80):
+        errors.append(f"{path}: client.app_name is invalid")
+    if "instance_id" in value and (
+        not isinstance(value["instance_id"], str)
+        or not re.fullmatch(r"[A-Za-z0-9._:@+-]{1,128}", value["instance_id"])
+    ):
+        errors.append(f"{path}: client.instance_id is invalid")
+    return value
+
+
+def check_local_client_grant(path: str, grant: object, client: dict, errors: list[str]) -> None:
+    if not isinstance(grant, dict):
+        errors.append(f"{path}: client_grant must be an object")
+        return
+    unknown = sorted(set(grant) - {"client_id", "origin", "surface", "allowed_operations", "pairing_digest", "approved_at", "revoked", "expires_at"})
+    if unknown:
+        errors.append(f"{path}: client_grant contains unknown fields {unknown}")
+    if grant.get("client_id") != client_id_for_identity(client):
+        errors.append(f"{path}: client_grant client_id mismatch")
+    if grant.get("origin") != client.get("origin"):
+        errors.append(f"{path}: client_grant origin mismatch")
+    if grant.get("surface") != client.get("surface"):
+        errors.append(f"{path}: client_grant surface mismatch")
+    operations = grant.get("allowed_operations")
+    if not isinstance(operations, list) or not all(isinstance(operation, str) for operation in operations):
+        errors.append(f"{path}: client_grant.allowed_operations must be a string list")
+    else:
+        unknown_operations = sorted(set(operations) - LOCAL_SERVICE_PAIRABLE_OPERATIONS)
+        if unknown_operations:
+            errors.append(f"{path}: client_grant has unsupported operations {unknown_operations}")
+        if len(set(operations)) != len(operations):
+            errors.append(f"{path}: client_grant allowed_operations contains duplicates")
+    approved_at = grant.get("approved_at")
+    expires_at = grant.get("expires_at")
+    if type(approved_at) is not int or approved_at < 0:
+        errors.append(f"{path}: client_grant.approved_at must be a non-negative integer")
+    if expires_at is not None:
+        if type(expires_at) is not int or expires_at <= 0:
+            errors.append(f"{path}: client_grant.expires_at must be a positive integer")
+        elif type(approved_at) is int and expires_at <= approved_at:
+            errors.append(f"{path}: client_grant.expires_at must be greater than approved_at")
 
 
 def check_permission_shape(path: str, permission: object, errors: list[str], *, grant_permission: bool = False) -> None:
@@ -1508,6 +1602,99 @@ def check_route_selection_vector(rel: str, errors: list[str]) -> None:
     expected = expected_route_selection(vector_path, vector, errors)
     if expected is not None and vector.get("selection") != expected:
         errors.append(f"{vector_path}: selection mismatch")
+
+
+def check_access_surface_safety(path: str, value: object, errors: list[str]) -> None:
+    if not isinstance(value, dict):
+        errors.append(f"{path}: safety must be an object")
+        return
+    expected = {
+        "stores_production_secrets": False,
+        "contains_secret_material": False,
+        "creates_grants": False,
+        "dispatches_without_signer": False,
+        "requires_shared_request_validation": True,
+        "requires_signed_response_verification": True,
+    }
+    if value != expected:
+        errors.append(f"{path}: safety boundary mismatch")
+
+
+def check_access_surface_vector(rel: str, errors: list[str]) -> None:
+    vector_path = f"vectors/access-surfaces/{rel}.json"
+    vector = load_required_json(vector_path, errors)
+    if vector is None:
+        return
+    if not isinstance(vector, dict):
+        errors.append(f"{vector_path}: access-surface vector must be an object")
+        return
+    check_no_secret_fields(vector_path, vector, errors)
+    if vector.get("name") != rel:
+        errors.append(f"{vector_path}: name mismatch")
+    if vector.get("format") != "nsealr-access-surface-vector-v0":
+        errors.append(f"{vector_path}: format mismatch")
+    if vector.get("surface") not in ACCESS_SURFACES:
+        errors.append(f"{vector_path}: surface is unsupported")
+    if vector.get("transport") not in ACCESS_SURFACE_TRANSPORTS:
+        errors.append(f"{vector_path}: transport is unsupported")
+
+    client = check_local_client_identity(vector_path, vector.get("client"), errors)
+    if client is not None:
+        check_local_client_grant(vector_path, vector.get("client_grant"), client, errors)
+
+    route_name = vector.get("route_selection_vector")
+    if not isinstance(route_name, str):
+        errors.append(f"{vector_path}: route_selection_vector must be a string")
+        route = None
+    else:
+        route = load_required_json(f"vectors/route-selections/{route_name}.json", errors)
+        check_route_selection_vector(route_name, errors)
+
+    request_rel = vector.get("sign_event_request_vector")
+    if not isinstance(request_rel, str) or not request_rel.startswith("examples/"):
+        errors.append(f"{vector_path}: sign_event_request_vector must point under examples/")
+        request = None
+    else:
+        request = load_required_json(request_rel, errors)
+        if request is not None:
+            check_request_shape(Path(request_rel), request, errors)
+            if request.get("method") != "sign_event":
+                errors.append(f"{vector_path}: sign_event_request_vector must reference sign_event")
+
+    expected = vector.get("expected")
+    if not isinstance(expected, dict):
+        errors.append(f"{vector_path}: expected must be an object")
+        expected = {}
+
+    get_public_key = expected.get("get_public_key")
+    if not isinstance(get_public_key, dict):
+        errors.append(f"{vector_path}: expected.get_public_key must be an object")
+    elif route is not None and get_public_key.get("public_key") != route.get("selection", {}).get("public_key"):
+        errors.append(f"{vector_path}: expected get_public_key public_key mismatch")
+
+    unavailable = expected.get("sign_event_without_dispatcher")
+    if not isinstance(unavailable, dict):
+        errors.append(f"{vector_path}: expected.sign_event_without_dispatcher must be an object")
+    else:
+        response = unavailable.get("response")
+        if isinstance(response, dict):
+            check_response_shape(Path(vector_path), response, errors)
+            if request is not None and response.get("request_id") != request.get("request_id"):
+                errors.append(f"{vector_path}: unavailable response request_id mismatch")
+            if response.get("ok") is not False:
+                errors.append(f"{vector_path}: unavailable response must be an error response")
+            error = response.get("error", {})
+            if error.get("code") != "signer_route_unavailable":
+                errors.append(f"{vector_path}: unavailable response error code mismatch")
+            if error.get("retryable") is not False:
+                errors.append(f"{vector_path}: unavailable response must be non-retryable")
+        else:
+            errors.append(f"{vector_path}: unavailable response must be an object")
+
+    check_access_surface_safety(vector_path, vector.get("safety"), errors)
+    scope = vector.get("scope")
+    if not isinstance(scope, str) or "not a signer family" not in scope or "secretless" not in scope:
+        errors.append(f"{vector_path}: scope must state secretless access-surface boundary")
 
 
 def check_review_screen_vector(rel: str, errors: list[str]) -> None:
@@ -3735,6 +3922,9 @@ def main() -> int:
 
     for rel in route_selection_vector_names():
         check_route_selection_vector(rel, errors)
+
+    for rel in access_surface_vector_names():
+        check_access_surface_vector(rel, errors)
 
     for rel in feature_matrix_vector_names():
         check_feature_matrix_vector(rel, errors)

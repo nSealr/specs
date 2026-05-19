@@ -140,6 +140,13 @@ fixtures.
 - Route-selection semantic tests pin secretless account-to-route selection for
   supported methods before any persistent grant store, signer transport
   session, or browser/native host dispatch exists.
+- Access-surface vector discovery tests ensure every file under
+  `vectors/access-surfaces/` is included in conformance verification.
+- Access-surface semantic tests pin secretless browser/local-service behavior:
+  the selected route public key is returned through authorized route selection,
+  `signEvent` without a configured signer dispatcher becomes a deterministic
+  non-retryable protocol error, and the browser surface cannot contain secret
+  fields or claim browser-side production key custody.
 - Feature-matrix discovery tests ensure every file under `vectors/features/`
   is included in conformance verification.
 - Feature-matrix semantic tests reject shared feature contract drift, unknown
@@ -211,6 +218,9 @@ records for allowed, denied, and manual-review decisions.
 It also checks that route-selection vectors match the referenced account
 descriptor and supported method, producing secretless route metadata without
 authorizing signer I/O.
+It also checks that access-surface vectors stay secretless and deterministic,
+including NIP-07 browser provider behavior over local companion service route
+selection and signer-unavailable dispatch.
 It also checks the feature conformance matrix so each active shared feature
 uses the same canonical `contract_id`, every first-class signer family reports
 the same feature set, and Raspberry/ESP32 stateless QR vault targets remain in
@@ -226,8 +236,8 @@ signing or full NIP-46 sessions.
 Those checks are directory-driven: new files under `vectors/invalid/`,
 `vectors/review-detail-pages/`, `vectors/accounts/`, `vectors/policies/`,
 `vectors/grants/`, `vectors/policy-decisions/`, `vectors/route-selections/`,
-`vectors/features/`, `vectors/seedqr/`, `vectors/nip19/`,
-`vectors/session-import-reviews/`, and the single profile under
+`vectors/access-surfaces/`, `vectors/features/`, `vectors/seedqr/`,
+`vectors/nip19/`, `vectors/session-import-reviews/`, and the single profile under
 `vectors/limits/` are picked up by tests and
 `scripts/verify_specs.py` without hardcoding individual vector filenames in the
 verifier.

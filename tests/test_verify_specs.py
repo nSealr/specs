@@ -6,6 +6,7 @@ import unittest
 from unittest.mock import patch
 
 from scripts.verify_specs import (
+    check_access_surface_vector,
     check_smartcard_apdu_vector,
     check_device_security_profile_vector,
     check_feature_matrix_vector,
@@ -35,6 +36,7 @@ from scripts.verify_specs import (
     review_vector_names,
     smartcard_apdu_vector_names,
     session_import_review_vector_names,
+    access_surface_vector_names,
     display_safe_text,
     device_security_profile_vector_names,
     feature_matrix_vector_names,
@@ -464,6 +466,39 @@ class VerifySpecsTests(unittest.TestCase):
             check_feature_matrix_vector(name, errors)
 
             self.assertEqual(errors, [], name)
+
+    def test_access_surface_vectors_are_discovered_from_directory(self) -> None:
+        names = access_surface_vector_names()
+
+        self.assertEqual(names, vector_names_from_dir("vectors/access-surfaces"))
+        self.assertEqual(names, ["browser-provider-local-service-esp32-usb-unavailable"])
+
+    def test_access_surface_vectors_validate_secretless_browser_boundary(self) -> None:
+        for name in access_surface_vector_names():
+            errors: list[str] = []
+
+            check_access_surface_vector(name, errors)
+
+            self.assertEqual(errors, [], name)
+
+    def test_access_surface_vectors_reject_secret_and_safety_drift(self) -> None:
+        vector = deepcopy(load_json("vectors/access-surfaces/browser-provider-local-service-esp32-usb-unavailable.json"))
+        vector["client"]["secret_key"] = "00" * 32
+        vector["safety"]["stores_production_secrets"] = True
+        errors: list[str] = []
+
+        with patch("scripts.verify_specs.load_required_json") as load_mock:
+            def load_mutation(path: str, errors_arg: list[str]) -> dict:
+                if path == "vectors/access-surfaces/mutated-browser-secret.json":
+                    return vector
+                return load_json(path)
+
+            load_mock.side_effect = load_mutation
+            check_access_surface_vector("mutated-browser-secret", errors)
+
+        joined = "\n".join(errors)
+        self.assertIn("must not contain secret field client.secret_key", joined)
+        self.assertIn("safety boundary mismatch", joined)
 
     def test_device_security_profile_vectors_are_discovered_from_directory(self) -> None:
         names = device_security_profile_vector_names()

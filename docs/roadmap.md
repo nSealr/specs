@@ -31,6 +31,9 @@
 - Policy-decision transcript vectors for grant allowance, expired/revoked
   denial, decrypt/manual-review routing, export denial, unknown-method manual
   review, and audit-event output.
+- Access-surface vector for the NIP-07 browser provider over the local
+  companion service, binding authorized route selection, deterministic
+  signer-unavailable behavior, and the secretless browser boundary.
 - Feature conformance matrix for the five first-class signer families,
   including stateless QR vault parity between Raspberry and ESP32 for review,
   approval, transport, response verification, and RAM-only SeedQR/NIP-19
@@ -158,6 +161,14 @@ contract for each shared feature. Raspberry and ESP32 stateless QR vault
 targets are pinned in parity even though current implementation status can
 differ by hardware readiness.
 
+Status note, 2026-05-19: the first access-surface vector is now part of the
+shared contract. It covers `@nsealr/browser-provider` using the local
+companion service for route selection: `getPublicKey` returns the selected
+ESP32 USB route public key, while `signEvent` without an explicit signer
+dispatcher returns a deterministic `signer_route_unavailable` response. This
+does not add a signer family, browser key custody, persistent grants, relay
+sessions, or production signing.
+
 ## M3: Transport Contracts
 
 - Capability discovery draft.
@@ -204,9 +215,8 @@ before decoded JSON is treated as a request, response, or error payload.
 
 ## Later
 
-- Access-surface vectors for local companion service, NIP-07 browser provider,
-  npm SDK client behavior, and full NIP-46 relay sessions once those behaviors
-  become cross-repository contracts. These remain companion access surfaces,
-  not signer families.
+- Additional access-surface vectors for npm SDK client behavior and full
+  NIP-46 relay sessions once those behaviors become cross-repository
+  contracts. These remain companion access surfaces, not signer families.
 - Full encrypted NIP-46 relay/session mapping.
 - Firmware conformance vectors.

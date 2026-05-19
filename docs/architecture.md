@@ -127,7 +127,12 @@ signer implementation.
   service, npm SDK, or full NIP-46 relay behavior becomes shared conformance
   behavior. Access surfaces are not signer families; they are adapters above
   companion and must still use shared request validation, policy contracts,
-  transport semantics, and signed-output verification.
+  transport semantics, and signed-output verification. The first contract pins
+  the NIP-07 browser provider over local service route selection: the browser
+  can obtain the selected public key through an authorized secretless client
+  grant, but `signEvent` without a configured signer dispatcher must return a
+  deterministic non-retryable `signer_route_unavailable` protocol error rather
+  than fabricate a signature or bypass signer I/O.
 - Publish one named v0 implementation limit profile for constrained signers.
   These limits bound request size, static QR envelope size, animated QR decoded
   size, animated QR frame payload size/count, serial frame size, NIP-46 message

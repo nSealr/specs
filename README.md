@@ -69,6 +69,11 @@ companion implementation must agree on:
 - Route-selection vectors that bind each shared account descriptor plus a
   requested method to a secretless selected signer route without dispatching
   signer I/O.
+- Access-surface vectors for stable companion-facing adapters that are not
+  signer families. The current vector pins a NIP-07 browser provider over the
+  local companion service: authorized route selection returns the selected
+  public key, signer dispatch is not attempted without an explicit dispatcher,
+  and the browser surface remains secretless.
 - Account/custody product model for QR vault session keyrings, persistent
   device vaults, per-public-key policy authority, and SeedSigner-compatible
   SeedQR import vectors without turning policy records into Nostr events.
@@ -90,10 +95,10 @@ companion implementation must agree on:
 - Transport, device, review, review-screen, review-display-frame,
   review-detail-page, review-transcript, NIP-46, NIP-46 policy-file, SeedQR,
   NIP-19 `nsec`, session-import-review, account-descriptor, policy-profile,
-  grant-descriptor, policy-decision,
-  route-selection, feature-matrix, invalid-vector, limit-profile, and smartcard
-  vectors shared by implementation repositories, including APDU success and
-  deterministic status-word rejection cases.
+  grant-descriptor, policy-decision, route-selection, access-surface,
+  feature-matrix, invalid-vector, limit-profile, and smartcard vectors shared
+  by implementation repositories, including APDU success and deterministic
+  status-word rejection cases.
 
 ## Initial Layout
 
