@@ -31,9 +31,9 @@
 - NIP-19 `nsec` private-key import vectors for direct RAM-only QR vault
   migration/recovery sessions.
 - Policy-decision transcript vectors for grant allowance, expired/revoked
-  denial, rate-limit denial, rate-window reset allowance,
-  decrypt/manual-review routing, export denial, unknown-method manual review,
-  and audit-event output.
+  denial, rate-limit denial, rate-window reset allowance, route/policy
+  mismatch manual review, decrypt/manual-review routing, export denial,
+  unknown-method manual review, and audit-event output.
 - Access-surface vector for the NIP-07 browser provider over the local
   companion service, binding authorized route selection, deterministic
   signer-unavailable behavior, and the secretless browser boundary.
@@ -82,9 +82,10 @@ USB/NIP-46 and custom hardware-wallet routes.
 Status note, 2026-05-19: policy-decision transcript vectors now pin the
 pre-storage automation boundary for persistent routes: valid grants may allow a
 scoped `sign_event`, expired or revoked grants are denied, active rate-limit
-windows are denied, reset rate-limit windows allow the next request, decrypt
-requests fall back to manual review, secret export is denied, unknown methods
-require manual review, and every decision emits a deterministic
+windows are denied, reset rate-limit windows allow the next request,
+route/policy mismatches fall back to manual review, decrypt requests fall back
+to manual review, secret export is denied, unknown methods require manual
+review, and every decision emits a deterministic
 `nsealr-grant-audit-event-v0` record. The vectors carry explicit per-grant
 usage snapshots but do not add a persistent grant store.
 

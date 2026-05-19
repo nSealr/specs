@@ -114,9 +114,10 @@ signer implementation.
   automation boundaries before any grant store or relay session exists. These
   vectors pin valid grant allowance, expired-grant denial, revoked-grant
   denial, rate-limit denial, rate-window reset allowance,
-  decrypt/manual-review routing, export-secret denial, unknown-method manual
-  review, and `nsealr-grant-audit-event-v0` output without authorizing
-  companion key custody or production policy automation. Policy-decision
+  route/policy mismatch manual review, decrypt/manual-review routing,
+  export-secret denial, unknown-method manual review, and
+  `nsealr-grant-audit-event-v0` output without authorizing companion key
+  custody or production policy automation. Policy-decision
   requests carry explicit per-grant usage snapshots; they do not define a
   storage backend.
 - Publish deterministic route-selection vectors that bind an account descriptor

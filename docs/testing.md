@@ -139,10 +139,10 @@ fixtures.
   `vectors/policy-decisions/` is included in conformance verification.
 - Policy-decision semantic tests pin allow/deny/manual-review outcomes for
   valid grants, expired grants, revoked grants, active rate-limit windows,
-  reset rate-limit windows, decrypt requests, secret export requests, and
-  unknown methods before persistent grant storage or relay sessions are
-  implemented. Policy-decision requests carry explicit per-grant usage
-  snapshots; the shared vectors define decision behavior, not a storage
+  reset rate-limit windows, route/policy mismatches, decrypt requests, secret
+  export requests, and unknown methods before persistent grant storage or relay
+  sessions are implemented. Policy-decision requests carry explicit per-grant
+  usage snapshots; the shared vectors define decision behavior, not a storage
   backend.
 - Route-selection vector discovery tests ensure every file under
   `vectors/route-selections/` is included in conformance verification.

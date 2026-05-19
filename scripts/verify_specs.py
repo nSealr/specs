@@ -75,6 +75,7 @@ POLICY_DECISION_REASONS = {
     "grant_valid",
     "no_matching_grant",
     "policy_manual_only",
+    "policy_route_mismatch",
     "unknown_method_requires_manual_review",
 }
 DECRYPT_METHODS = {"nip04_decrypt", "nip44_decrypt"}
@@ -1393,6 +1394,9 @@ def expected_policy_decision(vector_path: str, vector: dict, errors: list[str]) 
     policy = load_required_json(policy_path, errors)
     if policy is None:
         return None
+    route_types = policy.get("route_types")
+    if isinstance(route_types, list) and request.get("route_type") not in route_types:
+        return policy_decision("manual_review", "policy_route_mismatch", request)
 
     permission = request.get("permission")
     if not isinstance(permission, dict):
