@@ -115,7 +115,8 @@ signer implementation.
   policies attach to final signing public keys and routes, QR vaults use a
   RAM-only session keyring with SeedSigner-compatible SeedQR and NIP-19 `nsec`
   import vectors, reviewed source fingerprints, volatile source wipe on
-  lifecycle clear, and no persistent grants, and persistent-device policy
+  lifecycle clear, source public-key proof vectors, and no persistent grants,
+  and persistent-device policy
   authority lives on the device rather than in the companion. Persistent-device
   account descriptors default to
   `policy-manual-only-persistent-device`; scoped-automation vectors are

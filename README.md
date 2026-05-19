@@ -36,6 +36,10 @@ companion implementation must agree on:
   approval digest for SeedQR/BIP-39 and NIP-19 `nsec` inputs without exposing
   mnemonic words, raw private keys, persistence, derivation, or signing
   approval.
+- Source public-key proof vectors for RAM-only QR vault sources. These vectors
+  pin the expected public key derived from a reviewed NIP-06 BIP-39 source or a
+  NIP-19 `nsec` source, so descriptors and source fingerprints cannot stand in
+  for derivation before signing.
 - Feature contract for local RAM-only session-source generation on stateless QR
   vaults. The v0 contract covers generated BIP-39 mnemonic sources and
   standalone NIP-19 `nsec`-equivalent private-key sources; it does not define

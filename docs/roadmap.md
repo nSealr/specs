@@ -217,6 +217,13 @@ review flow identity. This updates the Feature Conformance v0 notes for
 `approval_digest_binding` and `stateless_session_custody` without adding a new
 feature or claiming NIP-06 derivation, persistence, or signing.
 
+Status note, 2026-05-19: `vectors/source-public-key-proofs/` now defines the
+shared source-to-public-key proof contract for NIP-06 BIP-39 sources and
+NIP-19 `nsec` sources. This supports the `source_public_key_proof` signing gate:
+implementations must derive or otherwise prove the displayed public key from the
+selected RAM-only source before real signing, instead of trusting only account
+descriptors or reviewed source fingerprints.
+
 Status note, 2026-05-11: the feature conformance matrix is now a shared
 contract. It records required, optional, planned, forbidden, and not-applicable
 features per first-class signer family, while requiring one canonical behavior

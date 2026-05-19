@@ -849,6 +849,10 @@ def session_import_review_vector_names() -> list[str]:
     return sorted(path.stem for path in (ROOT / "vectors" / "session-import-reviews").glob("*.json"))
 
 
+def source_public_key_proof_vector_names() -> list[str]:
+    return sorted(path.stem for path in (ROOT / "vectors" / "source-public-key-proofs").glob("*.json"))
+
+
 def session_source_backup_vector_names() -> list[str]:
     return sorted(path.stem for path in (ROOT / "vectors" / "session-source-backups").glob("*.json"))
 
@@ -3771,6 +3775,102 @@ def check_session_import_review_vector(rel: str, errors: list[str]) -> None:
                 errors.append(f"{vector_path}: security_scope must mention {required}")
 
 
+def check_source_public_key_proof_vector(rel: str, errors: list[str]) -> None:
+    vector_path = f"vectors/source-public-key-proofs/{rel}.json"
+    vector = load_required_json(vector_path, errors)
+    if vector is None:
+        return
+    if not isinstance(vector, dict):
+        errors.append(f"{vector_path}: source public-key proof vector must be an object")
+        return
+    unknown_fields = sorted(
+        set(vector)
+        - {
+            "format",
+            "name",
+            "proof_type",
+            "source_type",
+            "source_vector",
+            "source_fingerprint",
+            "account",
+            "path",
+            "passphrase",
+            "expected_public_key",
+            "security_scope",
+        }
+    )
+    if unknown_fields:
+        errors.append(f"{vector_path}: unknown fields {unknown_fields}")
+    if vector.get("format") != "nsealr-source-public-key-proof-v0":
+        errors.append(f"{vector_path}: format mismatch")
+    if vector.get("name") != rel:
+        errors.append(f"{vector_path}: name mismatch")
+
+    proof_type = vector.get("proof_type")
+    source_type = vector.get("source_type")
+    if proof_type == "nip06":
+        if source_type != "bip39_seed":
+            errors.append(f"{vector_path}: NIP-06 proof requires bip39_seed source_type")
+        expected_prefixes = ("vectors/keys/",)
+    elif proof_type == "nip19_nsec":
+        if source_type != "nsec":
+            errors.append(f"{vector_path}: NIP-19 nsec proof requires nsec source_type")
+        expected_prefixes = ("vectors/nip19/",)
+    else:
+        errors.append(f"{vector_path}: proof_type must be nip06 or nip19_nsec")
+        expected_prefixes = ()
+
+    source_vector = vector.get("source_vector")
+    if not isinstance(source_vector, str) or (expected_prefixes and not source_vector.startswith(expected_prefixes)):
+        expected = " or ".join(expected_prefixes) if expected_prefixes else "a supported source vector"
+        errors.append(f"{vector_path}: source_vector must point under {expected}")
+        return
+    source = load_required_json(source_vector, errors)
+    if source is None:
+        return
+
+    expected_public_key = vector.get("expected_public_key")
+    if not isinstance(expected_public_key, str) or not HEX32_RE.fullmatch(expected_public_key):
+        errors.append(f"{vector_path}: expected_public_key must be 32-byte lowercase hex")
+        expected_public_key = None
+    source_fingerprint = vector.get("source_fingerprint")
+    if not isinstance(source_fingerprint, str) or not HEX8_RE.fullmatch(source_fingerprint):
+        errors.append(f"{vector_path}: source_fingerprint must be 8-byte lowercase hex")
+        source_fingerprint = None
+    if source_type in {"bip39_seed", "nsec"}:
+        expected_fingerprint = session_key_source_fingerprint_for_vector(vector_path, source_type, source, errors)
+        if source_fingerprint is not None and expected_fingerprint is not None and source_fingerprint != expected_fingerprint:
+            errors.append(f"{vector_path}: source_fingerprint mismatch")
+
+    if proof_type == "nip06":
+        if vector.get("account") != source.get("account"):
+            errors.append(f"{vector_path}: account must match source account")
+        if vector.get("path") != source.get("path"):
+            errors.append(f"{vector_path}: path must match source path")
+        if vector.get("passphrase") != source.get("passphrase"):
+            errors.append(f"{vector_path}: passphrase must match source passphrase")
+    elif any(field in vector for field in ("account", "path", "passphrase")):
+        errors.append(f"{vector_path}: account/path/passphrase are only valid for NIP-06 proofs")
+
+    if expected_public_key is not None and source.get("public_key") != expected_public_key:
+        errors.append(f"{vector_path}: expected_public_key must match source public_key")
+    secret_key = source.get("secret_key")
+    if isinstance(secret_key, str) and HEX32_RE.fullmatch(secret_key) and expected_public_key is not None:
+        if xonly_pubkey_from_secret(secret_key) != expected_public_key:
+            errors.append(f"{vector_path}: expected_public_key does not match source secret key")
+    else:
+        errors.append(f"{vector_path}: source secret_key must be available for proof verification")
+
+    scope = vector.get("security_scope")
+    if not isinstance(scope, str) or not scope:
+        errors.append(f"{vector_path}: security_scope must be a non-empty string")
+    else:
+        scope_lower = scope.lower()
+        for required in ("proof", "public key", "ram-only", "before signing", "does not persist", "approve signing", "descriptors/fingerprints"):
+            if required not in scope_lower:
+                errors.append(f"{vector_path}: security_scope must mention {required}")
+
+
 def check_session_source_backup_vector(rel: str, errors: list[str]) -> None:
     vector_path = f"vectors/session-source-backups/{rel}.json"
     vector = load_required_json(vector_path, errors)
@@ -4569,6 +4669,9 @@ def main() -> int:
 
     for rel in session_import_review_vector_names():
         check_session_import_review_vector(rel, errors)
+
+    for rel in source_public_key_proof_vector_names():
+        check_source_public_key_proof_vector(rel, errors)
 
     for rel in session_source_backup_vector_names():
         check_session_source_backup_vector(rel, errors)

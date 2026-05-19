@@ -15,6 +15,7 @@ from scripts.verify_specs import (
     check_seedqr_vector,
     check_session_import_review_vector,
     check_session_source_backup_vector,
+    check_source_public_key_proof_vector,
     check_static_qr_vector,
     check_nip46_bridge_decisions,
     check_nip19_nsec_vector,
@@ -42,6 +43,7 @@ from scripts.verify_specs import (
     smartcard_apdu_vector_names,
     session_import_review_vector_names,
     session_source_backup_vector_names,
+    source_public_key_proof_vector_names,
     access_surface_vector_names,
     display_safe_text,
     device_security_profile_vector_names,
@@ -251,6 +253,37 @@ class VerifySpecsTests(unittest.TestCase):
             check_session_import_review_vector("mutated-seed-leak", errors)
 
         self.assertIn("must not expose mnemonic word 'attack'", "\n".join(errors))
+
+    def test_source_public_key_proof_vectors_are_discovered_from_directory(self) -> None:
+        names = source_public_key_proof_vector_names()
+
+        self.assertEqual(names, vector_names_from_dir("vectors/source-public-key-proofs"))
+        self.assertIn("nip06-account-0-leader", names)
+        self.assertIn("nsec-test-key-1", names)
+
+    def test_source_public_key_proof_vectors_validate_source_binding(self) -> None:
+        for name in source_public_key_proof_vector_names():
+            errors: list[str] = []
+
+            check_source_public_key_proof_vector(name, errors)
+
+            self.assertEqual(errors, [], name)
+
+    def test_source_public_key_proof_vectors_reject_descriptor_only_substitution(self) -> None:
+        vector = deepcopy(load_json("vectors/source-public-key-proofs/nip06-account-0-leader.json"))
+        vector["expected_public_key"] = "0" * 64
+        errors: list[str] = []
+
+        with patch("scripts.verify_specs.load_required_json") as load_mock:
+            def load_mutation(path: str, errors_arg: list[str]) -> dict:
+                if path == "vectors/source-public-key-proofs/mutated-public-key.json":
+                    return vector
+                return load_json(path)
+
+            load_mock.side_effect = load_mutation
+            check_source_public_key_proof_vector("mutated-public-key", errors)
+
+        self.assertIn("expected_public_key must match source public_key", "\n".join(errors))
 
     def test_session_source_backup_vectors_are_discovered_from_directory(self) -> None:
         names = session_source_backup_vector_names()
