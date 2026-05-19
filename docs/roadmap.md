@@ -21,6 +21,8 @@
 - NIP-46 bridge decision vectors for permitted signer routing, local `ping`,
   `connect` review, and deterministic permission-denied responses.
 - NIP-46 read-only policy-file vectors for explicit approved permissions.
+- NIP-46 connection URI vectors for descriptor-only `bunker://` and
+  `nostrconnect://` token parsing.
 - NIP-46 read-only policy-file JSON schema.
 - Secretless account-descriptor, policy-profile, and grant-descriptor
   contracts for identity routing, recovery metadata, and scoped automation.
@@ -63,6 +65,10 @@ behavior for long tag reviews.
 The `connect` vector now also pins deterministic review pages that show remote
 signer identity, secret presence, and requested permissions without producing
 an acknowledgement, grant, relay session, or NIP-44 state.
+NIP-46 connection URI vectors now pin descriptor-only parsing of `bunker://`
+and `nostrconnect://` tokens, including relay validation, requested
+permissions, optional client metadata, and proof that parsed descriptors never
+echo shared secret values.
 
 Status note, 2026-05-11: account descriptors, policy profiles, and grant
 descriptors now exist as shared vectors and schemas. They keep companion

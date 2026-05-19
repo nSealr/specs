@@ -17,6 +17,7 @@ from scripts.verify_specs import (
     check_static_qr_vector,
     check_nip46_bridge_decisions,
     check_nip19_nsec_vector,
+    check_nip46_connection_uri_vector,
     check_nip46_policy_file_vector,
     check_policy_decision_vector,
     check_invalid_vector,
@@ -25,6 +26,7 @@ from scripts.verify_specs import (
     invalid_vector_names,
     load_json,
     nip46_policy_file_vector_names,
+    nip46_connection_uri_vector_names,
     nip19_nsec_vector_names,
     nip46_vector_names,
     policy_decision_vector_names,
@@ -180,6 +182,13 @@ class VerifySpecsTests(unittest.TestCase):
         self.assertEqual(names, vector_names_from_dir("vectors/nip46-policy-files"))
         self.assertIn("sign-event-kind-1-approved", names)
 
+    def test_nip46_connection_uri_vectors_are_discovered_from_directory(self) -> None:
+        names = nip46_connection_uri_vector_names()
+
+        self.assertEqual(names, vector_names_from_dir("vectors/nip46-connection-uris"))
+        self.assertIn("bunker-remote-signer-token", names)
+        self.assertIn("nostrconnect-client-token", names)
+
     def test_seedqr_vectors_are_discovered_from_directory(self) -> None:
         names = seedqr_vector_names()
 
@@ -284,6 +293,14 @@ class VerifySpecsTests(unittest.TestCase):
         check_nip46_policy_file_vector("sign-event-kind-1-approved", errors)
 
         self.assertEqual(errors, [])
+
+    def test_nip46_connection_uri_vectors_validate_descriptor_boundaries(self) -> None:
+        for name in nip46_connection_uri_vector_names():
+            errors: list[str] = []
+
+            check_nip46_connection_uri_vector(name, errors)
+
+            self.assertEqual(errors, [], name)
 
     def test_smartcard_apdu_vectors_are_discovered_from_directory(self) -> None:
         names = smartcard_apdu_vector_names()

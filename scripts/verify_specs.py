@@ -9,7 +9,7 @@ import re
 import base64
 import binascii
 from pathlib import Path
-from urllib.parse import urlparse
+from urllib.parse import parse_qsl, urlparse, urlunparse
 
 import secp256k1
 
@@ -826,6 +826,10 @@ def nip46_vector_names() -> list[str]:
 
 def nip46_policy_file_vector_names() -> list[str]:
     return sorted(path.stem for path in (ROOT / "vectors" / "nip46-policy-files").glob("*.json"))
+
+
+def nip46_connection_uri_vector_names() -> list[str]:
+    return sorted(path.stem for path in (ROOT / "vectors" / "nip46-connection-uris").glob("*.json"))
 
 
 def seedqr_vector_names() -> list[str]:
@@ -2347,6 +2351,7 @@ NIP46_PERMISSION_METHODS = {
     "ping",
     "switch_relays",
 }
+NIP46_CONNECTION_URI_PARAMS = {"relay", "secret", "perms", "name", "url", "image"}
 
 
 def parse_nip46_permissions(value: str, vector_path: str, errors: list[str]) -> list[dict]:
@@ -2382,6 +2387,116 @@ def parse_nip46_permissions(value: str, vector_path: str, errors: list[str]) -> 
             continue
         parsed.append({"method": method})
     return parsed
+
+
+def single_query_param(query: dict[str, list[str]], name: str, vector_path: str, errors: list[str]) -> str | None:
+    values = query.get(name, [])
+    if len(values) > 1:
+        errors.append(f"{vector_path}: NIP-46 connection URI {name} must appear at most once")
+        return None
+    return values[0] if values else None
+
+
+def normalized_websocket_relay(value: str, vector_path: str, errors: list[str]) -> str | None:
+    parsed = urlparse(value)
+    if parsed.scheme != "wss" or parsed.username or parsed.password or parsed.fragment:
+        errors.append(f"{vector_path}: NIP-46 connection URI relay must be a wss URL without credentials or fragment")
+        return None
+    if not parsed.hostname:
+        errors.append(f"{vector_path}: NIP-46 connection URI relay host is required")
+        return None
+    path = parsed.path or "/"
+    return urlunparse((parsed.scheme, parsed.netloc, path, "", parsed.query, ""))
+
+
+def normalized_http_url(value: str, name: str, vector_path: str, errors: list[str]) -> str | None:
+    parsed = urlparse(value)
+    if parsed.scheme not in {"http", "https"} or parsed.username or parsed.password:
+        errors.append(f"{vector_path}: NIP-46 connection URI {name} must be an http(s) URL without credentials")
+        return None
+    if not parsed.hostname:
+        errors.append(f"{vector_path}: NIP-46 connection URI {name} host is required")
+        return None
+    path = parsed.path or "/"
+    return urlunparse((parsed.scheme, parsed.netloc, path, "", parsed.query, ""))
+
+
+def expected_nip46_connection_uri_descriptor(vector_path: str, uri: object, errors: list[str]) -> dict | None:
+    if not isinstance(uri, str) or not uri or uri.strip() != uri:
+        errors.append(f"{vector_path}: NIP-46 connection URI must be a non-empty trimmed string")
+        return None
+    parsed = urlparse(uri)
+    if parsed.scheme not in {"bunker", "nostrconnect"}:
+        errors.append(f"{vector_path}: NIP-46 connection URI scheme must be bunker or nostrconnect")
+        return None
+    if parsed.username or parsed.password or parsed.path or parsed.fragment:
+        errors.append(f"{vector_path}: NIP-46 connection URI must not include credentials, path, or fragment")
+        return None
+    if not parsed.hostname or not HEX32_RE.fullmatch(parsed.hostname):
+        errors.append(f"{vector_path}: NIP-46 connection URI pubkey must be 32-byte lowercase hex")
+        return None
+
+    pairs = parse_qsl(parsed.query, keep_blank_values=True)
+    query: dict[str, list[str]] = {}
+    for key, value in pairs:
+        if key not in NIP46_CONNECTION_URI_PARAMS:
+            errors.append(f"{vector_path}: NIP-46 connection URI unsupported query parameter: {key}")
+            continue
+        query.setdefault(key, []).append(value)
+
+    relays = [normalized_websocket_relay(value, vector_path, errors) for value in query.get("relay", [])]
+    if not relays:
+        errors.append(f"{vector_path}: NIP-46 connection URI requires at least one relay")
+    relay_values = [relay for relay in relays if relay is not None]
+    if len(set(relay_values)) != len(relay_values):
+        errors.append(f"{vector_path}: NIP-46 connection URI relays must be unique")
+
+    secret = single_query_param(query, "secret", vector_path, errors)
+    perms = single_query_param(query, "perms", vector_path, errors)
+    name = single_query_param(query, "name", vector_path, errors)
+    client_url = single_query_param(query, "url", vector_path, errors)
+    image = single_query_param(query, "image", vector_path, errors)
+    if errors and any(error.startswith(f"{vector_path}: NIP-46 connection URI") for error in errors):
+        return None
+
+    descriptor = {
+        "format": "nsealr-nip46-connection-uri-v0",
+        "kind": parsed.scheme,
+        "relays": relay_values,
+        "secret_present": secret is not None and secret != "",
+        "requested_permissions": [],
+        "starts_relay_session": False,
+        "creates_grants": False,
+        "stores_production_secrets": False,
+        "exposes_secret": False,
+    }
+
+    if parsed.scheme == "bunker":
+        if perms is not None or name is not None or client_url is not None or image is not None:
+            errors.append(f"{vector_path}: NIP-46 bunker URI must not include client metadata or requested permissions")
+            return None
+        descriptor["remote_signer_pubkey"] = parsed.hostname
+        return descriptor
+
+    if secret is None or secret == "":
+        errors.append(f"{vector_path}: NIP-46 nostrconnect URI requires a secret")
+        return None
+    descriptor["client_pubkey"] = parsed.hostname
+    descriptor["requested_permissions"] = parse_nip46_permissions(perms or "", vector_path, errors)
+    metadata = {}
+    if name is not None:
+        metadata["name"] = name
+    if client_url is not None:
+        normalized_url = normalized_http_url(client_url, "url", vector_path, errors)
+        if normalized_url is not None:
+            metadata["url"] = normalized_url
+    if image is not None:
+        normalized_image = normalized_http_url(image, "image", vector_path, errors)
+        if normalized_image is not None:
+            metadata["image"] = normalized_image
+    if metadata:
+        descriptor["client_metadata"] = metadata
+    return descriptor
 
 
 def decode_unpadded_base64url(payload: object, vector_path: str, label: str, errors: list[str]) -> bytes | None:
@@ -2997,6 +3112,30 @@ def check_nip46_policy_file_vector(rel: str, errors: list[str]) -> None:
         normalized = normalized_nip46_permission(vector_path, permission, errors)
         if normalized is not None and permission != normalized:
             errors.append(f"{vector_path}: approved_permissions[{index}] must be normalized")
+
+
+def check_nip46_connection_uri_vector(rel: str, errors: list[str]) -> None:
+    vector_path = f"vectors/nip46-connection-uris/{rel}.json"
+    vector = load_required_json(vector_path, errors)
+    if vector is None:
+        return
+    if vector.get("name") != rel:
+        errors.append(f"{vector_path}: name mismatch")
+    if vector.get("format") != "nsealr-nip46-connection-uri-v0":
+        errors.append(f"{vector_path}: format mismatch")
+    expected = expected_nip46_connection_uri_descriptor(vector_path, vector.get("uri"), errors)
+    if expected is None:
+        return
+    if vector.get("expected_descriptor") != expected:
+        errors.append(f"{vector_path}: expected_descriptor mismatch")
+    secret_probe = vector.get("secret_probe")
+    if not isinstance(secret_probe, str) or not secret_probe:
+        errors.append(f"{vector_path}: secret_probe must be a non-empty string")
+    elif secret_probe in json.dumps(vector.get("expected_descriptor"), separators=(",", ":")):
+        errors.append(f"{vector_path}: expected_descriptor must not echo secret_probe")
+    scope = vector.get("scope")
+    if not isinstance(scope, str) or "Descriptor-only" not in scope or "must not" not in scope:
+        errors.append(f"{vector_path}: scope must state descriptor-only safety boundary")
 
 
 def compact_seedqr_hex_from_indexes(indexes: list[int], word_count: int) -> str:
@@ -3898,6 +4037,9 @@ def main() -> int:
 
     for rel in nip46_policy_file_vector_names():
         check_nip46_policy_file_vector(rel, errors)
+
+    for rel in nip46_connection_uri_vector_names():
+        check_nip46_connection_uri_vector(rel, errors)
 
     for rel in seedqr_vector_names():
         check_seedqr_vector(rel, errors)

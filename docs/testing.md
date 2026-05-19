@@ -110,6 +110,10 @@ fixtures.
   `vectors/nip46-policy-files/*.json` file is included in conformance
   verification, and each file contains normalized explicit approved
   permissions.
+- NIP-46 connection URI vector discovery tests ensure every
+  `vectors/nip46-connection-uris/*.json` file is included in conformance
+  verification, validates descriptor-only token parsing, and proves expected
+  descriptors do not echo shared secret values.
 - SeedQR vector discovery tests ensure every `vectors/seedqr/*.json` file is
   included in conformance verification.
 - NIP-19 `nsec` vector discovery tests ensure every `vectors/nip19/*.json`
@@ -236,8 +240,9 @@ signing or full NIP-46 sessions.
 Those checks are directory-driven: new files under `vectors/invalid/`,
 `vectors/review-detail-pages/`, `vectors/accounts/`, `vectors/policies/`,
 `vectors/grants/`, `vectors/policy-decisions/`, `vectors/route-selections/`,
-`vectors/access-surfaces/`, `vectors/features/`, `vectors/seedqr/`,
-`vectors/nip19/`, `vectors/session-import-reviews/`, and the single profile under
+`vectors/access-surfaces/`, `vectors/features/`,
+`vectors/nip46-connection-uris/`, `vectors/seedqr/`, `vectors/nip19/`,
+`vectors/session-import-reviews/`, and the single profile under
 `vectors/limits/` are picked up by tests and
 `scripts/verify_specs.py` without hardcoding individual vector filenames in the
 verifier.

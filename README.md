@@ -62,6 +62,9 @@ companion implementation must agree on:
   value or implying `ack`, relay sessions, NIP-44 handling, or stored grants.
 - NIP-46 read-only policy-file vectors for explicit approved permissions used
   by companion decision harnesses.
+- NIP-46 connection URI vectors for descriptor-only `bunker://` and
+  `nostrconnect://` token parsing without relay sessions, grant creation, or
+  secret echo.
 - JSON schema for the read-only NIP-46 policy-file format.
 - Identity, recovery, policy, grant descriptor, and policy-decision transcript
   vectors for secretless companion routing across the five signer families,
@@ -93,10 +96,11 @@ companion implementation must agree on:
 - Review edge-case vectors for unknown kinds, empty content, long content,
   event references, and high tag counts.
 - Transport, device, review, review-screen, review-display-frame,
-  review-detail-page, review-transcript, NIP-46, NIP-46 policy-file, SeedQR,
-  NIP-19 `nsec`, session-import-review, account-descriptor, policy-profile,
-  grant-descriptor, policy-decision, route-selection, access-surface,
-  feature-matrix, invalid-vector, limit-profile, and smartcard vectors shared
+  review-detail-page, review-transcript, NIP-46, NIP-46 policy-file, NIP-46
+  connection URI, SeedQR, NIP-19 `nsec`, session-import-review,
+  account-descriptor, policy-profile, grant-descriptor, policy-decision,
+  route-selection, access-surface, feature-matrix, invalid-vector,
+  limit-profile, and smartcard vectors shared
   by implementation repositories, including APDU success and deterministic
   status-word rejection cases.
 
