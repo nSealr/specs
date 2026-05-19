@@ -100,6 +100,14 @@ mutable internal copies of imported QR-vault sources and wipes those slots on
 claim interpreter-wide secure memory erasure; real Pi power-cycle/session-loss
 evidence remains a hardware acceptance blocker.
 
+Status note, 2026-05-19: Raspberry now also has a package-owned decoded
+session-source QR boundary matching the ESP32 host-core shape. It classifies
+decoded text as canonical NIP-19 `nsec`, SeedSigner Standard SeedQR, or plain
+BIP-39 mnemonic text, handles CompactSeedQR entropy bytes on the byte-input
+path, and composes those sources with the shared secret-hidden import-review
+gate before RAM-only keyring load. Real Pi camera/display/button import UX
+remains pending.
+
 Status note, 2026-05-13: SeedSigner Standard SeedQR and CompactSeedQR import
 is now a shared vector contract rather than a Raspberry-only product note. QR
 vault implementations must decode the same BIP-39 session seed material for
