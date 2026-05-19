@@ -173,7 +173,8 @@ in Feature Conformance v0. `vectors/devices/esp32-s3-security-profile-developmen
 pins the development-only profile boundary: runtime and production signing
 disabled, secure boot and flash encryption off, debug access unlocked for
 bring-up, persistent-secret storage not implemented, production blockers
-present, and only a read-only eFuse audit path available.
+present, source public-key proof still missing, and only a read-only eFuse audit
+path available.
 
 Status note, 2026-05-18: ESP32 stateless session custody is now partial rather
 than merely planned. The host-core owns a bounded RAM-only session keyring model

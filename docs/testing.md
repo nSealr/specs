@@ -52,7 +52,10 @@ fixtures.
   `development_accepted_gates` so device diagnostics can report development
   evidence without turning it into a production signing claim. The ESP32-S3
   scaffold vector must keep `unicode_review_rendering` in `missing_gates` until
-  a full Unicode review policy or accepted equivalent exists, and invalid
+  a full Unicode review policy or accepted equivalent exists. It must also keep
+  `source_public_key_proof` in `missing_gates` until firmware proves the
+  displayed public key is derived from, or otherwise cryptographically bound to,
+  the selected key source. Invalid
   signing-status vectors reject contradictory `signing_enabled: true` responses
   that still report missing gates plus disabled responses that omit the reason
   for disabled signing. Gate lists must also remain duplicate-free.
@@ -238,7 +241,8 @@ manual-only to scoped automation is a digest-bound device review action, not a
 companion-side mutation.
 It also checks device security-profile vectors so firmware hardening evidence
 cannot drift into a production-signing claim before secure boot, flash
-encryption, debug locking, provisioning, and recovery policy are implemented.
+encryption, debug locking, provisioning, source public-key proof, and recovery
+policy are implemented.
 It also checks that policy-decision transcript vectors match the deterministic
 pure policy evaluator and emit the expected `nsealr-grant-audit-event-v0`
 records for allowed, denied, and manual-review decisions.

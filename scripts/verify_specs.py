@@ -97,6 +97,7 @@ SIGNING_STATUS_GATES = [
     "approval_digest_binding",
     "unicode_review_rendering",
     "key_provisioning",
+    "source_public_key_proof",
     "secure_boot",
     "flash_encryption",
     "debug_lock",
@@ -108,6 +109,7 @@ ESP32_S3_SCAFFOLD_MISSING_SIGNING_GATES = [
     "physical_approval_controls",
     "unicode_review_rendering",
     "key_provisioning",
+    "source_public_key_proof",
     "secure_boot",
     "flash_encryption",
     "debug_lock",
@@ -4119,7 +4121,7 @@ def check_device_security_profile_vector(rel: str, errors: list[str]) -> None:
             errors.append(f"{vector_path}: unknown production blocker {blocker!r}")
     if len(blockers) != len(set(blockers)):
         errors.append(f"{vector_path}: required_production_blockers contains duplicates")
-    for blocker in ("secure_boot", "flash_encryption", "debug_lock", "key_provisioning"):
+    for blocker in ("secure_boot", "flash_encryption", "debug_lock", "key_provisioning", "source_public_key_proof"):
         if blocker not in blockers:
             errors.append(f"{vector_path}: missing required production blocker {blocker}")
 
@@ -4136,6 +4138,7 @@ def check_device_security_profile_vector(rel: str, errors: list[str]) -> None:
     expected_not_implemented = {
         "production_signing",
         "production_key_provisioning",
+        "source_public_key_proof",
         "secure_boot_enabled",
         "flash_encryption_enabled",
         "debug_access_locked",

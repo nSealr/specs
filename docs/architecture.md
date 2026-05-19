@@ -11,7 +11,11 @@ signer implementation.
   coverage or manual development evidence but are not production claims.
   Signing-status responses must be non-contradictory: `signing_enabled: true`
   requires an empty `missing_gates` list, and `signing_enabled: false` requires
-  at least one missing gate. Both gate lists must be duplicate-free.
+  at least one missing gate. Both gate lists must be duplicate-free. Device
+  gates include `source_public_key_proof` so an implementation cannot treat a
+  reviewed account descriptor or source fingerprint as proof that the displayed
+  public key was derived from, or otherwise cryptographically bound to, the
+  selected key source.
 - Define firmware boot-hardening profile vectors for device families whose
   production readiness depends on secure boot, flash encryption, debug locking,
   provisioning, and recovery policy. Development vectors may prove that these
