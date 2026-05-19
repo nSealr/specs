@@ -102,8 +102,14 @@ review screens, response QR output, and real signing remain pending.
 Status note, 2026-05-18: ESP32 stateless session custody is now partial rather
 than merely planned. The host-core owns a bounded RAM-only session keyring model
 for already parsed `nsec` and BIP-39 sources, but camera/import UX, device
-lifecycle wipe tests, hardware reset behavior, local import review, NIP-06
-derivation wiring, response QR output, and real signing remain pending.
+lifecycle hardware acceptance, hardware reset behavior, local import review,
+NIP-06 derivation wiring, response QR output, and real signing remain pending.
+
+Status note, 2026-05-19: the ESP32 host-core keyring now wipes active source
+slots on `clear()` and destruction and disables copy/move operations so
+RAM-only QR-vault key material is not duplicated by ordinary ownership
+changes. Hardware reset behavior and physical lifecycle acceptance remain
+pending.
 
 Status note, 2026-05-18: ESP32 host-core now also builds secret-hidden import
 review summaries for parsed `nsec` and BIP-39 sources. The summary exposes

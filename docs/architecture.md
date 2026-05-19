@@ -90,8 +90,9 @@ signer implementation.
 - Publish the current account/custody product model for all signer families:
   policies attach to final signing public keys and routes, QR vaults use a
   RAM-only session keyring with SeedSigner-compatible SeedQR and NIP-19 `nsec`
-  import vectors, and persistent-device policy authority lives on the device
-  rather than in the companion. The current scoped-automation vectors are
+  import vectors, volatile source wipe on lifecycle clear, and no persistent
+  grants, and persistent-device policy authority lives on the device rather
+  than in the companion. The current scoped-automation vectors are
   boundary fixtures, not the final user-facing policy menu.
 - Publish deterministic policy-decision transcript vectors for persistent-route
   automation boundaries before any grant store or relay session exists. These
