@@ -20,6 +20,7 @@ from scripts.verify_specs import (
     check_nip46_connection_uri_vector,
     check_nip46_policy_file_vector,
     check_policy_decision_vector,
+    check_policy_change_review_vector,
     check_invalid_vector,
     json_utf8_size,
     implementation_limits,
@@ -30,6 +31,7 @@ from scripts.verify_specs import (
     nip19_nsec_vector_names,
     nip46_vector_names,
     policy_decision_vector_names,
+    policy_change_review_vector_names,
     review_detail_page_vector_names,
     review_display_frame_vector_names,
     review_screen_vector_names,
@@ -651,10 +653,40 @@ class VerifySpecsTests(unittest.TestCase):
 
         self.assertIn("decrypt grant permissions require manual review", "\n".join(errors))
 
+    def test_policy_change_review_vectors_are_discovered_from_directory(self) -> None:
+        names = policy_change_review_vector_names()
+
+        self.assertEqual(names, vector_names_from_dir("vectors/policy-changes"))
+        self.assertIn("esp32-usb-enable-kind-1-automation", names)
+
+    def test_policy_change_review_vectors_require_device_approval(self) -> None:
+        for name in policy_change_review_vector_names():
+            errors: list[str] = []
+
+            check_policy_change_review_vector(name, errors)
+
+            self.assertEqual(errors, [], name)
+
+    def test_policy_change_review_rejects_companion_authority(self) -> None:
+        vector = deepcopy(load_json("vectors/policy-changes/esp32-usb-enable-kind-1-automation.json"))
+        vector["proposal"]["companion_authoritative"] = True
+
+        def load_mutation(path: str, errors: list[str]) -> dict:
+            if path == "vectors/policy-changes/esp32-usb-enable-kind-1-automation.json":
+                return vector
+            return load_json(path)
+
+        errors: list[str] = []
+        with patch("scripts.verify_specs.load_required_json", side_effect=load_mutation):
+            check_policy_change_review_vector("esp32-usb-enable-kind-1-automation", errors)
+
+        self.assertIn("companion_authoritative must be false", "\n".join(errors))
+
     def test_identity_policy_schemas_declare_required_contracts(self) -> None:
         account_schema = load_json("schemas/account-descriptor-v0.schema.json")
         policy_schema = load_json("schemas/policy-profile-v0.schema.json")
         grant_schema = load_json("schemas/grant-descriptor-v0.schema.json")
+        policy_change_schema = load_json("schemas/policy-change-review-v0.schema.json")
 
         self.assertEqual(account_schema["title"], "nSealr Account Descriptor v0")
         self.assertIn("signer_route", account_schema["required"])
@@ -663,6 +695,8 @@ class VerifySpecsTests(unittest.TestCase):
         self.assertIn("grants_allowed", policy_schema["required"])
         self.assertEqual(grant_schema["title"], "nSealr Grant Descriptor v0")
         self.assertIn("expires_at", grant_schema["required"])
+        self.assertEqual(policy_change_schema["title"], "nSealr Policy Change Review v0")
+        self.assertIn("proposal", policy_change_schema["required"])
 
 
 if __name__ == "__main__":

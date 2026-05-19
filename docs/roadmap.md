@@ -26,6 +26,8 @@
 - NIP-46 read-only policy-file JSON schema.
 - Secretless account-descriptor, policy-profile, and grant-descriptor
   contracts for identity routing, recovery metadata, and scoped automation.
+- Persistent-device manual-only default policy plus policy-change review
+  vectors for digest-bound `set_policy` proposals.
 - SeedSigner Standard SeedQR and CompactSeedQR compatibility vectors for
   QR-vault BIP-39 session import into NIP-06 Nostr accounts.
 - NIP-19 `nsec` private-key import vectors for direct RAM-only QR vault
@@ -95,8 +97,16 @@ keys, not mnemonic containers; BIP-39 passphrases create separate seed
 namespaces; QR vaults use RAM-only session keyrings with SeedSigner
 SeedQR/CompactSeedQR and NIP-19 `nsec` import as shared vector contracts; and
 ESP32/custom persistent devices keep policy authority at the device
-authorization boundary. The current scoped-automation fixtures remain minimal
-conformance vectors, not the final policy UX.
+authorization boundary. Persistent-device account descriptors now default to
+manual-only policy, while the scoped-automation fixtures remain minimal
+conformance vectors that require a separate device-reviewed policy-change
+proposal before they can be active policy.
+
+Status note, 2026-05-19: policy-change review vectors now pin the pre-storage
+policy mutation boundary. A secretless companion/browser/SDK proposal may
+request `set_policy`, but the reviewed pages and `approval_digest` explicitly
+require local device review and physical approval; the companion is never the
+authoritative policy mutator.
 
 Status note, 2026-05-19: Raspberry's package-owned session keyring now keeps
 mutable internal copies of imported QR-vault sources and wipes those slots on

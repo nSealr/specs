@@ -66,9 +66,9 @@ companion implementation must agree on:
   `nostrconnect://` token parsing without relay sessions, grant creation, or
   secret echo.
 - JSON schema for the read-only NIP-46 policy-file format.
-- Identity, recovery, policy, grant descriptor, and policy-decision transcript
-  vectors for secretless companion routing across the five signer families,
-  plus an external NIP-46 adapter route.
+- Identity, recovery, policy, grant descriptor, policy-change review, and
+  policy-decision transcript vectors for secretless companion routing across
+  the five signer families, plus an external NIP-46 adapter route.
 - Route-selection vectors that bind each shared account descriptor plus a
   requested method to a secretless selected signer route without dispatching
   signer I/O.
@@ -80,8 +80,8 @@ companion implementation must agree on:
 - Account/custody product model for QR vault session keyrings, persistent
   device vaults, per-public-key policy authority, and SeedSigner-compatible
   SeedQR import vectors without turning policy records into Nostr events.
-- JSON schemas for account descriptors, policy profiles, grant descriptors, and
-  policy-decision and route-selection vectors.
+- JSON schemas for account descriptors, policy profiles, grant descriptors,
+  policy-change reviews, and policy-decision and route-selection vectors.
 - Feature conformance matrix for the five first-class signer families. The
   matrix records which features are required, optional, planned, forbidden, or
   not applicable per family, and enforces one shared behavior contract whenever
@@ -98,7 +98,8 @@ companion implementation must agree on:
 - Transport, device, review, review-screen, review-display-frame,
   review-detail-page, review-transcript, NIP-46, NIP-46 policy-file, NIP-46
   connection URI, SeedQR, NIP-19 `nsec`, session-import-review,
-  account-descriptor, policy-profile, grant-descriptor, policy-decision,
+  account-descriptor, policy-profile, grant-descriptor, policy-change review,
+  policy-decision,
   route-selection, access-surface, feature-matrix, invalid-vector,
   limit-profile, and smartcard vectors shared
   by implementation repositories, including APDU success and deterministic

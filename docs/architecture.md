@@ -108,8 +108,10 @@ signer implementation.
   RAM-only session keyring with SeedSigner-compatible SeedQR and NIP-19 `nsec`
   import vectors, volatile source wipe on lifecycle clear, and no persistent
   grants, and persistent-device policy authority lives on the device rather
-  than in the companion. The current scoped-automation vectors are
-  boundary fixtures, not the final user-facing policy menu.
+  than in the companion. Persistent-device account descriptors default to
+  `policy-manual-only-persistent-device`; scoped-automation vectors are
+  boundary fixtures that require a separate device-reviewed policy-change
+  proposal before they can be treated as active account policy.
 - Publish deterministic policy-decision transcript vectors for persistent-route
   automation boundaries before any grant store or relay session exists. These
   vectors pin valid grant allowance, expired-grant denial, revoked-grant
@@ -120,6 +122,12 @@ signer implementation.
   custody or production policy automation. Policy-decision
   requests carry explicit per-grant usage snapshots; they do not define a
   storage backend.
+- Publish deterministic policy-change review vectors for persistent device
+  routes. These vectors bind a secretless `set_policy` proposal, requested
+  client metadata, current/proposed policy ids, proposed grant ids, review
+  pages, and an `approval_digest`; they explicitly state that companion output
+  is not authoritative and that local device review plus physical approval are
+  required.
 - Publish deterministic route-selection vectors that bind an account descriptor
   and requested method to the selected signer route metadata. These vectors are
   secretless routing contracts only: they do not approve a client, create a

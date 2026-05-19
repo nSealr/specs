@@ -135,6 +135,13 @@ fixtures.
 - Identity/policy schema tests ensure account descriptors, policy profiles, and
   grant descriptors expose the expected required contract surface without
   adding secret-key fields.
+- Policy-change review vector discovery tests ensure every file under
+  `vectors/policy-changes/` is included in conformance verification.
+- Policy-change review semantic tests pin the persistent-device default
+  manual-only policy, deterministic `set_policy` review pages,
+  `approval_digest`, required local device review, required physical approval,
+  and `companion_authoritative: false` before scoped automation can be treated
+  as active policy.
 - Policy-decision vector discovery tests ensure every file under
   `vectors/policy-decisions/` is included in conformance verification.
 - Policy-decision semantic tests pin allow/deny/manual-review outcomes for
@@ -217,8 +224,11 @@ import approval digests across Raspberry and ESP32 implementations before any
 local load action.
 It also checks that account, policy, and grant descriptor vectors preserve the
 secretless companion boundary, manual-only QR-vault and display-less
-smartcard policies, route/policy membership, and scoped automation constraints
-for ESP32 USB/NIP-46 and custom hardware-wallet routes.
+smartcard policies, manual-only persistent-device defaults, route/policy
+membership, and scoped automation constraints for ESP32 USB/NIP-46 and custom
+hardware-wallet routes. Policy-change review vectors prove that moving from
+manual-only to scoped automation is a digest-bound device review action, not a
+companion-side mutation.
 It also checks device security-profile vectors so firmware hardening evidence
 cannot drift into a production-signing claim before secure boot, flash
 encryption, debug locking, provisioning, and recovery policy are implemented.
@@ -245,8 +255,8 @@ implementations get deterministic rejection fixtures before enabling real
 signing or full NIP-46 sessions.
 Those checks are directory-driven: new files under `vectors/invalid/`,
 `vectors/review-detail-pages/`, `vectors/accounts/`, `vectors/policies/`,
-`vectors/grants/`, `vectors/policy-decisions/`, `vectors/route-selections/`,
-`vectors/access-surfaces/`, `vectors/features/`,
+`vectors/grants/`, `vectors/policy-changes/`, `vectors/policy-decisions/`,
+`vectors/route-selections/`, `vectors/access-surfaces/`, `vectors/features/`,
 `vectors/nip46-connection-uris/`, `vectors/seedqr/`, `vectors/nip19/`,
 `vectors/session-import-reviews/`, and the single profile under
 `vectors/limits/` are picked up by tests and

@@ -64,6 +64,7 @@ LOCAL_SERVICE_PAIRABLE_OPERATIONS = {
 ROUTE_REVIEW_MODES = {"device_display", "external_review", "external_policy", "display_less"}
 POLICY_SUPPORT_MODES = {"manual_only", "scoped_automation", "external"}
 POLICY_MODES = {"manual_only", "scoped_automation"}
+POLICY_CHANGE_ROUTE_TYPES = {"esp32_usb_nip46", "custom_hardware_wallet"}
 GRANT_DECISIONS = {"allow_once", "allow_until_expiry"}
 POLICY_DECISIONS = {"allow", "deny", "manual_review"}
 POLICY_DECISION_REASONS = {
@@ -870,6 +871,10 @@ def policy_decision_vector_names() -> list[str]:
     return sorted(path.stem for path in (ROOT / "vectors" / "policy-decisions").glob("*.json"))
 
 
+def policy_change_review_vector_names() -> list[str]:
+    return sorted(path.stem for path in (ROOT / "vectors" / "policy-changes").glob("*.json"))
+
+
 def route_selection_vector_names() -> list[str]:
     return sorted(path.stem for path in (ROOT / "vectors" / "route-selections").glob("*.json"))
 
@@ -1516,6 +1521,223 @@ def check_policy_decision_vector(rel: str, errors: list[str]) -> None:
     expected = expected_policy_decision(vector_path, vector, errors)
     if expected is not None and vector.get("decision") != expected:
         errors.append(f"{vector_path}: decision mismatch")
+
+
+def expected_policy_change_review_pages(proposal: dict) -> list[dict]:
+    grants = proposal["proposed_grant_ids"]
+    requester = proposal["requested_by"]
+    policy_lines = [
+        f"From: {proposal['current_policy_id']}",
+        f"To: {proposal['proposed_policy_id']}",
+        f"Grants: {len(grants)}",
+    ]
+    policy_lines.extend(f"Grant: {grant_id}" for grant_id in grants)
+    requester_lines = [
+        f"Surface: {requester['surface']}",
+        f"Client: {requester['client_pubkey']}",
+    ]
+    if requester.get("label"):
+        requester_lines.append(f"Label: {requester['label']}")
+    return [
+        {
+            "title": "Policy change",
+            "lines": [
+                f"Action: {proposal['action']}",
+                f"Account: {proposal['account_id']}",
+                f"Route: {proposal['route_type']}",
+            ],
+            "action": "next",
+        },
+        {
+            "title": "Requester",
+            "lines": requester_lines,
+            "action": "next",
+        },
+        {
+            "title": "Policy",
+            "lines": policy_lines,
+            "action": "next",
+        },
+        {
+            "title": "Decision",
+            "lines": [
+                "Review on device",
+                "Physical approval required",
+                "Companion cannot approve alone",
+            ],
+            "action": "approve_or_reject",
+        },
+    ]
+
+
+def policy_change_approval_digest(proposal: dict, pages: list[dict]) -> str:
+    canonical = json.dumps(
+        {"proposal": proposal, "pages": pages},
+        ensure_ascii=False,
+        separators=(",", ":"),
+        sort_keys=True,
+    )
+    return sha256_hex(canonical.encode("utf-8"))
+
+
+def check_policy_change_proposal_shape(path: str, proposal: object, errors: list[str]) -> dict | None:
+    if not isinstance(proposal, dict):
+        errors.append(f"{path}: proposal must be an object")
+        return None
+    unknown = sorted(
+        set(proposal)
+        - {
+            "format",
+            "proposal_id",
+            "account_id",
+            "route_type",
+            "action",
+            "current_policy_id",
+            "proposed_policy_id",
+            "proposed_grant_ids",
+            "requested_by",
+            "created_at",
+            "device_review_required",
+            "physical_approval_required",
+            "companion_authoritative",
+            "contains_secret_material",
+        }
+    )
+    if unknown:
+        errors.append(f"{path}: proposal has unknown fields {unknown}")
+    if proposal.get("format") != "nsealr-policy-change-proposal-v0":
+        errors.append(f"{path}: proposal format mismatch")
+    proposal_id = proposal.get("proposal_id")
+    if not isinstance(proposal_id, str) or not proposal_id.startswith("proposal-"):
+        errors.append(f"{path}: proposal_id must start with proposal-")
+    else:
+        check_string_id(path, "proposal_id", proposal_id, errors)
+    check_string_id(path, "account_id", proposal.get("account_id"), errors)
+    route_type = proposal.get("route_type")
+    if route_type not in POLICY_CHANGE_ROUTE_TYPES:
+        errors.append(f"{path}: route_type must be a device-display persistent policy route")
+    if proposal.get("action") != "set_policy":
+        errors.append(f"{path}: action must be set_policy")
+    for field in ("current_policy_id", "proposed_policy_id"):
+        policy_id = proposal.get(field)
+        if not isinstance(policy_id, str) or not policy_id.startswith("policy-"):
+            errors.append(f"{path}: {field} must reference a policy-* profile")
+            continue
+        policy = load_required_json(f"vectors/policies/{policy_id.removeprefix('policy-')}.json", errors)
+        if isinstance(route_type, str) and isinstance(policy, dict) and route_type not in policy.get("route_types", []):
+            errors.append(f"{path}: {field} does not include route type {route_type}")
+
+    matching_accounts = []
+    for name in account_descriptor_vector_names():
+        account = load_json(f"vectors/accounts/{name}.json")
+        if account.get("account_id") == proposal.get("account_id"):
+            matching_accounts.append(account)
+    if not matching_accounts:
+        errors.append(f"{path}: account_id target is missing")
+    elif matching_accounts[0].get("signer_route", {}).get("type") != route_type:
+        errors.append(f"{path}: account route_type mismatch")
+    elif matching_accounts[0].get("policy_profile_id") != proposal.get("current_policy_id"):
+        errors.append(f"{path}: current_policy_id must match the account descriptor default policy")
+
+    grants = proposal.get("proposed_grant_ids")
+    if not isinstance(grants, list) or not all(isinstance(grant_id, str) for grant_id in grants):
+        errors.append(f"{path}: proposed_grant_ids must be an array of strings")
+        grants = []
+    elif len(grants) != len(set(grants)):
+        errors.append(f"{path}: proposed_grant_ids must be unique")
+    for grant_id in grants:
+        if not grant_id.startswith("grant-"):
+            errors.append(f"{path}: proposed_grant_ids must reference grant-* descriptors")
+            continue
+        grant = load_required_json(f"vectors/grants/{grant_id.removeprefix('grant-')}.json", errors)
+        if not isinstance(grant, dict):
+            continue
+        if grant.get("account_id") != proposal.get("account_id"):
+            errors.append(f"{path}: proposed grant {grant_id} account mismatch")
+        if grant.get("route_type") != route_type:
+            errors.append(f"{path}: proposed grant {grant_id} route mismatch")
+
+    requester = proposal.get("requested_by")
+    if not isinstance(requester, dict):
+        errors.append(f"{path}: requested_by must be an object")
+    else:
+        unknown_requester = sorted(set(requester) - {"surface", "client_pubkey", "label"})
+        if unknown_requester:
+            errors.append(f"{path}: requested_by has unknown fields {unknown_requester}")
+        if requester.get("surface") not in LOCAL_CLIENT_SURFACES:
+            errors.append(f"{path}: requested_by.surface is unsupported")
+        if not isinstance(requester.get("client_pubkey"), str) or not HEX32_RE.fullmatch(requester["client_pubkey"]):
+            errors.append(f"{path}: requested_by.client_pubkey must be 32-byte lowercase hex")
+        if "label" in requester and (not isinstance(requester.get("label"), str) or not requester["label"]):
+            errors.append(f"{path}: requested_by.label must be a non-empty string")
+
+    if type(proposal.get("created_at")) is not int or proposal["created_at"] <= 0:
+        errors.append(f"{path}: created_at must be a positive integer")
+    if proposal.get("device_review_required") is not True:
+        errors.append(f"{path}: device_review_required must be true")
+    if proposal.get("physical_approval_required") is not True:
+        errors.append(f"{path}: physical_approval_required must be true")
+    if proposal.get("companion_authoritative") is not False:
+        errors.append(f"{path}: companion_authoritative must be false")
+    if proposal.get("contains_secret_material") is not False:
+        errors.append(f"{path}: contains_secret_material must be false")
+    return proposal
+
+
+def check_policy_change_review_vector(rel: str, errors: list[str]) -> None:
+    vector_path = f"vectors/policy-changes/{rel}.json"
+    vector = load_required_json(vector_path, errors)
+    if vector is None:
+        return
+    if not isinstance(vector, dict):
+        errors.append(f"{vector_path}: policy change review vector must be an object")
+        return
+    check_no_secret_fields(vector_path, vector, errors)
+    unknown = sorted(set(vector) - {"name", "format", "proposal", "review"})
+    if unknown:
+        errors.append(f"{vector_path}: unknown fields {unknown}")
+    if vector.get("name") != rel:
+        errors.append(f"{vector_path}: name mismatch")
+    if vector.get("format") != "nsealr-policy-change-review-v0":
+        errors.append(f"{vector_path}: format mismatch")
+
+    proposal = check_policy_change_proposal_shape(vector_path, vector.get("proposal"), errors)
+    review = vector.get("review")
+    if not isinstance(review, dict):
+        errors.append(f"{vector_path}: review must be an object")
+        return
+    unknown_review = sorted(set(review) - {"format", "proposal_id", "approval_digest", "pages"})
+    if unknown_review:
+        errors.append(f"{vector_path}: review has unknown fields {unknown_review}")
+    if review.get("format") != "nsealr-policy-change-review-pages-v0":
+        errors.append(f"{vector_path}: review format mismatch")
+    if proposal is None:
+        return
+    if review.get("proposal_id") != proposal.get("proposal_id"):
+        errors.append(f"{vector_path}: review proposal_id mismatch")
+    pages = review.get("pages")
+    if not isinstance(pages, list):
+        errors.append(f"{vector_path}: review pages must be an array")
+        return
+    for index, page in enumerate(pages):
+        if not isinstance(page, dict):
+            errors.append(f"{vector_path}: review pages[{index}] must be an object")
+            continue
+        unknown_page = sorted(set(page) - {"title", "lines", "action"})
+        if unknown_page:
+            errors.append(f"{vector_path}: review pages[{index}] has unknown fields {unknown_page}")
+        if not isinstance(page.get("title"), str) or not page["title"]:
+            errors.append(f"{vector_path}: review pages[{index}].title must be a non-empty string")
+        if not isinstance(page.get("lines"), list) or not all(isinstance(line, str) for line in page["lines"]):
+            errors.append(f"{vector_path}: review pages[{index}].lines must be strings")
+        if page.get("action") not in {"next", "approve_or_reject"}:
+            errors.append(f"{vector_path}: review pages[{index}].action is invalid")
+    expected_pages = expected_policy_change_review_pages(proposal)
+    if pages != expected_pages:
+        errors.append(f"{vector_path}: review pages mismatch")
+    expected_digest = policy_change_approval_digest(proposal, expected_pages)
+    if review.get("approval_digest") != expected_digest:
+        errors.append(f"{vector_path}: approval_digest mismatch")
 
 
 def route_selection_from_account(account: dict) -> dict:
@@ -4112,6 +4334,9 @@ def main() -> int:
 
     for rel in policy_decision_vector_names():
         check_policy_decision_vector(rel, errors)
+
+    for rel in policy_change_review_vector_names():
+        check_policy_change_review_vector(rel, errors)
 
     for rel in route_selection_vector_names():
         check_route_selection_vector(rel, errors)

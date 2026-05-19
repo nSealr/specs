@@ -72,6 +72,8 @@ Persistent-device policy state is authoritative only at the signing
 authorization boundary. The companion may cache labels, routes, capabilities,
 policy ids, pending proposals, and audit pointers, but it is not the authority
 that can silently change a device policy.
+Persistent-device accounts start from a manual-only policy profile; scoped
+automation is a separately reviewed policy state, not the default.
 
 ## Files
 
@@ -79,11 +81,13 @@ that can silently change a device policy.
 - Policy profiles: `vectors/policies/*.json`
 - Grant descriptors: `vectors/grants/*.json`
 - Policy-decision transcripts: `vectors/policy-decisions/*.json`
+- Policy-change review transcripts: `vectors/policy-changes/*.json`
 - Schemas:
   - `schemas/account-descriptor-v0.schema.json`
   - `schemas/policy-profile-v0.schema.json`
   - `schemas/grant-descriptor-v0.schema.json`
   - `schemas/policy-decision-vector-v0.schema.json`
+  - `schemas/policy-change-review-v0.schema.json`
 
 ## Account Descriptor
 
@@ -145,8 +149,8 @@ the boundary: scoped account, route, client, method, event kind when relevant,
 expiry, rate limit, revocation, audit event, and device confirmation. It is not
 a final product claim that kind `1` is the only useful grant or that every
 future route should expose many policy knobs. Default product behavior remains
-manual review unless a later specs revision promotes a small, reviewed policy
-profile set.
+manual review through `policy-manual-only-persistent-device` unless a device
+locally accepts a digest-bound policy-change proposal.
 
 QR vault policies and display-less smartcard policies must remain
 `manual_only` with `grants_allowed: false`.
@@ -189,6 +193,30 @@ Every decision carries a deterministic `nsealr-grant-audit-event-v0` object so
 future stores can be audited without changing the decision semantics. These
 vectors do not authorize companion-side private-key custody, persistent grant
 storage, `connect` acknowledgements, or NIP-46 relay sessions.
+
+## Policy Change Review
+
+`nsealr-policy-change-review-v0` records the minimum contract for changing a
+persistent device account from the default manual-only profile to a scoped
+automation profile. The proposal is secretless and can be transported by the
+companion, browser extension, SDK, CLI, or desktop app, but it is never
+authoritative by itself.
+
+The v0 action is deliberately narrow: `set_policy`. A proposal binds:
+
+- account id and route type;
+- current and proposed policy ids;
+- proposed grant descriptor ids;
+- requesting surface and client public key;
+- `device_review_required: true`;
+- `physical_approval_required: true`;
+- `companion_authoritative: false`;
+- `contains_secret_material: false`.
+
+The review pages and `approval_digest` are deterministic, so a device can show
+the exact policy transition and grant ids before accepting the change. This
+does not create a grant store, does not enable production signing, and does not
+let the companion mutate device policy without local review.
 
 ## Change Control
 
