@@ -309,7 +309,11 @@ class VerifySpecsTests(unittest.TestCase):
 
         self.assertEqual(names, vector_names_from_dir("vectors/smartcard"))
         self.assertIn("get-public-key", names)
+        self.assertIn("get-public-key-nonzero-p1", names)
+        self.assertIn("get-public-key-with-le", names)
         self.assertIn("sign-event-id-kind-1-basic", names)
+        self.assertIn("sign-event-id-nonzero-p2", names)
+        self.assertIn("sign-event-id-with-le", names)
         self.assertIn("sign-event-id-wrong-length", names)
         self.assertIn("unsupported-cla", names)
         self.assertIn("unsupported-ins", names)

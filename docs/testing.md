@@ -183,8 +183,9 @@ fixtures.
   rejected for its expected deterministic reason, rather than merely being
   present in a directory.
 - Smartcard APDU vectors preserve command bytes, response bytes, signature
-  verification requirements, and deterministic rejection status words for wrong
-  lengths, unsupported classes, and unsupported instructions.
+  verification requirements, exact P1/P2/Le command-shape rules, and
+  deterministic rejection status words for wrong lengths, unsupported classes,
+  unsupported instructions, and profile-shape mismatches.
 
 ## Fixture Verification
 

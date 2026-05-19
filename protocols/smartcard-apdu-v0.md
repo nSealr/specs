@@ -13,6 +13,15 @@ trusted display surface before sending a digest to a card.
 
 - CLA: `0x80`
 
+## Command Shape
+
+- P1: `0x00`.
+- P2: `0x00`.
+- Le: omitted.
+
+The v0 profile uses exact short APDUs only. Commands with non-zero P1/P2 or an
+explicit Le byte are rejected before any signing operation.
+
 ## Instructions
 
 ### `GET_PUBLIC_KEY`
@@ -33,6 +42,7 @@ trusted display surface before sending a digest to a card.
 
 - `0x9000`: command accepted.
 - `0x6700`: wrong command data length.
+- `0x6A86`: incorrect P1/P2 for this APDU profile.
 - `0x6D00`: instruction not supported by this APDU profile.
 - `0x6E00`: command class not supported by this APDU profile.
 
