@@ -113,9 +113,12 @@ signer implementation.
 - Publish deterministic policy-decision transcript vectors for persistent-route
   automation boundaries before any grant store or relay session exists. These
   vectors pin valid grant allowance, expired-grant denial, revoked-grant
-  denial, decrypt/manual-review routing, export-secret denial, unknown-method
-  manual review, and `nsealr-grant-audit-event-v0` output without authorizing
-  companion key custody or production policy automation.
+  denial, rate-limit denial, rate-window reset allowance,
+  decrypt/manual-review routing, export-secret denial, unknown-method manual
+  review, and `nsealr-grant-audit-event-v0` output without authorizing
+  companion key custody or production policy automation. Policy-decision
+  requests carry explicit per-grant usage snapshots; they do not define a
+  storage backend.
 - Publish deterministic route-selection vectors that bind an account descriptor
   and requested method to the selected signer route metadata. These vectors are
   secretless routing contracts only: they do not approve a client, create a

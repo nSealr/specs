@@ -70,6 +70,7 @@ POLICY_DECISION_REASONS = {
     "decrypt_requires_manual_review",
     "forbidden_permission",
     "grant_expired",
+    "grant_rate_limited",
     "grant_revoked",
     "grant_valid",
     "no_matching_grant",
@@ -1359,6 +1360,26 @@ def policy_decision(decision: str, reason: str, request: dict, grant_id: str | N
     return result
 
 
+def grant_rate_limited(grant: dict, request: dict) -> bool:
+    usage_by_grant = request.get("grant_usage")
+    if not isinstance(usage_by_grant, dict):
+        return False
+    usage = usage_by_grant.get(grant.get("grant_id"))
+    if not isinstance(usage, dict):
+        return False
+    rate_limit = grant.get("rate_limit")
+    if not isinstance(rate_limit, dict):
+        return False
+    if type(request.get("now")) is not int:
+        return False
+    if type(usage.get("window_started_at")) is not int or type(usage.get("uses")) is not int:
+        return False
+    if type(rate_limit.get("window_seconds")) is not int or type(rate_limit.get("max_uses")) is not int:
+        return False
+    window_ends_at = usage["window_started_at"] + rate_limit["window_seconds"]
+    return request["now"] < window_ends_at and usage["uses"] >= rate_limit["max_uses"]
+
+
 def expected_policy_decision(vector_path: str, vector: dict, errors: list[str]) -> dict | None:
     request = vector.get("request")
     if not isinstance(request, dict):
@@ -1409,6 +1430,8 @@ def expected_policy_decision(vector_path: str, vector: dict, errors: list[str]) 
             return policy_decision("deny", "grant_revoked", request, grant_id)
         if type(request.get("now")) is int and type(grant.get("expires_at")) is int and request["now"] >= grant["expires_at"]:
             return policy_decision("deny", "grant_expired", request, grant_id)
+        if grant_rate_limited(grant, request):
+            return policy_decision("deny", "grant_rate_limited", request, grant_id)
         return policy_decision("allow", "grant_valid", request, grant_id)
     return policy_decision("manual_review", "no_matching_grant", request)
 
@@ -1428,6 +1451,24 @@ def check_policy_decision_request_shape(path: str, request: object, errors: list
     grant_ids = request.get("grant_ids")
     if not isinstance(grant_ids, list) or not all(isinstance(item, str) for item in grant_ids):
         errors.append(f"{path}: request.grant_ids must be an array of strings")
+    grant_usage = request.get("grant_usage")
+    if not isinstance(grant_usage, dict):
+        errors.append(f"{path}: request.grant_usage must be an object")
+    else:
+        for grant_id, usage in grant_usage.items():
+            if not isinstance(grant_id, str) or not grant_id.startswith("grant-"):
+                errors.append(f"{path}: request.grant_usage keys must be grant ids")
+                continue
+            if not isinstance(usage, dict):
+                errors.append(f"{path}: request.grant_usage.{grant_id} must be an object")
+                continue
+            unknown = sorted(set(usage) - {"window_started_at", "uses"})
+            if unknown:
+                errors.append(f"{path}: request.grant_usage.{grant_id} has unknown fields {unknown}")
+            if type(usage.get("window_started_at")) is not int or usage["window_started_at"] <= 0:
+                errors.append(f"{path}: request.grant_usage.{grant_id}.window_started_at must be a positive integer")
+            if type(usage.get("uses")) is not int or usage["uses"] < 0:
+                errors.append(f"{path}: request.grant_usage.{grant_id}.uses must be a non-negative integer")
     revoked_grant_ids = request.get("revoked_grant_ids")
     if not isinstance(revoked_grant_ids, list) or not all(isinstance(item, str) for item in revoked_grant_ids):
         errors.append(f"{path}: request.revoked_grant_ids must be an array of strings")

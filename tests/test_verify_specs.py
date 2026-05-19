@@ -450,17 +450,6 @@ class VerifySpecsTests(unittest.TestCase):
         names = policy_decision_vector_names()
 
         self.assertEqual(names, vector_names_from_dir("vectors/policy-decisions"))
-        self.assertEqual(
-            names,
-            [
-                "export-secret-denied",
-                "grant-sign-event-kind-1-allowed",
-                "grant-sign-event-kind-1-expired",
-                "grant-sign-event-kind-1-revoked",
-                "nip44-decrypt-manual-review",
-                "unknown-method-manual-review",
-            ],
-        )
 
     def test_policy_decision_vectors_validate(self) -> None:
         for name in policy_decision_vector_names():

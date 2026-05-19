@@ -10,7 +10,16 @@
     "policy_profile_id": { "type": "string", "pattern": "^policy-[A-Za-z0-9._:-]+$" },
     "request": {
       "type": "object",
-      "required": ["account_id", "route_type", "client_pubkey", "permission", "now", "grant_ids", "revoked_grant_ids"],
+      "required": [
+        "account_id",
+        "route_type",
+        "client_pubkey",
+        "permission",
+        "now",
+        "grant_ids",
+        "grant_usage",
+        "revoked_grant_ids"
+      ],
       "properties": {
         "account_id": { "type": "string", "pattern": "^[A-Za-z0-9._:-]{1,128}$" },
         "route_type": {
@@ -32,6 +41,19 @@
           "type": "array",
           "items": { "type": "string", "pattern": "^grant-[A-Za-z0-9._:-]+$" }
         },
+        "grant_usage": {
+          "type": "object",
+          "propertyNames": { "pattern": "^grant-[A-Za-z0-9._:-]+$" },
+          "additionalProperties": {
+            "type": "object",
+            "required": ["window_started_at", "uses"],
+            "properties": {
+              "window_started_at": { "type": "integer", "minimum": 1 },
+              "uses": { "type": "integer", "minimum": 0 }
+            },
+            "additionalProperties": false
+          }
+        },
         "revoked_grant_ids": {
           "type": "array",
           "items": { "type": "string", "pattern": "^grant-[A-Za-z0-9._:-]+$" }
@@ -50,6 +72,7 @@
             "decrypt_requires_manual_review",
             "forbidden_permission",
             "grant_expired",
+            "grant_rate_limited",
             "grant_revoked",
             "grant_valid",
             "no_matching_grant",
