@@ -568,6 +568,19 @@ class VerifySpecsTests(unittest.TestCase):
 
         self.assertIn("must not contain secret field recovery.mnemonic", "\n".join(errors))
 
+    def test_account_descriptors_reject_missing_nip06_source_vector(self) -> None:
+        account = deepcopy(load_json("vectors/accounts/esp32-qr-nip06-account-0.json"))
+        account["recovery"]["source_vector"] = "vectors/keys/missing-nip06-account.json"
+        errors: list[str] = []
+
+        verify_specs.check_account_descriptor_shape(
+            "vectors/accounts/mutated-missing-nip06-source.json",
+            account,
+            errors,
+        )
+
+        self.assertIn("NIP-06 recovery source_vector is missing", "\n".join(errors))
+
     def test_policy_profiles_reject_automation_for_qr_vault_routes(self) -> None:
         policy = deepcopy(load_json("vectors/policies/manual-only-qr-vault.json"))
         policy["mode"] = "scoped_automation"

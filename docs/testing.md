@@ -131,7 +131,8 @@ fixtures.
   `vectors/grants/` is included in conformance verification.
 - Identity/policy semantic tests reject embedded secret fields, QR-vault
   automation, display-less smartcard automation, wildcard grants, route/policy
-  mismatches, and grant targets that point at stateless QR vault routes.
+  mismatches, missing or mismatched NIP-06 recovery source vectors, and grant
+  targets that point at stateless QR vault routes.
 - Identity/policy schema tests ensure account descriptors, policy profiles, and
   grant descriptors expose the expected required contract surface without
   adding secret-key fields.

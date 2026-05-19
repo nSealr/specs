@@ -102,6 +102,12 @@ manual-only policy, while the scoped-automation fixtures remain minimal
 conformance vectors that require a separate device-reviewed policy-change
 proposal before they can be active policy.
 
+Status note, 2026-05-19: NIP-06 account descriptors now require their
+`recovery.source_vector` to exist and to match the descriptor public key. The
+ESP32 QR account descriptor was aligned with the same canonical NIP-06 account
+0 vector used by the Raspberry QR vault, preserving route separation while
+removing a stale missing-source reference.
+
 Status note, 2026-05-19: policy-change review vectors now pin the pre-storage
 policy mutation boundary. A secretless companion/browser/SDK proposal may
 request `set_policy`, but the reviewed pages and `approval_digest` explicitly

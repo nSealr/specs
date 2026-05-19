@@ -1146,7 +1146,9 @@ def check_account_descriptor_shape(path: str, value: object, errors: list[str]) 
         source_vector = recovery.get("source_vector")
         if not isinstance(source_vector, str):
             errors.append(f"{path}: NIP-06 recovery source_vector must be a string")
-        elif (ROOT / source_vector).exists():
+        elif not (ROOT / source_vector).exists():
+            errors.append(f"{path}: NIP-06 recovery source_vector is missing")
+        else:
             source = load_json(source_vector)
             if source.get("public_key") != value.get("public_key"):
                 errors.append(f"{path}: NIP-06 recovery source_vector public_key mismatch")
