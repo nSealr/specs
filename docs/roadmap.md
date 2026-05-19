@@ -153,6 +153,14 @@ RAM-only QR-vault key material is not duplicated by ordinary ownership
 changes. Hardware reset behavior and physical lifecycle acceptance remain
 pending.
 
+Status note, 2026-05-19: ESP32 `SessionKeySource` temporaries now wipe
+sensitive arrays on destruction, assignment replacement, and move-source
+cleanup. Decoded QR session-source inputs also compose with the local
+import-review button flow before RAM-only keyring load, so host-core tests prove
+`nsec`, Standard SeedQR, and CompactSeedQR inputs cannot bypass final-page
+import approval. Camera input, NIP-06 derivation, response QR output, hardware
+acceptance, and real signing remain pending.
+
 Status note, 2026-05-18: ESP32 host-core now also builds secret-hidden import
 review summaries for parsed `nsec` and BIP-39 sources. The summary exposes
 type, label, word count when applicable, and a deterministic fingerprint while
