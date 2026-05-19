@@ -160,6 +160,13 @@ hiding raw `nsec` bytes and mnemonic words. Hardware display/button acceptance,
 camera/import UX, NIP-06 derivation, response QR output, and real signing
 remain pending.
 
+Status note, 2026-05-19: ESP32 host-core now also normalizes decoded session
+source QR inputs into the same RAM-only `SessionKeySource` boundary. This
+covers canonical NIP-19 `nsec` text, plain BIP-39 English mnemonic QR text,
+SeedSigner Standard SeedQR digit streams, and CompactSeedQR entropy bytes.
+Physical camera capture, NIP-06 derivation, account selection, persistence,
+response QR display hardware, and real signing remain pending.
+
 Status note, 2026-05-11: the feature conformance matrix is now a shared
 contract. It records required, optional, planned, forbidden, and not-applicable
 features per first-class signer family, while requiring one canonical behavior
