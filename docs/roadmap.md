@@ -35,6 +35,10 @@
   including stateless QR vault parity between Raspberry and ESP32 for review,
   approval, transport, response verification, and RAM-only SeedQR/NIP-19
   `nsec` session import plus local RAM-only source generation.
+- Firmware boot-hardening profile vector for the ESP32 USB/NIP-46 development
+  scaffold, covering the validated development-only security profile and
+  read-only eFuse audit boundary without enabling irreversible hardening or
+  production signing.
 - nSealr v0 implementation limit profile for constrained signer safety.
 - Malicious/rejection vectors for unsafe signing requests, unsafe responses, QR
   envelopes, serial frames, invalid device request metadata, NIP-46 payloads,
@@ -120,6 +124,13 @@ response QR envelope vector in the encode direction. It can turn already
 produced response JSON into static `nsealr1:` and animated `nsealr1a:` output,
 but real signing, display hardware, scan-back, and hardware acceptance remain
 pending.
+
+Status note, 2026-05-19: ESP32 USB/NIP-46 secure-boot hardening is now partial
+in Feature Conformance v0. `vectors/devices/esp32-s3-security-profile-development.json`
+pins the development-only profile boundary: runtime and production signing
+disabled, secure boot and flash encryption off, debug access unlocked for
+bring-up, persistent-secret storage not implemented, production blockers
+present, and only a read-only eFuse audit path available.
 
 Status note, 2026-05-18: ESP32 stateless session custody is now partial rather
 than merely planned. The host-core owns a bounded RAM-only session keyring model

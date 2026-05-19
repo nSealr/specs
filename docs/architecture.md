@@ -12,6 +12,11 @@ signer implementation.
   Signing-status responses must be non-contradictory: `signing_enabled: true`
   requires an empty `missing_gates` list, and `signing_enabled: false` requires
   at least one missing gate. Both gate lists must be duplicate-free.
+- Define firmware boot-hardening profile vectors for device families whose
+  production readiness depends on secure boot, flash encryption, debug locking,
+  provisioning, and recovery policy. Development vectors may prove that these
+  gates are tracked and audited, but must not imply irreversible hardening has
+  been enabled or that production signing is safe.
 - Define error formats and capability discovery.
 - Define QR, serial, USB, and smartcard envelope semantics before
   implementation repositories depend on them.

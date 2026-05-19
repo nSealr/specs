@@ -56,6 +56,10 @@ fixtures.
   signing-status vectors reject contradictory `signing_enabled: true` responses
   that still report missing gates plus disabled responses that omit the reason
   for disabled signing. Gate lists must also remain duplicate-free.
+- Device security-profile vectors preserve the ESP32 USB/NIP-46 development
+  hardening boundary: signing disabled, secure boot/flash encryption/debug lock
+  not enabled, persistent-secret storage not implemented, required profile
+  sections present, and production blockers still explicit.
 - Trusted review vectors preserve raw event kind, created_at, signer author
   pubkey, complete content, complete structured tags, and final decision
   semantics for display-oriented signers. They do not encode inferred kind
@@ -198,6 +202,9 @@ It also checks that account, policy, and grant descriptor vectors preserve the
 secretless companion boundary, manual-only QR-vault and display-less
 smartcard policies, route/policy membership, and scoped automation constraints
 for ESP32 USB/NIP-46 and custom hardware-wallet routes.
+It also checks device security-profile vectors so firmware hardening evidence
+cannot drift into a production-signing claim before secure boot, flash
+encryption, debug locking, provisioning, and recovery policy are implemented.
 It also checks that policy-decision transcript vectors match the deterministic
 pure policy evaluator and emit the expected `nsealr-grant-audit-event-v0`
 records for allowed, denied, and manual-review decisions.

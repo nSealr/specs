@@ -862,6 +862,10 @@ def feature_matrix_vector_names() -> list[str]:
     return sorted(path.stem for path in (ROOT / "vectors" / "features").glob("*.json"))
 
 
+def device_security_profile_vector_names() -> list[str]:
+    return sorted(path.stem for path in (ROOT / "vectors" / "devices").glob("*security-profile-*.json"))
+
+
 def secret_field_paths(value: object, prefix: str = "") -> list[str]:
     paths: list[str] = []
     if isinstance(value, dict):
@@ -3233,6 +3237,104 @@ def check_feature_matrix_vector(rel: str, errors: list[str]) -> None:
     check_feature_matrix_shape(vector_path, vector, errors)
 
 
+def check_device_security_profile_vector(rel: str, errors: list[str]) -> None:
+    vector_path = f"vectors/devices/{rel}.json"
+    vector = load_required_json(vector_path, errors)
+    if vector is None:
+        return
+    if vector.get("name") != rel:
+        errors.append(f"{vector_path}: name mismatch")
+    if vector.get("format") != "firmware-boot-hardening-profile-v0":
+        errors.append(f"{vector_path}: format mismatch")
+    if vector.get("contract_id") != "firmware-boot-hardening-v0":
+        errors.append(f"{vector_path}: contract_id mismatch")
+    if vector.get("solution") != "esp32_usb_nip46":
+        errors.append(f"{vector_path}: solution must be esp32_usb_nip46")
+    if vector.get("repository") != "esp32":
+        errors.append(f"{vector_path}: repository must be esp32")
+    if vector.get("target") != "esp32_s3_usb_signer":
+        errors.append(f"{vector_path}: target must be esp32_s3_usb_signer")
+    if vector.get("profile") != "development_scaffold":
+        errors.append(f"{vector_path}: profile must be development_scaffold")
+    if vector.get("current") != "partial":
+        errors.append(f"{vector_path}: current must be partial")
+
+    boundary = vector.get("current_boundary")
+    if not isinstance(boundary, dict):
+        errors.append(f"{vector_path}: current_boundary must be an object")
+        boundary = {}
+    expected_boundary = {
+        "schema": "nsealr-esp32-security-profile-v0",
+        "runtime_signing_feature_enabled": False,
+        "production_signing_allowed": False,
+        "secure_boot_enabled": False,
+        "flash_encryption_enabled": False,
+        "debug_access_locked": False,
+        "persistent_secret_storage": "not_implemented",
+    }
+    for key, expected in expected_boundary.items():
+        if boundary.get(key) != expected:
+            errors.append(f"{vector_path}: current_boundary.{key} mismatch")
+
+    required_sections = vector.get("required_profile_sections")
+    expected_sections = {
+        "secure_boot",
+        "flash_encryption",
+        "debug_access",
+        "key_provisioning",
+        "trusted_review_display",
+        "display_review_protocol_evidence",
+        "unicode_review_rendering",
+        "companion_transport_evidence",
+        "firmware_protocol_evidence",
+        "security_fuse_audit_evidence",
+        "physical_approval_controls",
+        "companion_signed_output_verification",
+        "production_blockers",
+    }
+    if not isinstance(required_sections, list) or set(required_sections) != expected_sections:
+        errors.append(f"{vector_path}: required_profile_sections mismatch")
+    elif len(required_sections) != len(set(required_sections)):
+        errors.append(f"{vector_path}: required_profile_sections contains duplicates")
+
+    blockers = vector.get("required_production_blockers")
+    if not isinstance(blockers, list):
+        errors.append(f"{vector_path}: required_production_blockers must be an array")
+        blockers = []
+    for blocker in blockers:
+        if blocker not in SIGNING_STATUS_GATES:
+            errors.append(f"{vector_path}: unknown production blocker {blocker!r}")
+    if len(blockers) != len(set(blockers)):
+        errors.append(f"{vector_path}: required_production_blockers contains duplicates")
+    for blocker in ("secure_boot", "flash_encryption", "debug_lock", "key_provisioning"):
+        if blocker not in blockers:
+            errors.append(f"{vector_path}: missing required production blocker {blocker}")
+
+    implemented_controls = vector.get("implemented_controls")
+    expected_implemented = {
+        "validated_development_security_profile",
+        "read_only_efuse_audit_report",
+        "signing_status_reports_hardening_blockers",
+    }
+    if not isinstance(implemented_controls, list) or set(implemented_controls) != expected_implemented:
+        errors.append(f"{vector_path}: implemented_controls mismatch")
+
+    not_implemented_controls = vector.get("not_implemented_controls")
+    expected_not_implemented = {
+        "production_signing",
+        "production_key_provisioning",
+        "secure_boot_enabled",
+        "flash_encryption_enabled",
+        "debug_access_locked",
+    }
+    if not isinstance(not_implemented_controls, list) or set(not_implemented_controls) != expected_not_implemented:
+        errors.append(f"{vector_path}: not_implemented_controls mismatch")
+
+    notes = vector.get("notes")
+    if not isinstance(notes, str) or "does not enable" not in notes:
+        errors.append(f"{vector_path}: notes must state the non-enabling boundary")
+
+
 def check_nip46_response_message(vector_path: str, message: object, expected_id: str, errors: list[str]) -> dict | None:
     if not isinstance(message, dict):
         errors.append(f"{vector_path}: response_message must be an object")
@@ -3636,6 +3738,9 @@ def main() -> int:
 
     for rel in feature_matrix_vector_names():
         check_feature_matrix_vector(rel, errors)
+
+    for rel in device_security_profile_vector_names():
+        check_device_security_profile_vector(rel, errors)
 
     for rel in smartcard_apdu_vector_names():
         check_smartcard_apdu_vector(rel, errors)

@@ -7,6 +7,7 @@ from unittest.mock import patch
 
 from scripts.verify_specs import (
     check_smartcard_apdu_vector,
+    check_device_security_profile_vector,
     check_feature_matrix_vector,
     check_review_detail_page_vector,
     check_review_transcript_vector,
@@ -35,6 +36,7 @@ from scripts.verify_specs import (
     smartcard_apdu_vector_names,
     session_import_review_vector_names,
     display_safe_text,
+    device_security_profile_vector_names,
     feature_matrix_vector_names,
 )
 import scripts.verify_specs as verify_specs
@@ -460,6 +462,21 @@ class VerifySpecsTests(unittest.TestCase):
             errors: list[str] = []
 
             check_feature_matrix_vector(name, errors)
+
+            self.assertEqual(errors, [], name)
+
+    def test_device_security_profile_vectors_are_discovered_from_directory(self) -> None:
+        names = device_security_profile_vector_names()
+
+        expected = sorted(path.stem for path in (ROOT / "vectors/devices").glob("*security-profile-*.json"))
+        self.assertEqual(names, expected)
+        self.assertIn("esp32-s3-security-profile-development", names)
+
+    def test_device_security_profile_vectors_validate_hardening_boundary(self) -> None:
+        for name in device_security_profile_vector_names():
+            errors: list[str] = []
+
+            check_device_security_profile_vector(name, errors)
 
             self.assertEqual(errors, [], name)
 
