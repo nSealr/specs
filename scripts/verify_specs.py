@@ -2808,6 +2808,10 @@ def compact_json(value: object) -> str:
     return json.dumps(value, ensure_ascii=False, separators=(",", ":"))
 
 
+def canonical_json(value: object) -> str:
+    return json.dumps(value, ensure_ascii=False, separators=(",", ":"), sort_keys=True)
+
+
 NIP46_PERMISSION_METHODS = {
     "sign_event",
     "nip04_encrypt",
@@ -3391,6 +3395,16 @@ def check_nip46_connect_intent(vector_path: str, vector: dict, message: dict, er
     expected_review = expected_nip46_connect_review(expected)
     if vector.get("connect_review") != expected_review:
         errors.append(f"{vector_path}: connect_review mismatch")
+    expected_approval = expected_nip46_connect_approval(
+        expected_review,
+        vector.get("connect_approval", {}).get("approved_at") if isinstance(vector.get("connect_approval"), dict) else None,
+        errors,
+        vector_path,
+    )
+    if expected_approval is None:
+        return
+    if vector.get("connect_approval") != expected_approval:
+        errors.append(f"{vector_path}: connect_approval mismatch")
     for forbidden in ("nsealr_request", "nsealr_response", "response_message", "local_response_message"):
         if forbidden in vector:
             errors.append(f"{vector_path}: connect must not include {forbidden}")
@@ -3421,7 +3435,7 @@ def expected_nip46_connect_intent(vector_path: str, message: dict, errors: list[
 def expected_nip46_connect_review(intent: dict) -> dict:
     permissions = intent.get("requested_permissions", [])
     permission_lines = [permission_label(permission) for permission in permissions]
-    return {
+    review = {
         "format": "nsealr-nip46-connect-review-v0",
         "id": intent["id"],
         "remote_signer_pubkey": intent["remote_signer_pubkey"],
@@ -3443,6 +3457,47 @@ def expected_nip46_connect_review(intent: dict) -> dict:
                 "body_lines": permission_lines if permission_lines else ["No permissions requested"],
             },
         ],
+    }
+    review["connect_digest"] = nip46_connect_digest(review)
+    return review
+
+
+def nip46_connect_digest(review: dict) -> str:
+    review_without_digest = {
+        "format": review.get("format"),
+        "id": review.get("id"),
+        "remote_signer_pubkey": review.get("remote_signer_pubkey"),
+        "secret_present": review.get("secret_present"),
+        "requested_permissions": review.get("requested_permissions"),
+        "pages": review.get("pages"),
+    }
+    payload = {
+        "format": "nsealr-nip46-connect-digest-v0",
+        "review": review_without_digest,
+    }
+    return sha256_hex(canonical_json(payload).encode("utf-8"))
+
+
+def expected_nip46_connect_approval(
+    review: dict,
+    approved_at: object,
+    errors: list[str],
+    vector_path: str,
+) -> dict | None:
+    if type(approved_at) is not int or approved_at < 0 or approved_at > MAX_SAFE_INTEGER:
+        errors.append(f"{vector_path}: connect_approval approved_at must be a safe non-negative integer")
+        return None
+    return {
+        "format": "nsealr-nip46-connect-approval-v0",
+        "id": review["id"],
+        "connect_digest": review["connect_digest"],
+        "approved_at": approved_at,
+        "acknowledges_connect": False,
+        "creates_grants": False,
+        "opens_relay": False,
+        "persists_session_state": False,
+        "stores_production_secrets": False,
+        "exposes_secret": False,
     }
 
 

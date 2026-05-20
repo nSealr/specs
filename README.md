@@ -66,7 +66,9 @@ companion implementation must agree on:
   explicit permission requirement/check/bridge decision outputs. The
   `connect` review contract displays the remote signer pubkey, whether a
   secret was provided, and requested permissions without echoing the secret
-  value or implying `ack`, relay sessions, NIP-44 handling, or stored grants.
+  value. It now also carries a digest-bound local approval artifact that proves
+  which review was approved, without implying `ack`, relay sessions, NIP-44
+  handling, or stored grants.
 - NIP-46 read-only policy-file vectors for explicit approved permissions used
   by companion decision harnesses.
 - NIP-46 connection URI vectors for descriptor-only `bunker://` and

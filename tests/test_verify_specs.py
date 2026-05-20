@@ -471,6 +471,22 @@ class VerifySpecsTests(unittest.TestCase):
                 },
             ],
         )
+        self.assertRegex(connect["connect_review"]["connect_digest"], r"^[0-9a-f]{64}$")
+        self.assertEqual(
+            connect["connect_approval"],
+            {
+                "format": "nsealr-nip46-connect-approval-v0",
+                "id": "nip46-connect-1",
+                "connect_digest": connect["connect_review"]["connect_digest"],
+                "approved_at": 1900000001,
+                "acknowledges_connect": False,
+                "creates_grants": False,
+                "opens_relay": False,
+                "persists_session_state": False,
+                "stores_production_secrets": False,
+                "exposes_secret": False,
+            },
+        )
 
     def test_nip46_bridge_decision_checker_rejects_mismatches(self) -> None:
         vector = deepcopy(load_json("vectors/nip46/ping.json"))

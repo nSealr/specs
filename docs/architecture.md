@@ -91,7 +91,9 @@ signer implementation.
   display tests. These pages expose the remote signer pubkey, secret presence,
   and requested permissions, but never echo the secret value and never create an
   authorization, acknowledgement, relay session, NIP-44 session, or persisted
-  grant.
+  grant. The same vector includes a digest-bound local approval artifact so a
+  future acknowledgement path can prove the exact reviewed content without
+  treating the approval itself as a connection acknowledgement or grant.
 - Publish read-only NIP-46 policy-file vectors that pin explicit approved
   permissions consumed by companion decision harnesses without implying grant
   storage, client authorization, `connect` acknowledgement, relay sessions, or

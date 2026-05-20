@@ -66,7 +66,8 @@ QR review transcripts now include detail-mode scroll-window navigation so
 Raspberry and ESP32 display/button adapter tests can agree on `Next/Scroll`
 behavior for long tag reviews.
 The `connect` vector now also pins deterministic review pages that show remote
-signer identity, secret presence, and requested permissions without producing
+signer identity, secret presence, and requested permissions, plus a
+digest-bound local approval artifact for the reviewed pages, without producing
 an acknowledgement, grant, relay session, or NIP-44 state.
 NIP-46 connection URI vectors now pin descriptor-only parsing of `bunker://`
 and `nostrconnect://` tokens, including relay validation, requested

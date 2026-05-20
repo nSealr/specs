@@ -102,9 +102,11 @@ fixtures.
   request/response payloads, plus `connect` parsing into policy-review intents
   and deterministic review pages without `ack` or permission grants. The
   review pages show the remote signer pubkey, secret presence, and requested
-  permissions, but do not echo the secret value. Non-`connect` vectors also
-  carry the derived permission requirement and positive/negative
-  permission-check decisions. All NIP-46 payload vectors also carry explicit
+  permissions, but do not echo the secret value. The `connect` fixture also
+  pins a digest-bound local approval artifact that records only the reviewed
+  digest and explicit no-side-effect flags. Non-`connect` vectors also carry
+  the derived permission requirement and positive/negative permission-check
+  decisions. All NIP-46 payload vectors also carry explicit
   bridge decisions that pin permitted signer routing, local response routing,
   `connect` review, and permission-denied responses.
 - NIP-46 vector discovery tests ensure every `vectors/nip46/*.json` file is
