@@ -111,6 +111,10 @@ signer implementation.
   acknowledgement, reject QR-vault, smartcard, and external NIP-46 grants, and
   require expiry, rate limits, revocation, audit, and device policy
   confirmation for ESP32 USB/NIP-46 and custom hardware-wallet automation.
+  The v0 nSealr-managed grant automation menu is intentionally narrow: grant
+  descriptors may authorize only `sign_event` kind `1`. Any additional
+  automated method or event kind requires a new specs revision, vectors, and
+  downstream parser updates before it can be treated as supported behavior.
   External NIP-46 routes remain external-policy interoperability metadata
   rather than nSealr-managed scoped automation. The descriptor contracts are
   closed-schema at every routing/policy layer and require explicit

@@ -35,11 +35,11 @@
     },
     "permission": {
       "type": "object",
-      "required": ["method"],
+      "required": ["method", "parameter", "event_kind"],
       "properties": {
-        "method": { "type": "string", "minLength": 1 },
-        "parameter": { "type": "string" },
-        "event_kind": { "type": "integer", "minimum": 0 }
+        "method": { "const": "sign_event" },
+        "parameter": { "const": "1" },
+        "event_kind": { "const": 1 }
       },
       "additionalProperties": false
     },

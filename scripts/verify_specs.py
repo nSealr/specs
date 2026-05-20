@@ -70,6 +70,7 @@ POLICY_MODES = {"manual_only", "scoped_automation"}
 POLICY_CHANGE_ROUTE_TYPES = {"esp32_usb_nip46", "custom_hardware_wallet"}
 GRANT_ROUTE_TYPES = {"esp32_usb_nip46", "custom_hardware_wallet"}
 GRANT_DECISIONS = {"allow_once", "allow_until_expiry"}
+GRANT_AUTOMATION_EVENT_KINDS = {1}
 POLICY_DECISIONS = {"allow", "deny", "manual_review"}
 POLICY_DECISION_REASONS = {
     "decrypt_requires_manual_review",
@@ -1050,6 +1051,8 @@ def check_permission_shape(path: str, permission: object, errors: list[str], *, 
         errors.append(f"{path}: grant permission must not use wildcards")
     if grant_permission and method in DECRYPT_METHODS:
         errors.append(f"{path}: decrypt grant permissions require manual review")
+    if grant_permission and method != "sign_event":
+        errors.append(f"{path}: v0 grants support only sign_event kind 1 automation")
     if method == "sign_event":
         parameter = permission.get("parameter")
         event_kind = permission.get("event_kind")
@@ -1059,6 +1062,8 @@ def check_permission_shape(path: str, permission: object, errors: list[str], *, 
             errors.append(f"{path}: sign_event permission.event_kind must be a non-negative integer")
         elif isinstance(parameter, str) and parameter.isdigit() and int(parameter) != event_kind:
             errors.append(f"{path}: sign_event permission parameter/event_kind mismatch")
+        if grant_permission and (parameter != "1" or event_kind not in GRANT_AUTOMATION_EVENT_KINDS):
+            errors.append(f"{path}: v0 grants support only sign_event kind 1 automation")
     unknown = sorted(set(permission) - {"method", "parameter", "event_kind"})
     if unknown:
         errors.append(f"{path}: permission has unknown fields {unknown}")

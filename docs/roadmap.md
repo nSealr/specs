@@ -85,6 +85,11 @@ contracts for routing and policy descriptors, including nested signer routes,
 recovery records, capabilities, grant clients, grant permissions, rate limits,
 and strict `policy-*` / `grant-*` identifiers.
 
+Status note, 2026-05-19: nSealr-managed grant descriptors now pin the v0
+automation menu to `sign_event` kind `1` only. Other event kinds and other
+methods remain manual-review or future-spec work until a later specs revision
+adds explicit vectors, schema, and downstream parser support.
+
 Status note, 2026-05-19: policy-decision transcript vectors now pin the
 pre-storage automation boundary for persistent routes: valid grants may allow a
 scoped `sign_event`, expired or revoked grants are denied, active rate-limit

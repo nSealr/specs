@@ -150,7 +150,9 @@ fixtures.
   unsupported descriptor, route, recovery, capability, policy-profile,
   grant-client, grant-permission, and rate-limit fields, malformed
   `policy-*`/`grant-*` identifiers, and inactive `grant_constraints` on
-  manual-only profiles.
+  manual-only profiles. nSealr-managed grant permissions are also pinned to
+  the v0 automation menu: only `sign_event` kind `1` may appear in a grant
+  descriptor until a later specs revision expands the contract.
 - Identity/policy schema tests ensure account descriptors, policy profiles, and
   grant descriptors expose the expected required contract surface, closed
   `additionalProperties: false` boundaries, explicit identifier patterns, and
@@ -159,7 +161,7 @@ fixtures.
   policy-support, physical-review, physical-approval, and persistent-grant
   constraints. Policy-profile and grant-descriptor schema tests require nSealr
   scoped grants to stay limited to ESP32 USB/NIP-46 and custom hardware-wallet
-  persistent policy routes.
+  persistent policy routes and to authorize only `sign_event` kind `1` in v0.
 - Policy-change review vector discovery tests ensure every file under
   `vectors/policy-changes/` is included in conformance verification.
 - Policy-change review semantic tests pin the persistent-device default
