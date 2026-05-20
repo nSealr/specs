@@ -85,9 +85,11 @@ message has been supplied by a future decryption layer, request steps must
 return the same bridge decision they would return for local decrypted payloads,
 and response steps must shape-check plaintext NIP-46 response messages while
 binding public-key and signed-event result pubkeys to the relay-event sender.
-Both still avoid relay I/O, NIP-44 decryption, `connect` acknowledgement,
-grant creation, signer dispatch, signature verification, and session
-persistence.
+Auth challenge responses are now recognized as metadata-only response steps:
+they expose a safe http(s) auth URL without credentials or fragments for later
+UI, without opening it or treating a generic result/error pair as valid. Both
+still avoid relay I/O, NIP-44 decryption, `connect` acknowledgement, grant
+creation, signer dispatch, signature verification, and session persistence.
 NIP-46 session lifecycle checkpoint vectors now pin the next M5 boundary after
 manual connect approval: a reviewed digest, client/signer pubkeys, relays,
 approval time, expiry, requested permissions, and approved permission subsets

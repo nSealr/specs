@@ -115,9 +115,11 @@ signer implementation.
   envelope/message pairs, return deterministic bridge decisions, and
   shape-check response messages. Public-key and signed-event response results
   must match the relay event sender pubkey before later session code can accept
-  them. This still happens without opening relays, decrypting content itself,
-  acknowledging `connect`, creating grants, dispatching signers, verifying
-  signatures, or persisting session state.
+  them, while auth challenge responses expose only a safe http(s) URL string
+  without credentials or fragments for later UX and do not open it. This still
+  happens without opening relays, decrypting content itself, acknowledging
+  `connect`, creating grants, dispatching signers, verifying signatures, or
+  persisting session state.
 - Publish NIP-46 session lifecycle checkpoint vectors for the boundary after a
   reviewed `connect` approval and before any active relay session. These
   vectors bind client/signer pubkeys, relay URLs, reviewed connect digest,

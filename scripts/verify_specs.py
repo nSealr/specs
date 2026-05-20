@@ -2946,6 +2946,18 @@ def normalized_http_url(value: str, name: str, vector_path: str, errors: list[st
     return urlunparse((parsed.scheme, parsed.netloc, path, "", parsed.query, ""))
 
 
+def normalized_nip46_auth_url(value: str, vector_path: str, errors: list[str]) -> str | None:
+    parsed = urlparse(value)
+    if parsed.scheme not in {"http", "https"} or parsed.username or parsed.password or parsed.fragment:
+        errors.append(f"{vector_path}: NIP-46 auth challenge URL must be an http(s) URL without credentials or fragment")
+        return None
+    if not parsed.hostname:
+        errors.append(f"{vector_path}: NIP-46 auth challenge URL host is required")
+        return None
+    path = parsed.path or "/"
+    return urlunparse((parsed.scheme, parsed.netloc, path, "", parsed.query, ""))
+
+
 def expected_nip46_connection_uri_descriptor(vector_path: str, uri: object, errors: list[str]) -> dict | None:
     if not isinstance(uri, str) or not uri or uri.strip() != uri:
         errors.append(f"{vector_path}: NIP-46 connection URI must be a non-empty trimmed string")
@@ -3388,7 +3400,12 @@ def check_nip46_relay_response_message(vector_path: str, message: object, errors
     has_result = "result" in message
     has_error = "error" in message
     if has_result == has_error:
-        errors.append(f"{vector_path}: response_message must contain exactly one of result or error")
+        if has_result and message.get("result") == "auth_url" and isinstance(message.get("error"), str):
+            normalized_auth_url = normalized_nip46_auth_url(message["error"], vector_path, errors)
+            if normalized_auth_url is not None and normalized_auth_url != message["error"]:
+                errors.append(f"{vector_path}: response_message auth_url must be normalized")
+            return message
+        errors.append(f"{vector_path}: response_message result and error together are only allowed for auth_url")
         return message
     if has_result and not isinstance(message.get("result"), str):
         errors.append(f"{vector_path}: response_message result must be a string")
@@ -3403,6 +3420,8 @@ def expected_nip46_relay_response_result_type(
     sender_pubkey: str,
     errors: list[str],
 ) -> tuple[str, bool, bool]:
+    if message.get("result") == "auth_url" and "error" in message:
+        return ("auth_challenge", False, False)
     if "error" in message:
         return ("error", False, False)
     result = message.get("result")
@@ -3463,7 +3482,7 @@ def expected_nip46_relay_response_step(vector_path: str, vector: dict, errors: l
     )
     if errors and any(error.startswith(f"{vector_path}:") for error in errors):
         return None
-    return {
+    expected = {
         "format": "nsealr-nip46-relay-response-step-v0",
         "envelope": envelope,
         "message_id": message["id"],
@@ -3480,6 +3499,9 @@ def expected_nip46_relay_response_step(vector_path: str, vector: dict, errors: l
         "stores_production_secrets": False,
         "persists_session_state": False,
     }
+    if result_type == "auth_challenge":
+        expected["auth_url"] = message["error"]
+    return expected
 
 
 def check_invalid_nip46_relay_step(vector_path: str, vector: dict, errors: list[str]) -> None:
