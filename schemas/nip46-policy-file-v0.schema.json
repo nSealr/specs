@@ -17,13 +17,6 @@
     "permission": {
       "oneOf": [
         {
-          "required": ["method"],
-          "properties": {
-            "method": { "const": "sign_event" }
-          },
-          "additionalProperties": false
-        },
-        {
           "required": ["method", "parameter", "event_kind"],
           "properties": {
             "method": { "const": "sign_event" },

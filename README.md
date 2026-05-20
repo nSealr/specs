@@ -72,7 +72,9 @@ companion implementation must agree on:
 - NIP-46 connection URI vectors for descriptor-only `bunker://` and
   `nostrconnect://` token parsing without relay sessions, grant creation, or
   secret echo.
-- JSON schema for the read-only NIP-46 policy-file format.
+- JSON schema for the read-only NIP-46 policy-file format. Approved
+  `sign_event` entries must be kind-scoped; broad `sign_event` is only
+  requested-permission metadata.
 - Identity, recovery, policy, grant descriptor, policy-change review, and
   policy-decision transcript vectors for secretless companion routing across
   the five signer families, plus an external NIP-46 adapter route. Descriptor

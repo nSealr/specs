@@ -397,6 +397,15 @@ class VerifySpecsTests(unittest.TestCase):
 
         self.assertEqual(schema["title"], "nSealr NIP-46 Policy File v0")
         self.assertEqual(schema["required"], ["format", "approved_permissions"])
+        permission_variants = schema["$defs"]["permission"]["oneOf"]
+        self.assertNotIn(
+            {
+                "required": ["method"],
+                "properties": {"method": {"const": "sign_event"}},
+                "additionalProperties": False,
+            },
+            permission_variants,
+        )
 
     def test_nip46_permission_policy_vectors_pin_request_decisions(self) -> None:
         policy_vectors = {

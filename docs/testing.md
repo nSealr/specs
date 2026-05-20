@@ -243,7 +243,10 @@ policy-review intent and review pages, and that every non-`connect` NIP-46
 vector has matching permission requirements, permission-check decisions, and
 bridge decisions.
 It also checks that every NIP-46 policy-file vector uses
-`nsealr-nip46-policy-v0` and normalized explicit approved permissions.
+`nsealr-nip46-policy-v0` and normalized explicit approved permissions. Broad
+`sign_event` remains valid only as requested-permission metadata; approved
+policy-file entries must pin `sign_event` with both `parameter` and
+`event_kind`.
 It also checks SeedSigner-compatible SeedQR vectors so Standard SeedQR digits
 and CompactSeedQR entropy bytes stay bound to the same BIP-39 word indexes.
 It also checks NIP-19 `nsec` vectors so direct private-key import stays

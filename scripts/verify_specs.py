@@ -3230,7 +3230,7 @@ def check_invalid_vector(rel: str, errors: list[str]) -> None:
                 rejection_errors.append(f"{vector_path}: approved_permissions must be a list")
             else:
                 for permission in approved_permissions:
-                    normalized_nip46_permission(vector_path, permission, rejection_errors)
+                    normalized_nip46_approved_permission(vector_path, permission, rejection_errors)
     else:
         errors.append(f"{vector_path}: unsupported invalid-vector category {category!r}")
         return
@@ -3337,6 +3337,16 @@ def normalized_nip46_permission(vector_path: str, value: object, errors: list[st
         errors.append(f"{vector_path}: non-sign_event permission must only include method")
         return None
     return {"method": method}
+
+
+def normalized_nip46_approved_permission(vector_path: str, value: object, errors: list[str]) -> dict | None:
+    normalized = normalized_nip46_permission(vector_path, value, errors)
+    if normalized is None:
+        return None
+    if normalized.get("method") == "sign_event" and "parameter" not in normalized:
+        errors.append(f"{vector_path}: approved sign_event permission must include parameter and event_kind")
+        return None
+    return normalized
 
 
 def nip46_permission_matches_requirement(permission: dict, requirement: dict) -> bool:
@@ -3573,7 +3583,7 @@ def check_nip46_policy_file_vector(rel: str, errors: list[str]) -> None:
         errors.append(f"{vector_path}: approved_permissions must be a list")
         return
     for index, permission in enumerate(approved_permissions):
-        normalized = normalized_nip46_permission(vector_path, permission, errors)
+        normalized = normalized_nip46_approved_permission(vector_path, permission, errors)
         if normalized is not None and permission != normalized:
             errors.append(f"{vector_path}: approved_permissions[{index}] must be normalized")
 

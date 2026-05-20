@@ -95,7 +95,9 @@ signer implementation.
 - Publish read-only NIP-46 policy-file vectors that pin explicit approved
   permissions consumed by companion decision harnesses without implying grant
   storage, client authorization, `connect` acknowledgement, relay sessions, or
-  NIP-44 handling.
+  NIP-44 handling. Policy-file approvals must not use broad `sign_event`;
+  approved `sign_event` entries must include both the string `parameter` and
+  numeric `event_kind` selector.
 - Publish descriptor-only NIP-46 connection URI vectors for `bunker://` and
   `nostrconnect://` tokens. These vectors validate pubkeys, relays, requested
   permissions, optional client metadata, and secret presence, but they must not
