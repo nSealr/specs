@@ -80,9 +80,11 @@ grant creation, or signer dispatch is implemented.
 NIP-46 relay step vectors now pin the next M5 boundaries: once a plaintext
 message has been supplied by a future decryption layer, request steps must
 return the same bridge decision they would return for local decrypted payloads,
-and response steps must shape-check plaintext NIP-46 response messages. Both
-still avoid relay I/O, NIP-44 decryption, `connect` acknowledgement, grant
-creation, signer dispatch, signature verification, and session persistence.
+and response steps must shape-check plaintext NIP-46 response messages while
+binding public-key and signed-event result pubkeys to the relay-event sender.
+Both still avoid relay I/O, NIP-44 decryption, `connect` acknowledgement,
+grant creation, signer dispatch, signature verification, and session
+persistence.
 
 Status note, 2026-05-11: account descriptors, policy profiles, and grant
 descriptors now exist as shared vectors and schemas. They keep companion
