@@ -172,7 +172,10 @@ fixtures.
   `vectors/route-selections/` is included in conformance verification.
 - Route-selection semantic tests pin secretless account-to-route selection for
   supported methods before any persistent grant store, signer transport
-  session, or browser/native host dispatch exists.
+  session, or browser/native host dispatch exists. Route-selection schema
+  tests also require route-type dependent repository, transport, custody,
+  trusted-review, policy-support, physical-review, physical-approval, and
+  persistent-grant constraints.
 - Access-surface vector discovery tests ensure every file under
   `vectors/access-surfaces/` is included in conformance verification.
 - Access-surface semantic tests pin secretless browser/local-service behavior:
@@ -256,7 +259,8 @@ pure policy evaluator and emit the expected `nsealr-grant-audit-event-v0`
 records for allowed, denied, and manual-review decisions.
 It also checks that route-selection vectors match the referenced account
 descriptor and supported method, producing secretless route metadata without
-authorizing signer I/O.
+authorizing signer I/O, and that route-selection schemas reject impossible
+route metadata combinations before external consumers can trust them.
 It also checks that access-surface vectors stay secretless and deterministic,
 including NIP-07 browser provider behavior over local companion service route
 selection and signer-unavailable dispatch.

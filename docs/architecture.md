@@ -145,7 +145,10 @@ signer implementation.
   and requested method to the selected signer route metadata. These vectors are
   secretless routing contracts only: they do not approve a client, create a
   grant, select a transport session, dispatch signer I/O, or claim that the
-  selected route is production-ready.
+  selected route is production-ready. The route-selection schema also encodes
+  route-type dependent repository, transport, custody, review, policy, and
+  persistent-grant constraints so schema consumers cannot accept looser route
+  metadata than the verifier and companion parser.
 - Publish a deterministic feature conformance matrix for the five first-class
   signer families. The matrix separates final product targets from current
   implementation status and requires the same `contract_id` wherever a feature

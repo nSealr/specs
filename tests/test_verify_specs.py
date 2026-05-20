@@ -950,6 +950,45 @@ class VerifySpecsTests(unittest.TestCase):
             route_selection_schema["properties"]["selection"]["properties"]["policy_profile_id"]["pattern"],
             "^policy-[A-Za-z0-9._:-]{1,121}$",
         )
+        route_selection_semantics = route_selection_schema["properties"]["selection"]["allOf"]
+        self.assertEqual(len(route_selection_semantics), 6)
+        self.assertIn({
+            "if": {
+                "properties": {"route_type": {"const": "esp32_usb_nip46"}},
+                "required": ["route_type"],
+            },
+            "then": {
+                "required": ["repository"],
+                "properties": {
+                    "repository": {"const": "esp32"},
+                    "transport": {"const": "usb"},
+                    "custody": {"const": "device_persistent"},
+                    "trusted_review": {"const": "device_display"},
+                    "policy_support": {"const": "scoped_automation"},
+                    "physical_review": {"const": True},
+                    "physical_approval": {"const": True},
+                    "persistent_grants": {"const": True},
+                },
+            },
+        }, route_selection_semantics)
+        self.assertIn({
+            "if": {
+                "properties": {"route_type": {"const": "external_nip46"}},
+                "required": ["route_type"],
+            },
+            "then": {
+                "not": {"required": ["repository"]},
+                "properties": {
+                    "transport": {"const": "nip46_relay"},
+                    "custody": {"const": "external_signer"},
+                    "trusted_review": {"const": "external_policy"},
+                    "policy_support": {"const": "external"},
+                    "physical_review": {"const": False},
+                    "physical_approval": {"const": False},
+                    "persistent_grants": {"const": False},
+                },
+            },
+        }, route_selection_semantics)
 
 
 if __name__ == "__main__":

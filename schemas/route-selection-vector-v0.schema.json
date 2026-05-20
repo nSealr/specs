@@ -115,7 +115,122 @@
         "contains_secret_material": {
           "const": false
         }
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": { "route_type": { "const": "raspberry_qr_vault" } },
+            "required": ["route_type"]
+          },
+          "then": {
+            "required": ["repository"],
+            "properties": {
+              "repository": { "const": "raspberry" },
+              "transport": { "const": "qr" },
+              "custody": { "const": "stateless_session" },
+              "trusted_review": { "const": "device_display" },
+              "policy_support": { "const": "manual_only" },
+              "physical_review": { "const": true },
+              "physical_approval": { "const": true },
+              "persistent_grants": { "const": false }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": { "route_type": { "const": "esp32_qr_vault" } },
+            "required": ["route_type"]
+          },
+          "then": {
+            "required": ["repository"],
+            "properties": {
+              "repository": { "const": "esp32" },
+              "transport": { "const": "qr" },
+              "custody": { "const": "stateless_session" },
+              "trusted_review": { "const": "device_display" },
+              "policy_support": { "const": "manual_only" },
+              "physical_review": { "const": true },
+              "physical_approval": { "const": true },
+              "persistent_grants": { "const": false }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": { "route_type": { "const": "esp32_usb_nip46" } },
+            "required": ["route_type"]
+          },
+          "then": {
+            "required": ["repository"],
+            "properties": {
+              "repository": { "const": "esp32" },
+              "transport": { "const": "usb" },
+              "custody": { "const": "device_persistent" },
+              "trusted_review": { "const": "device_display" },
+              "policy_support": { "const": "scoped_automation" },
+              "physical_review": { "const": true },
+              "physical_approval": { "const": true },
+              "persistent_grants": { "const": true }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": { "route_type": { "const": "smartcard" } },
+            "required": ["route_type"]
+          },
+          "then": {
+            "required": ["repository"],
+            "properties": {
+              "repository": { "const": "smartcard" },
+              "transport": { "const": "smartcard" },
+              "custody": { "const": "card_persistent" },
+              "trusted_review": { "const": "display_less" },
+              "policy_support": { "const": "manual_only" },
+              "physical_review": { "const": false },
+              "physical_approval": { "const": false },
+              "persistent_grants": { "const": false }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": { "route_type": { "const": "custom_hardware_wallet" } },
+            "required": ["route_type"]
+          },
+          "then": {
+            "required": ["repository"],
+            "properties": {
+              "repository": { "const": "hardware" },
+              "transport": { "const": "usb" },
+              "custody": { "const": "custom_hardware_persistent" },
+              "trusted_review": { "const": "device_display" },
+              "policy_support": { "const": "scoped_automation" },
+              "physical_review": { "const": true },
+              "physical_approval": { "const": true },
+              "persistent_grants": { "const": true }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": { "route_type": { "const": "external_nip46" } },
+            "required": ["route_type"]
+          },
+          "then": {
+            "not": { "required": ["repository"] },
+            "properties": {
+              "transport": { "const": "nip46_relay" },
+              "custody": { "const": "external_signer" },
+              "trusted_review": { "const": "external_policy" },
+              "policy_support": { "const": "external" },
+              "physical_review": { "const": false },
+              "physical_approval": { "const": false },
+              "persistent_grants": { "const": false }
+            }
+          }
+        }
+      ]
     }
   }
 }
