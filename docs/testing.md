@@ -141,11 +141,12 @@ fixtures.
   ensure every file under `vectors/accounts/`, `vectors/policies/`, and
   `vectors/grants/` is included in conformance verification.
 - Identity/policy semantic tests reject embedded secret fields, QR-vault
-  automation, display-less smartcard automation, external NIP-46 nSealr
-  automation, wildcard grants, route/policy mismatches, missing or mismatched
-  NIP-06 recovery source vectors, mismatched NIP-06 recovery source
-  fingerprints, and grant targets that point anywhere except ESP32 USB/NIP-46
-  or custom hardware-wallet persistent policy routes. They also reject
+  automation, display-less smartcard automation, external NIP-46
+  nSealr-managed automation, wildcard grants, route/policy mismatches, missing
+  or mismatched NIP-06 recovery source vectors, mismatched NIP-06 recovery
+  source fingerprints, and grant targets that point anywhere except ESP32
+  USB/NIP-46 or custom hardware-wallet persistent policy routes. They also
+  reject
   unsupported descriptor, route, recovery, capability, policy-profile,
   grant-client, grant-permission, and rate-limit fields, malformed
   `policy-*`/`grant-*` identifiers, and inactive `grant_constraints` on
