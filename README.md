@@ -95,8 +95,10 @@ companion implementation must agree on:
   metadata cannot become later routing or policy semantics. nSealr-managed
   grant descriptors are limited to persistent policy routes with device
   confirmation: ESP32 USB/NIP-46 and custom hardware wallets. The v0 grant
-  automation menu is limited to `sign_event` kind `1`; broader automated
-  signing remains future-spec work.
+  automation menu is limited to `sign_event` kind `1`; grants are temporary
+  scoped session records with expiry, rate limits, revocation, and audit, not
+  a separate grant-decision-mode system. Broader automated signing remains
+  future-spec work.
 - Route-selection vectors that bind each shared account descriptor plus a
   requested method to a secretless selected signer route without dispatching
   signer I/O. NIP-06 account descriptors also bind to the same reviewed source

@@ -10,7 +10,6 @@
     "route_type",
     "client",
     "permission",
-    "decision",
     "expires_at",
     "rate_limit",
     "requires_device_policy_confirmation",
@@ -43,7 +42,6 @@
       },
       "additionalProperties": false
     },
-    "decision": { "enum": ["allow_once", "allow_until_expiry"] },
     "expires_at": { "type": "integer", "minimum": 1 },
     "rate_limit": {
       "type": "object",

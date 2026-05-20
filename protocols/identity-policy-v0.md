@@ -166,7 +166,7 @@ Grants must be scoped by account, route, client pubkey, method, and method
 parameter when relevant. `sign_event` grants must pin both the string
 permission parameter and the integer event kind.
 
-Grant descriptors must include:
+Grant descriptors are deliberately narrow v0 session grants. They must include:
 
 - expiry;
 - rate limit;
@@ -175,6 +175,10 @@ Grant descriptors must include:
 - audit event format.
 
 Wildcards are invalid. Stateless QR vault routes are invalid grant targets.
+There is no separate "allow once" grant mode in v0; a one-use grant is modeled
+as the same scoped session grant with `rate_limit.max_uses: 1`, avoiding a
+second grant decision field whose lifetime cannot be audited without extra
+state.
 
 ## Policy Decision Transcript
 

@@ -103,6 +103,12 @@ automation menu to `sign_event` kind `1` only. Other event kinds and other
 methods remain manual-review or future-spec work until a later specs revision
 adds explicit vectors, schema, and downstream parser support.
 
+Status note, 2026-05-20: the v0 grant descriptor no longer carries a separate
+grant decision mode. Temporary automation is expressed through the same scoped
+session grant with `expires_at`, `rate_limit`, revocation, audit, and
+device-policy confirmation; one-use behavior is modeled as a grant with
+`rate_limit.max_uses` set to `1`.
+
 Status note, 2026-05-19: policy-decision transcript vectors now pin the
 pre-storage automation boundary for persistent routes: valid grants may allow a
 scoped `sign_event`, expired or revoked grants are denied, active rate-limit

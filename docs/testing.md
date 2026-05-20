@@ -164,6 +164,9 @@ fixtures.
   constraints. Policy-profile and grant-descriptor schema tests require nSealr
   scoped grants to stay limited to ESP32 USB/NIP-46 and custom hardware-wallet
   persistent policy routes and to authorize only `sign_event` kind `1` in v0.
+  Grant descriptor tests also reject the removed `decision` field so v0 cannot
+  grow an ambiguous grant-mode switch outside expiry/rate-limit/revocation
+  semantics.
 - Policy-change review vector discovery tests ensure every file under
   `vectors/policy-changes/` is included in conformance verification.
 - Policy-change review semantic tests pin the persistent-device default

@@ -543,6 +543,15 @@ class VerifySpecsTests(unittest.TestCase):
             verify_specs.check_grant_descriptor_vector(name, errors)
             self.assertEqual(errors, [], name)
 
+    def test_grant_descriptors_reject_stale_decision_field(self) -> None:
+        vector = deepcopy(load_json("vectors/grants/esp32-usb-kind-1-session.json"))
+        vector["decision"] = "allow_until_expiry"
+        errors: list[str] = []
+
+        verify_specs.check_grant_descriptor_shape("mutated-grant.json", vector, errors)
+
+        self.assertIn("mutated-grant.json: grant descriptor has unknown fields ['decision']", "\n".join(errors))
+
     def test_policy_decision_vectors_are_discovered_from_directory(self) -> None:
         names = policy_decision_vector_names()
 

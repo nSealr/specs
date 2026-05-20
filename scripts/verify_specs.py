@@ -70,7 +70,6 @@ POLICY_SUPPORT_MODES = {"manual_only", "scoped_automation", "external"}
 POLICY_MODES = {"manual_only", "scoped_automation"}
 POLICY_CHANGE_ROUTE_TYPES = {"esp32_usb_nip46", "custom_hardware_wallet"}
 GRANT_ROUTE_TYPES = {"esp32_usb_nip46", "custom_hardware_wallet"}
-GRANT_DECISIONS = {"allow_once", "allow_until_expiry"}
 GRANT_AUTOMATION_EVENT_KINDS = {1}
 POLICY_DECISIONS = {"allow", "deny", "manual_review"}
 POLICY_DECISION_REASONS = {
@@ -1396,7 +1395,6 @@ def check_grant_descriptor_shape(path: str, value: object, errors: list[str]) ->
             "route_type",
             "client",
             "permission",
-            "decision",
             "expires_at",
             "rate_limit",
             "requires_device_policy_confirmation",
@@ -1424,11 +1422,8 @@ def check_grant_descriptor_shape(path: str, value: object, errors: list[str]) ->
         if "label" in client and not isinstance(client["label"], str):
             errors.append(f"{path}: client.label must be a string")
     check_permission_shape(path, value.get("permission"), errors, grant_permission=True)
-    decision = value.get("decision")
-    if decision not in GRANT_DECISIONS:
-        errors.append(f"{path}: decision is unknown")
-    if decision == "allow_until_expiry" and (type(value.get("expires_at")) is not int or value["expires_at"] <= 0):
-        errors.append(f"{path}: allow_until_expiry requires positive expires_at")
+    if type(value.get("expires_at")) is not int or value["expires_at"] <= 0:
+        errors.append(f"{path}: expires_at must be a positive integer")
     rate_limit = value.get("rate_limit")
     if not isinstance(rate_limit, dict):
         errors.append(f"{path}: rate_limit must be an object")
