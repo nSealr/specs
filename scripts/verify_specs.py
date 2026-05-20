@@ -3107,8 +3107,8 @@ def normalized_websocket_relay(value: str, vector_path: str, errors: list[str]) 
 
 def normalized_http_url(value: str, name: str, vector_path: str, errors: list[str]) -> str | None:
     parsed = urlparse(value)
-    if parsed.scheme not in {"http", "https"} or parsed.username or parsed.password:
-        errors.append(f"{vector_path}: NIP-46 connection URI {name} must be an http(s) URL without credentials")
+    if parsed.scheme not in {"http", "https"} or parsed.username or parsed.password or parsed.fragment:
+        errors.append(f"{vector_path}: NIP-46 connection URI {name} must be an http(s) URL without credentials or fragment")
         return None
     if not parsed.hostname:
         errors.append(f"{vector_path}: NIP-46 connection URI {name} host is required")
@@ -3164,6 +3164,8 @@ def expected_nip46_connection_uri_descriptor(vector_path: str, uri: object, erro
     name = single_query_param(query, "name", vector_path, errors)
     client_url = single_query_param(query, "url", vector_path, errors)
     image = single_query_param(query, "image", vector_path, errors)
+    if secret == "":
+        errors.append(f"{vector_path}: NIP-46 connection URI secret must be non-empty when present")
     if errors and any(error.startswith(f"{vector_path}: NIP-46 connection URI") for error in errors):
         return None
 

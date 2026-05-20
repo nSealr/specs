@@ -120,8 +120,9 @@ fixtures.
   verification, validates descriptor-only token parsing, and proves expected
   descriptors do not echo shared secret values. Invalid hardening vectors also
   cover malformed connection URI schemes, invalid or duplicate relays,
-  duplicate secrets, forbidden bunker client metadata, and missing
-  `nostrconnect` secrets.
+  duplicate secrets or permission strings, empty secrets, unsafe client
+  metadata URLs, forbidden bunker client metadata, and missing `nostrconnect`
+  secrets.
 - NIP-46 connection token response discovery tests ensure every
   `vectors/nip46-connection-token-responses/*.json` file is included in
   conformance verification. The verifier checks source token binding,
