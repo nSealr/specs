@@ -23,6 +23,7 @@ from scripts.verify_specs import (
     check_nip46_policy_file_vector,
     check_policy_decision_vector,
     check_policy_change_review_vector,
+    check_route_refusal_contract_vector,
     check_invalid_vector,
     json_utf8_size,
     implementation_limits,
@@ -40,6 +41,7 @@ from scripts.verify_specs import (
     review_transcript_vector_names,
     seedqr_vector_names,
     review_vector_names,
+    route_refusal_contract_vector_names,
     smartcard_apdu_vector_names,
     session_import_review_vector_names,
     session_source_backup_vector_names,
@@ -542,6 +544,45 @@ class VerifySpecsTests(unittest.TestCase):
             errors = []
             verify_specs.check_grant_descriptor_vector(name, errors)
             self.assertEqual(errors, [], name)
+
+    def test_route_refusal_contract_vectors_are_discovered_from_directory(self) -> None:
+        names = route_refusal_contract_vector_names()
+
+        self.assertEqual(names, vector_names_from_dir("vectors/route-refusals"))
+        self.assertEqual(names, ["signer-route-refusals-v0"])
+
+    def test_route_refusal_contract_vectors_validate_every_route(self) -> None:
+        for name in route_refusal_contract_vector_names():
+            errors: list[str] = []
+
+            check_route_refusal_contract_vector(name, errors)
+
+            self.assertEqual(errors, [], name)
+
+    def test_route_refusal_contract_vectors_reject_acknowledgement_drift(self) -> None:
+        vector = deepcopy(load_json("vectors/route-refusals/signer-route-refusals-v0.json"))
+        vector["cases"][0]["external_review_acknowledgement"]["mode"] = "required"
+        vector["cases"][-1]["without_dispatcher"] = {
+            "error_code": "signer_route_unavailable",
+            "message": "bad display-less shortcut",
+            "retryable": False,
+        }
+        vector["safety"]["dispatches_without_signer"] = True
+        errors: list[str] = []
+
+        with patch("scripts.verify_specs.load_required_json") as load_mock:
+            def load_mutation(path: str, errors_arg: list[str]) -> dict:
+                if path == "vectors/route-refusals/mutated-route-refusals.json":
+                    return vector
+                return load_json(path)
+
+            load_mock.side_effect = load_mutation
+            check_route_refusal_contract_vector("mutated-route-refusals", errors)
+
+        joined = "\n".join(errors)
+        self.assertIn("trusted-review routes must reject external review acknowledgement", joined)
+        self.assertIn("display-less route must not bypass acknowledgement before dispatcher", joined)
+        self.assertIn("safety boundary mismatch", joined)
 
     def test_grant_descriptors_reject_stale_decision_field(self) -> None:
         vector = deepcopy(load_json("vectors/grants/esp32-usb-kind-1-session.json"))

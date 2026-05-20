@@ -228,6 +228,14 @@ STATELESS_QR_PARITY_FEATURES = {
     "device_display_review",
     "response_verification",
 }
+ROUTE_REFUSAL_SAFETY = {
+    "stores_production_secrets": False,
+    "contains_secret_material": False,
+    "creates_grants": False,
+    "dispatches_without_signer": False,
+    "requires_shared_request_validation": True,
+    "requires_signed_response_verification": True,
+}
 
 
 def load_json(rel: str) -> dict:
@@ -948,6 +956,10 @@ def policy_change_review_vector_names() -> list[str]:
 
 def route_selection_vector_names() -> list[str]:
     return sorted(path.stem for path in (ROOT / "vectors" / "route-selections").glob("*.json"))
+
+
+def route_refusal_contract_vector_names() -> list[str]:
+    return sorted(path.stem for path in (ROOT / "vectors" / "route-refusals").glob("*.json"))
 
 
 def access_surface_vector_names() -> list[str]:
@@ -2130,6 +2142,129 @@ def check_route_selection_vector(rel: str, errors: list[str]) -> None:
     expected = expected_route_selection(vector_path, vector, errors)
     if expected is not None and vector.get("selection") != expected:
         errors.append(f"{vector_path}: selection mismatch")
+
+
+def check_route_refusal_error(path: str, value: object, expected_code: str, errors: list[str]) -> None:
+    if not isinstance(value, dict):
+        errors.append(f"{path}: error expectation must be an object")
+        return
+    if set(value.keys()) != {"error_code", "message", "retryable"}:
+        errors.append(f"{path}: error expectation has unsupported fields")
+    if value.get("error_code") != expected_code:
+        errors.append(f"{path}: expected error_code {expected_code}")
+    if not isinstance(value.get("message"), str) or len(value.get("message", "")) == 0:
+        errors.append(f"{path}: message must be a non-empty string")
+    if value.get("retryable") is not False:
+        errors.append(f"{path}: retryable must be false")
+
+
+def check_route_refusal_contract_vector(rel: str, errors: list[str]) -> None:
+    vector_path = f"vectors/route-refusals/{rel}.json"
+    vector = load_required_json(vector_path, errors)
+    if vector is None:
+        return
+    if not isinstance(vector, dict):
+        errors.append(f"{vector_path}: route-refusal contract must be an object")
+        return
+    check_no_secret_fields(vector_path, vector, errors)
+    if vector.get("name") != rel:
+        errors.append(f"{vector_path}: name mismatch")
+    if vector.get("format") != "nsealr-route-refusal-contract-v0":
+        errors.append(f"{vector_path}: format mismatch")
+
+    request_vector = vector.get("request_vector")
+    if not isinstance(request_vector, str) or not request_vector.startswith("examples/"):
+        errors.append(f"{vector_path}: request_vector must point under examples/")
+    else:
+        request = load_required_json(request_vector, errors)
+        if request is not None:
+            check_request_shape(Path(request_vector), request, errors)
+            if request.get("method") != "sign_event":
+                errors.append(f"{vector_path}: request_vector must reference sign_event")
+
+    cases = vector.get("cases")
+    if not isinstance(cases, list) or len(cases) == 0:
+        errors.append(f"{vector_path}: cases must be a non-empty array")
+        cases = []
+
+    route_vectors = route_selection_vector_names()
+    seen_route_vectors: set[str] = set()
+    for index, case in enumerate(cases):
+        case_path = f"{vector_path}: cases[{index}]"
+        if not isinstance(case, dict):
+            errors.append(f"{case_path}: case must be an object")
+            continue
+        route_selection_vector = case.get("route_selection_vector")
+        if not isinstance(route_selection_vector, str) or route_selection_vector not in route_vectors:
+            errors.append(f"{case_path}: route_selection_vector is invalid")
+            continue
+        if route_selection_vector in seen_route_vectors:
+            errors.append(f"{case_path}: duplicate route_selection_vector")
+        seen_route_vectors.add(route_selection_vector)
+
+        route_vector = load_required_json(f"vectors/route-selections/{route_selection_vector}.json", errors)
+        selection = route_vector.get("selection") if isinstance(route_vector, dict) else {}
+        if not isinstance(selection, dict):
+            errors.append(f"{case_path}: route selection is invalid")
+            continue
+        if case.get("route_type") != selection.get("route_type"):
+            errors.append(f"{case_path}: route_type mismatch")
+        if case.get("trusted_review") != selection.get("trusted_review"):
+            errors.append(f"{case_path}: trusted_review mismatch")
+
+        acknowledgement = case.get("external_review_acknowledgement")
+        if not isinstance(acknowledgement, dict):
+            errors.append(f"{case_path}: external_review_acknowledgement must be an object")
+            continue
+        mode = acknowledgement.get("mode")
+        if selection.get("trusted_review") == "display_less":
+            if mode != "required":
+                errors.append(f"{case_path}: display-less routes must require external review acknowledgement")
+            if "without_dispatcher" in case:
+                errors.append(f"{case_path}: display-less route must not bypass acknowledgement before dispatcher")
+            check_route_refusal_error(
+                f"{case_path}.without_dispatcher_after_ack",
+                case.get("without_dispatcher_after_ack"),
+                "signer_route_unavailable",
+                errors,
+            )
+            check_route_refusal_error(
+                f"{case_path}.external_review_acknowledgement.missing_error",
+                acknowledgement.get("missing_error"),
+                "external_review_acknowledgement_required",
+                errors,
+            )
+            check_route_refusal_error(
+                f"{case_path}.external_review_acknowledgement.mismatch_error",
+                acknowledgement.get("mismatch_error"),
+                "external_review_acknowledgement_mismatch",
+                errors,
+            )
+        else:
+            if mode != "unsupported":
+                errors.append(f"{case_path}: trusted-review routes must reject external review acknowledgement")
+            if "without_dispatcher_after_ack" in case:
+                errors.append(f"{case_path}: trusted-review route must use without_dispatcher")
+            check_route_refusal_error(
+                f"{case_path}.without_dispatcher",
+                case.get("without_dispatcher"),
+                "signer_route_unavailable",
+                errors,
+            )
+            check_route_refusal_error(
+                f"{case_path}.external_review_acknowledgement.unsupported_error",
+                acknowledgement.get("unsupported_error"),
+                "external_review_acknowledgement_unsupported",
+                errors,
+            )
+
+    if seen_route_vectors != set(route_vectors):
+        errors.append(f"{vector_path}: cases must cover every route selection vector")
+    if vector.get("safety") != ROUTE_REFUSAL_SAFETY:
+        errors.append(f"{vector_path}: safety boundary mismatch")
+    scope = vector.get("scope")
+    if not isinstance(scope, str) or "Secretless route-refusal" not in scope or "not a signer family" not in scope:
+        errors.append(f"{vector_path}: scope must preserve secretless route-refusal boundary")
 
 
 def check_access_surface_safety(path: str, value: object, errors: list[str]) -> None:
@@ -5800,6 +5935,9 @@ def main() -> int:
 
     for rel in route_selection_vector_names():
         check_route_selection_vector(rel, errors)
+
+    for rel in route_refusal_contract_vector_names():
+        check_route_refusal_contract_vector(rel, errors)
 
     for rel in access_surface_vector_names():
         check_access_surface_vector(rel, errors)

@@ -42,6 +42,10 @@
 - Access-surface vector for the NIP-07 browser provider over the local
   companion service, binding authorized route selection, deterministic
   signer-unavailable behavior, and the secretless browser boundary.
+- Route-refusal contract vector for local companion dispatch across all route
+  selections, binding no-dispatcher refusal, display-less smartcard
+  external-review acknowledgement requirements, trusted-review acknowledgement
+  rejection, and the no-secret/no-grant/no-dispatch safety boundary.
 - Feature conformance matrix for the five first-class signer families,
   including stateless QR vault parity between Raspberry and ESP32 for review,
   approval, transport, response verification, and RAM-only SeedQR/NIP-19

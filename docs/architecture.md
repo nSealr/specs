@@ -214,6 +214,14 @@ signer implementation.
   grant, but `signEvent` without a configured signer dispatcher must return a
   deterministic non-retryable `signer_route_unavailable` protocol error rather
   than fabricate a signature or bypass signer I/O.
+- Publish route-refusal contracts for local companion dispatch before real
+  signer drivers are accepted. The v0 contract covers every route-selection
+  vector: no configured dispatcher must be a deterministic non-retryable
+  `signer_route_unavailable`; display-less smartcard dispatch must require a
+  matching external-review acknowledgement before any dispatcher is called; and
+  device-display or external-policy routes must reject external-review
+  acknowledgements because trusted review belongs to the route, not the
+  companion.
 - Publish one named v0 implementation limit profile for constrained signers.
   These limits bound request size, static QR envelope size, animated QR decoded
   size, animated QR frame payload size/count, serial frame size, NIP-46 message

@@ -119,6 +119,13 @@ companion implementation must agree on:
   requested method to a secretless selected signer route without dispatching
   signer I/O. NIP-06 account descriptors also bind to the same reviewed source
   fingerprint used by RAM-only import review.
+- Route-refusal contract vectors for local companion dispatch before production
+  signer drivers exist. They require deterministic non-retryable
+  `signer_route_unavailable` behavior when a route has no dispatcher, require
+  display-less smartcard routes to fail first on missing or mismatched external
+  review acknowledgement, and require trusted-review routes to reject external
+  review acknowledgements instead of treating the companion as review
+  authority.
 - Access-surface vectors for stable companion-facing adapters that are not
   signer families. The current vector pins a NIP-07 browser provider over the
   local companion service: authorized route selection returns the selected

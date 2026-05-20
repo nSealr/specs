@@ -136,6 +136,12 @@ fixtures.
   deterministic `connect_ack_pending` rejection before any signer dispatch.
   Invalid gate vectors pin sender mismatch, recipient mismatch, pre-approval
   evaluation, expiry, wrong direction, and `connect` refusal behavior.
+- Route-refusal contract discovery tests ensure every
+  `vectors/route-refusals/*.json` file is included in conformance
+  verification. The verifier checks coverage for every route-selection vector,
+  deterministic no-dispatcher errors, display-less smartcard external-review
+  acknowledgement requirements, trusted-review acknowledgement rejection, and
+  the secretless refusal-safety boundary.
 - SeedQR vector discovery tests ensure every `vectors/seedqr/*.json` file is
   included in conformance verification.
 - NIP-19 `nsec` vector discovery tests ensure every `vectors/nip19/*.json`
