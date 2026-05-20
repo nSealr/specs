@@ -108,6 +108,11 @@ signer implementation.
   sender pubkey, exactly one recipient `p` tag, opaque encrypted content, and
   optional signed-event field shapes while explicitly leaving relay I/O,
   NIP-44 decryption, grant creation, and signer dispatch out of scope.
+- Publish NIP-46 relay request-step vectors for the next boundary: after an
+  external NIP-44 decryption layer supplies a plaintext message, companion can
+  validate the envelope/message pair and return a deterministic bridge decision
+  without opening relays, decrypting content itself, acknowledging `connect`,
+  creating grants, dispatching signers, or persisting session state.
 - Publish the JSON schema for that read-only policy-file format so independent
   tools can validate the envelope before applying stricter semantic checks such
   as `sign_event` parameter/event-kind equality.

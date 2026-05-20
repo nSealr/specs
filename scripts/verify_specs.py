@@ -847,6 +847,10 @@ def nip46_relay_event_vector_names() -> list[str]:
     return sorted(path.stem for path in (ROOT / "vectors" / "nip46-relay-events").glob("*.json"))
 
 
+def nip46_relay_step_vector_names() -> list[str]:
+    return sorted(path.stem for path in (ROOT / "vectors" / "nip46-relay-steps").glob("*.json"))
+
+
 def seedqr_vector_names() -> list[str]:
     return sorted(path.stem for path in (ROOT / "vectors" / "seedqr").glob("*.json"))
 
@@ -3270,6 +3274,57 @@ def check_invalid_nip46_relay_event(vector_path: str, vector: dict, errors: list
     )
 
 
+def expected_nip46_relay_request_step(vector_path: str, vector: dict, errors: list[str]) -> dict | None:
+    if vector.get("direction") != "client_to_remote_signer":
+        errors.append(f"{vector_path}: NIP-46 relay request step direction must be client_to_remote_signer")
+        return None
+    envelope = expected_nip46_relay_event_envelope(
+        vector_path,
+        vector.get("event"),
+        vector.get("direction"),
+        errors,
+    )
+    message = check_nip46_request_message(vector_path, vector.get("decrypted_message"), errors)
+    granted = vector.get("granted_permissions")
+    if not isinstance(granted, list):
+        errors.append(f"{vector_path}: relay request step granted_permissions must be a list")
+        granted_permissions = []
+    else:
+        granted_permissions = [
+            permission
+            for permission in (
+                normalized_nip46_approved_permission(vector_path, permission, errors) for permission in granted
+            )
+            if permission is not None
+        ]
+    if envelope is None or message is None:
+        return None
+    decision = expected_nip46_bridge_decision(vector_path, message, granted_permissions, errors)
+    if decision is None:
+        return None
+    return {
+        "format": "nsealr-nip46-relay-request-step-v0",
+        "envelope": envelope,
+        "message_id": message["id"],
+        "bridge_decision": decision,
+        "decrypts_content": False,
+        "opens_relay": False,
+        "creates_grants": False,
+        "acknowledges_connect": False,
+        "dispatches_signer": False,
+        "stores_production_secrets": False,
+        "persists_session_state": False,
+    }
+
+
+def check_invalid_nip46_relay_step(vector_path: str, vector: dict, errors: list[str]) -> None:
+    relay_step = vector.get("relay_step")
+    if not isinstance(relay_step, dict):
+        errors.append(f"{vector_path}: relay_step must be an object")
+        return
+    expected_nip46_relay_request_step(vector_path, relay_step, errors)
+
+
 def check_invalid_vector(rel: str, errors: list[str]) -> None:
     vector_path = f"vectors/invalid/{rel}.json"
     vector = load_required_json(vector_path, errors)
@@ -3300,6 +3355,8 @@ def check_invalid_vector(rel: str, errors: list[str]) -> None:
         check_invalid_nip46_connection_uri(vector_path, vector, rejection_errors)
     elif category == "nip46-relay-event":
         check_invalid_nip46_relay_event(vector_path, vector, rejection_errors)
+    elif category == "nip46-relay-step":
+        check_invalid_nip46_relay_step(vector_path, vector, rejection_errors)
     elif category == "nip46-policy-file":
         policy = vector.get("policy_file")
         if not isinstance(policy, dict):
@@ -4659,6 +4716,25 @@ def check_nip46_relay_event_vector(rel: str, errors: list[str]) -> None:
         errors.append(f"{vector_path}: scope must state relay/NIP-44 non-enabling boundary")
 
 
+def check_nip46_relay_step_vector(rel: str, errors: list[str]) -> None:
+    vector_path = f"vectors/nip46-relay-steps/{rel}.json"
+    vector = load_required_json(vector_path, errors)
+    if vector is None:
+        return
+    if vector.get("name") != rel:
+        errors.append(f"{vector_path}: name mismatch")
+    if vector.get("format") != "nsealr-nip46-relay-request-step-v0":
+        errors.append(f"{vector_path}: format mismatch")
+    expected = expected_nip46_relay_request_step(vector_path, vector, errors)
+    if expected is None:
+        return
+    if vector.get("expected_step") != expected:
+        errors.append(f"{vector_path}: expected_step mismatch")
+    scope = vector.get("scope")
+    if not isinstance(scope, str) or "NIP-44" not in scope or "relay" not in scope or "persist" not in scope:
+        errors.append(f"{vector_path}: scope must state relay/NIP-44/persistence non-enabling boundary")
+
+
 SMARTCARD_APDU_EXPECTATIONS = {
     "get-public-key": {
         "cla": "80",
@@ -4952,6 +5028,9 @@ def main() -> int:
 
     for rel in nip46_relay_event_vector_names():
         check_nip46_relay_event_vector(rel, errors)
+
+    for rel in nip46_relay_step_vector_names():
+        check_nip46_relay_step_vector(rel, errors)
 
     for rel in seedqr_vector_names():
         check_seedqr_vector(rel, errors)
