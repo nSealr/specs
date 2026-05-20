@@ -1193,6 +1193,8 @@ def check_account_descriptor_shape(path: str, value: object, errors: list[str]) 
             errors.append(f"{path}: external NIP-46 routes must use external policy support")
         if capabilities.get("physical_review") is not False or capabilities.get("physical_approval") is not False:
             errors.append(f"{path}: external NIP-46 routes must not claim nSealr physical review or approval")
+        if capabilities.get("persistent_grants") is not False:
+            errors.append(f"{path}: external NIP-46 routes must not claim nSealr persistent grants")
 
     recovery = value.get("recovery")
     if not isinstance(recovery, dict):

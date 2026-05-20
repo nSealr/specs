@@ -807,6 +807,19 @@ class VerifySpecsTests(unittest.TestCase):
         self.assertIn("display-less smartcard routes must not claim physical review or approval", joined)
         self.assertIn("display-less smartcard routes must not support persistent grants", joined)
 
+    def test_account_descriptors_reject_external_nip46_persistent_grants(self) -> None:
+        account = deepcopy(load_json("vectors/accounts/external-nip46-bunker.json"))
+        account["capabilities"]["persistent_grants"] = True
+        errors: list[str] = []
+
+        verify_specs.check_account_descriptor_shape(
+            "vectors/accounts/mutated-external-nip46-grants.json",
+            account,
+            errors,
+        )
+
+        self.assertIn("external NIP-46 routes must not claim nSealr persistent grants", "\n".join(errors))
+
     def test_account_descriptors_reject_policy_route_mismatch(self) -> None:
         account = deepcopy(load_json("vectors/accounts/smartcard-slot-0.json"))
         account["policy_profile_id"] = "policy-scoped-automation-daily-use"
@@ -912,6 +925,71 @@ class VerifySpecsTests(unittest.TestCase):
         self.assertFalse(account_schema["properties"]["signer_route"]["additionalProperties"])
         self.assertFalse(account_schema["properties"]["capabilities"]["additionalProperties"])
         self.assertEqual(account_schema["properties"]["policy_profile_id"]["pattern"], "^policy-[A-Za-z0-9._:-]{1,121}$")
+        account_route_semantics = account_schema["allOf"]
+        self.assertEqual(len(account_route_semantics), 6)
+        self.assertIn({
+            "if": {
+                "properties": {
+                    "signer_route": {
+                        "properties": {"type": {"const": "esp32_usb_nip46"}},
+                        "required": ["type"],
+                    }
+                },
+                "required": ["signer_route"],
+            },
+            "then": {
+                "properties": {
+                    "signer_route": {
+                        "required": ["repository"],
+                        "properties": {
+                            "repository": {"const": "esp32"},
+                            "transport": {"const": "usb"},
+                            "custody": {"const": "device_persistent"},
+                            "trusted_review": {"const": "device_display"},
+                            "policy_support": {"const": "scoped_automation"},
+                        },
+                    },
+                    "capabilities": {
+                        "properties": {
+                            "physical_review": {"const": True},
+                            "physical_approval": {"const": True},
+                            "persistent_grants": {"const": True},
+                        }
+                    },
+                },
+            },
+        }, account_route_semantics)
+        self.assertIn({
+            "if": {
+                "properties": {
+                    "signer_route": {
+                        "properties": {"type": {"const": "external_nip46"}},
+                        "required": ["type"],
+                    }
+                },
+                "required": ["signer_route"],
+            },
+            "then": {
+                "properties": {
+                    "signer_route": {
+                        "not": {"required": ["repository"]},
+                        "properties": {
+                            "transport": {"const": "nip46_relay"},
+                            "custody": {"const": "external_signer"},
+                            "trusted_review": {"const": "external_policy"},
+                            "policy_support": {"const": "external"},
+                        },
+                    },
+                    "capabilities": {
+                        "properties": {
+                            "physical_review": {"const": False},
+                            "physical_approval": {"const": False},
+                            "persistent_grants": {"const": False},
+                        }
+                    },
+                },
+            },
+        }, account_route_semantics)
         self.assertEqual(policy_schema["title"], "nSealr Policy Profile v0")
         self.assertIn("grants_allowed", policy_schema["required"])
         self.assertFalse(policy_schema["additionalProperties"])

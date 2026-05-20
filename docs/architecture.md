@@ -113,7 +113,11 @@ signer implementation.
   custom hardware-wallet automation. The descriptor contracts are
   closed-schema at every routing/policy layer and require explicit
   `policy-*`/`grant-*` identifiers so unsigned metadata cannot be silently
-  accepted and reinterpreted later.
+  accepted and reinterpreted later. The account-descriptor schema also encodes
+  route-type dependent repository, transport, custody, review, policy-support,
+  physical-review, physical-approval, and persistent-grant constraints so
+  schema consumers cannot accept route metadata looser than the verifier and
+  companion parser.
 - Publish the current account/custody product model for all signer families:
   policies attach to final signing public keys and routes, QR vaults use a
   RAM-only session keyring with SeedSigner-compatible SeedQR and NIP-19 `nsec`

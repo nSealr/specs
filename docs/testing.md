@@ -151,7 +151,10 @@ fixtures.
 - Identity/policy schema tests ensure account descriptors, policy profiles, and
   grant descriptors expose the expected required contract surface, closed
   `additionalProperties: false` boundaries, explicit identifier patterns, and
-  no secret-key fields.
+  no secret-key fields. Account descriptor schema tests also require
+  route-type dependent repository, transport, custody, trusted-review,
+  policy-support, physical-review, physical-approval, and persistent-grant
+  constraints.
 - Policy-change review vector discovery tests ensure every file under
   `vectors/policy-changes/` is included in conformance verification.
 - Policy-change review semantic tests pin the persistent-device default

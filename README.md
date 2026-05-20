@@ -92,7 +92,8 @@ companion implementation must agree on:
   SeedQR import vectors without turning policy records into Nostr events.
 - JSON schemas for account descriptors, policy profiles, grant descriptors,
   policy-change reviews, and policy-decision and route-selection vectors,
-  including route-type dependent constraints for route-selection metadata.
+  including route-type dependent constraints for account descriptors and
+  route-selection metadata.
 - Feature conformance matrix for the five first-class signer families. The
   matrix records which features are required, optional, planned, forbidden, or
   not applicable per family, and enforces one shared behavior contract whenever
