@@ -37,12 +37,32 @@
     "grants_allowed": { "type": "boolean" },
     "manual_review_required": {
       "type": "array",
-      "items": { "type": "string", "minLength": 1 },
+      "items": {
+        "enum": [
+          "connect",
+          "delete_event",
+          "nip04_decrypt",
+          "nip44_decrypt",
+          "policy_change",
+          "sign_event",
+          "switch_relays",
+          "unknown_method"
+        ]
+      },
       "uniqueItems": true
     },
     "forbidden_permissions": {
       "type": "array",
-      "items": { "type": "string", "minLength": 1 },
+      "items": {
+        "enum": [
+          "companion_authoritative_policy_change",
+          "decrypt_without_review",
+          "export_secret",
+          "local_private_key_storage",
+          "trusted_review_claim",
+          "wildcard"
+        ]
+      },
       "uniqueItems": true
     },
     "grant_constraints": {
@@ -58,7 +78,12 @@
     },
     "risk_tiers": {
       "type": "object",
-      "additionalProperties": { "type": "string", "minLength": 1 }
+      "propertyNames": {
+        "enum": ["decrypt", "delete", "kind:1", "policy_change", "profile", "sign_event", "unknown"]
+      },
+      "additionalProperties": {
+        "enum": ["device_review", "external_policy", "external_review", "low_scoped", "manual"]
+      }
     }
   },
   "allOf": [

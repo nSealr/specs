@@ -68,6 +68,26 @@ LOCAL_SERVICE_PAIRABLE_OPERATIONS = {
 ROUTE_REVIEW_MODES = {"device_display", "external_review", "external_policy", "display_less"}
 POLICY_SUPPORT_MODES = {"manual_only", "scoped_automation", "external"}
 POLICY_MODES = {"manual_only", "scoped_automation"}
+POLICY_REVIEW_REQUIREMENTS = {
+    "connect",
+    "delete_event",
+    "nip04_decrypt",
+    "nip44_decrypt",
+    "policy_change",
+    "sign_event",
+    "switch_relays",
+    "unknown_method",
+}
+POLICY_FORBIDDEN_PERMISSIONS = {
+    "companion_authoritative_policy_change",
+    "decrypt_without_review",
+    "export_secret",
+    "local_private_key_storage",
+    "trusted_review_claim",
+    "wildcard",
+}
+POLICY_RISK_NAMES = {"decrypt", "delete", "kind:1", "policy_change", "profile", "sign_event", "unknown"}
+POLICY_RISK_TIERS = {"device_review", "external_policy", "external_review", "low_scoped", "manual"}
 POLICY_CHANGE_ROUTE_TYPES = {"esp32_usb_nip46", "custom_hardware_wallet"}
 GRANT_ROUTE_TYPES = {"esp32_usb_nip46", "custom_hardware_wallet"}
 GRANT_AUTOMATION_EVENT_KINDS = {1}
@@ -1331,15 +1351,25 @@ def check_policy_profile_shape(path: str, value: object, errors: list[str]) -> N
     manual_review_required = value.get("manual_review_required")
     if not isinstance(manual_review_required, list) or not all(isinstance(item, str) for item in manual_review_required):
         errors.append(f"{path}: manual_review_required must be an array of strings")
+    elif unknown_review := sorted(set(manual_review_required) - POLICY_REVIEW_REQUIREMENTS):
+        errors.append(f"{path}: manual_review_required contains unsupported values {unknown_review}")
     forbidden_permissions = value.get("forbidden_permissions")
     if not isinstance(forbidden_permissions, list) or not all(isinstance(item, str) for item in forbidden_permissions):
         errors.append(f"{path}: forbidden_permissions must be an array of strings")
     else:
+        if unknown_forbidden := sorted(set(forbidden_permissions) - POLICY_FORBIDDEN_PERMISSIONS):
+            errors.append(f"{path}: forbidden_permissions contains unsupported values {unknown_forbidden}")
         for required_forbidden in ("wildcard", "export_secret"):
             if required_forbidden not in forbidden_permissions:
                 errors.append(f"{path}: forbidden_permissions must include {required_forbidden}")
     if value.get("risk_tiers") is not None and not isinstance(value["risk_tiers"], dict):
         errors.append(f"{path}: risk_tiers must be an object")
+    elif isinstance(value.get("risk_tiers"), dict):
+        if unknown_risk_names := sorted(set(value["risk_tiers"]) - POLICY_RISK_NAMES):
+            errors.append(f"{path}: risk_tiers contains unsupported keys {unknown_risk_names}")
+        for risk_name, risk_tier in value["risk_tiers"].items():
+            if risk_tier not in POLICY_RISK_TIERS:
+                errors.append(f"{path}: risk_tiers.{risk_name} uses unsupported tier {risk_tier!r}")
     if set(route_types) & QR_ROUTE_TYPES and (mode != "manual_only" or value.get("grants_allowed") is not False):
         errors.append(f"{path}: QR vault routes must remain manual_only with grants_allowed false")
     if "smartcard" in route_types and (mode != "manual_only" or value.get("grants_allowed") is not False):

@@ -167,6 +167,10 @@ fixtures.
   Grant descriptor tests also reject the removed `decision` field so v0 cannot
   grow an ambiguous grant-mode switch outside expiry/rate-limit/revocation
   semantics.
+- Policy-profile tests reject unsupported manual-review requirements,
+  forbidden-permission names, risk-tier keys, and risk-tier values. This keeps
+  the policy profile a closed contract rather than a free-form rule-engine
+  escape hatch.
 - Policy-change review vector discovery tests ensure every file under
   `vectors/policy-changes/` is included in conformance verification.
 - Policy-change review semantic tests pin the persistent-device default

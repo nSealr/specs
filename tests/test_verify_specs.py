@@ -552,6 +552,22 @@ class VerifySpecsTests(unittest.TestCase):
 
         self.assertIn("mutated-grant.json: grant descriptor has unknown fields ['decision']", "\n".join(errors))
 
+    def test_policy_profiles_reject_unknown_policy_vocabulary(self) -> None:
+        vector = deepcopy(load_json("vectors/policies/scoped-automation-daily-use.json"))
+        vector["manual_review_required"].append("auto_like")
+        vector["forbidden_permissions"].append("shadow_export")
+        vector["risk_tiers"]["reaction"] = "low_scoped"
+        vector["risk_tiers"]["delete"] = "auto"
+        errors: list[str] = []
+
+        verify_specs.check_policy_profile_shape("mutated-policy.json", vector, errors)
+
+        joined = "\n".join(errors)
+        self.assertIn("manual_review_required contains unsupported values ['auto_like']", joined)
+        self.assertIn("forbidden_permissions contains unsupported values ['shadow_export']", joined)
+        self.assertIn("risk_tiers contains unsupported keys ['reaction']", joined)
+        self.assertIn("risk_tiers.delete uses unsupported tier 'auto'", joined)
+
     def test_policy_decision_vectors_are_discovered_from_directory(self) -> None:
         names = policy_decision_vector_names()
 

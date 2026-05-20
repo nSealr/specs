@@ -109,6 +109,11 @@ session grant with `expires_at`, `rate_limit`, revocation, audit, and
 device-policy confirmation; one-use behavior is modeled as a grant with
 `rate_limit.max_uses` set to `1`.
 
+Status note, 2026-05-20: policy-profile vocabulary is now closed. Manual-review
+requirements, forbidden permissions, and risk-tier names/values must use the
+small v0 enum set in the shared schema and verifier, so new policy knobs cannot
+be accepted as arbitrary metadata.
+
 Status note, 2026-05-19: policy-decision transcript vectors now pin the
 pre-storage automation boundary for persistent routes: valid grants may allow a
 scoped `sign_event`, expired or revoked grants are denied, active rate-limit

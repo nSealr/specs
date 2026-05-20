@@ -143,14 +143,18 @@ policy requires local device review and physical approval on routes that have a
 trusted display. Display-less routes must keep an explicit external-review
 acknowledgement boundary.
 
-The exact user-facing policy menu is intentionally not frozen in v0. The
-current `scoped_automation` fixture is a minimal safety contract used to test
-the boundary: scoped account, route, client, method, event kind when relevant,
-expiry, rate limit, revocation, audit event, and device confirmation. It is not
-a final product claim that kind `1` is the only useful grant or that every
-future route should expose many policy knobs. Default product behavior remains
-manual review through `policy-manual-only-persistent-device` unless a device
-locally accepts a digest-bound policy-change proposal.
+The exact user-facing policy menu is intentionally not frozen in v0, but the
+policy-profile vocabulary is closed. `manual_review_required`,
+`forbidden_permissions`, and `risk_tiers` must use the enum sets in
+`policy-profile-v0.schema.json`; adding a new knob requires a specs revision,
+vectors, and downstream parser updates. The current `scoped_automation` fixture
+is a minimal safety contract used to test the boundary: scoped account, route,
+client, method, event kind when relevant, expiry, rate limit, revocation, audit
+event, and device confirmation. It is not a final product claim that kind `1`
+is the only useful grant or that every future route should expose many policy
+knobs. Default product behavior remains manual review through
+`policy-manual-only-persistent-device` unless a device locally accepts a
+digest-bound policy-change proposal.
 
 QR vault policies and display-less smartcard policies must remain
 `manual_only` with `grants_allowed: false`.
