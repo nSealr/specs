@@ -121,6 +121,14 @@ fixtures.
   descriptors do not echo shared secret values. Invalid hardening vectors also
   cover malformed connection URI schemes, relays, and missing `nostrconnect`
   secrets.
+- NIP-46 session lifecycle vector discovery tests ensure every
+  `vectors/nip46-sessions/*.json` file is included in conformance
+  verification. The verifier checks reviewed connect-digest binding,
+  client/signer pubkeys, normalized unique relays, safe approval/expiry
+  integers, approved-permission subsets, absence of secret material, and false
+  side-effect flags for NIP-44 derivation, relay I/O, `connect`
+  acknowledgement, grant creation, signer dispatch, production secret storage,
+  and session persistence.
 - SeedQR vector discovery tests ensure every `vectors/seedqr/*.json` file is
   included in conformance verification.
 - NIP-19 `nsec` vector discovery tests ensure every `vectors/nip19/*.json`
@@ -213,8 +221,8 @@ fixtures.
   and consumed by invalid-vector verification.
 - Invalid-vector discovery tests ensure every malicious request, response, QR
   envelope, serial frame, invalid device request metadata, NIP-46 payload,
-  policy-file, and connection URI vector is included in conformance
-  verification.
+  policy-file, connection URI, and session lifecycle vector is included in
+  conformance verification.
 - Invalid serial-frame vectors cover oversized frames, checksum mismatch,
   malformed payloads, unsupported frame types, and invalid decoded request
   metadata.

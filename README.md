@@ -85,6 +85,13 @@ companion implementation must agree on:
   error responses. Both avoid opening relays, decrypting NIP-44 content,
   acknowledging `connect`, creating grants, dispatching signers, verifying
   signatures, or persisting session state.
+- NIP-46 session lifecycle checkpoint vectors for the next pre-production
+  boundary after manual `connect` approval. These vectors bind client/signer
+  pubkeys, relays, reviewed connect digest, approval time, expiry, requested
+  permissions, and approved permission subsets while still forbidding secret
+  material, NIP-44 key derivation, relay I/O, `connect` acknowledgement, grant
+  creation, signer dispatch, production secret storage, and session
+  persistence.
 - JSON schema for the read-only NIP-46 policy-file format. Approved
   `sign_event` entries must be kind-scoped; broad `sign_event` is only
   requested-permission metadata.
@@ -132,6 +139,7 @@ companion implementation must agree on:
   review-detail-page, review-transcript, NIP-46, NIP-46 policy-file, NIP-46
   connection URI, SeedQR, NIP-19 `nsec`, session-import-review,
   session-source-backup,
+  NIP-46 session lifecycle,
   account-descriptor, policy-profile, grant-descriptor, policy-change review,
   policy-decision,
   route-selection, access-surface, feature-matrix, invalid-vector,

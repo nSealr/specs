@@ -23,6 +23,9 @@
 - NIP-46 read-only policy-file vectors for explicit approved permissions.
 - NIP-46 connection URI vectors for descriptor-only `bunker://` and
   `nostrconnect://` token parsing.
+- NIP-46 session lifecycle checkpoint vectors for reviewed-but-not-active
+  `connect` state, without NIP-44 key derivation, relay I/O, acknowledgement,
+  grants, signer dispatch, production secret storage, or persistence.
 - NIP-46 read-only policy-file JSON schema.
 - Secretless account-descriptor, policy-profile, and grant-descriptor
   contracts for identity routing, recovery metadata, and scoped automation.
@@ -85,6 +88,12 @@ binding public-key and signed-event result pubkeys to the relay-event sender.
 Both still avoid relay I/O, NIP-44 decryption, `connect` acknowledgement,
 grant creation, signer dispatch, signature verification, and session
 persistence.
+NIP-46 session lifecycle checkpoint vectors now pin the next M5 boundary after
+manual connect approval: a reviewed digest, client/signer pubkeys, relays,
+approval time, expiry, requested permissions, and approved permission subsets
+can be represented without storing secret material, deriving NIP-44 keys,
+acknowledging `connect`, opening relays, creating grants, dispatching signers,
+storing production secrets, or persisting session state.
 
 Status note, 2026-05-11: account descriptors, policy profiles, and grant
 descriptors now exist as shared vectors and schemas. They keep companion

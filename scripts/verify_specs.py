@@ -870,6 +870,10 @@ def nip46_relay_step_vector_names() -> list[str]:
     return sorted(path.stem for path in (ROOT / "vectors" / "nip46-relay-steps").glob("*.json"))
 
 
+def nip46_session_vector_names() -> list[str]:
+    return sorted(path.stem for path in (ROOT / "vectors" / "nip46-sessions").glob("*.json"))
+
+
 def seedqr_vector_names() -> list[str]:
     return sorted(path.stem for path in (ROOT / "vectors" / "seedqr").glob("*.json"))
 
@@ -2849,6 +2853,30 @@ NIP46_PERMISSION_METHODS = {
 }
 NIP46_CONNECTION_URI_PARAMS = {"relay", "secret", "perms", "name", "url", "image"}
 NIP46_RELAY_DIRECTIONS = {"client_to_remote_signer", "remote_signer_to_client"}
+NIP46_SESSION_PHASES = {"approved_pending_ack"}
+NIP46_SESSION_FALSE_FLAGS = {
+    "secret_value_stored",
+    "contains_secret_material",
+    "derives_nip44_key",
+    "acknowledges_connect",
+    "opens_relay",
+    "creates_grants",
+    "dispatches_signer",
+    "stores_production_secrets",
+    "persists_session_state",
+}
+NIP46_SESSION_SECRET_FIELD_NAMES = {
+    "secret",
+    "shared_secret",
+    "session_secret",
+    "nip44_key",
+    "secret_key",
+    "private_key",
+    "nsec",
+    "mnemonic",
+    "seed",
+    "passphrase",
+}
 
 
 def parse_nip46_permissions(value: str, vector_path: str, errors: list[str]) -> list[dict]:
@@ -3465,6 +3493,10 @@ def check_invalid_nip46_relay_step(vector_path: str, vector: dict, errors: list[
     expected_nip46_relay_request_step(vector_path, relay_step, errors)
 
 
+def check_invalid_nip46_session(vector_path: str, vector: dict, errors: list[str]) -> None:
+    check_nip46_session_lifecycle_shape(vector_path, vector.get("session"), errors)
+
+
 def check_invalid_vector(rel: str, errors: list[str]) -> None:
     vector_path = f"vectors/invalid/{rel}.json"
     vector = load_required_json(vector_path, errors)
@@ -3497,6 +3529,8 @@ def check_invalid_vector(rel: str, errors: list[str]) -> None:
         check_invalid_nip46_relay_event(vector_path, vector, rejection_errors)
     elif category == "nip46-relay-step":
         check_invalid_nip46_relay_step(vector_path, vector, rejection_errors)
+    elif category == "nip46-session":
+        check_invalid_nip46_session(vector_path, vector, rejection_errors)
     elif category == "nip46-policy-file":
         policy = vector.get("policy_file")
         if not isinstance(policy, dict):
@@ -3687,6 +3721,184 @@ def nip46_permission_matches_requirement(permission: dict, requirement: dict) ->
     if "parameter" not in permission:
         return True
     return permission.get("event_kind") == requirement.get("event_kind")
+
+
+def nip46_session_secret_field_paths(value: object, prefix: str = "") -> list[str]:
+    paths: list[str] = []
+    if isinstance(value, dict):
+        for key, child in value.items():
+            path = f"{prefix}.{key}" if prefix else str(key)
+            if str(key).lower() in NIP46_SESSION_SECRET_FIELD_NAMES:
+                paths.append(path)
+            paths.extend(nip46_session_secret_field_paths(child, path))
+    elif isinstance(value, list):
+        for index, child in enumerate(value):
+            path = f"{prefix}[{index}]" if prefix else f"[{index}]"
+            paths.extend(nip46_session_secret_field_paths(child, path))
+    return paths
+
+
+def check_nip46_session_no_secret_material(vector_path: str, value: object, errors: list[str]) -> None:
+    for path in nip46_session_secret_field_paths(value):
+        errors.append(f"{vector_path}: NIP-46 session must not contain secret material at {path}")
+
+
+def check_nip46_session_permissions(
+    vector_path: str,
+    value: object,
+    errors: list[str],
+    *,
+    approved: bool,
+) -> list[dict]:
+    label = "approved_permissions" if approved else "requested_permissions"
+    if not isinstance(value, list):
+        errors.append(f"{vector_path}: {label} must be a list")
+        return []
+    parsed = []
+    for index, permission in enumerate(value):
+        parser = normalized_nip46_approved_permission if approved else normalized_nip46_permission
+        normalized = parser(f"{vector_path}: {label}[{index}]", permission, errors)
+        if normalized is not None:
+            parsed.append(normalized)
+            if permission != normalized:
+                errors.append(f"{vector_path}: {label}[{index}] must be normalized")
+    return parsed
+
+
+def check_nip46_session_relays(vector_path: str, value: object, errors: list[str]) -> list[str]:
+    if not isinstance(value, list) or not value:
+        errors.append(f"{vector_path}: relays must be a non-empty list")
+        return []
+    relays = []
+    for index, relay in enumerate(value):
+        if not isinstance(relay, str):
+            errors.append(f"{vector_path}: relays[{index}] must be a string")
+            continue
+        normalized = normalized_websocket_relay(relay, vector_path, errors)
+        if normalized is not None:
+            relays.append(normalized)
+            if relay != normalized:
+                errors.append(f"{vector_path}: relays[{index}] must be normalized")
+    if len(set(relays)) != len(relays):
+        errors.append(f"{vector_path}: relays must be unique")
+    return relays
+
+
+def approved_permissions_subset_of_requested(approved: list[dict], requested: list[dict]) -> bool:
+    for approved_permission in approved:
+        if not any(nip46_permission_matches_requirement(requested_permission, approved_permission) for requested_permission in requested):
+            return False
+    return True
+
+
+def check_nip46_session_lifecycle_shape(vector_path: str, value: object, errors: list[str]) -> dict | None:
+    if not isinstance(value, dict):
+        errors.append(f"{vector_path}: NIP-46 session must be an object")
+        return None
+    check_nip46_session_no_secret_material(vector_path, value, errors)
+    check_known_fields(
+        vector_path,
+        "NIP-46 session",
+        value,
+        {
+            "name",
+            "format",
+            "phase",
+            "client_pubkey",
+            "remote_signer_pubkey",
+            "relays",
+            "connect_review_vector",
+            "connect_digest",
+            "approved_at",
+            "expires_at",
+            "requested_permissions",
+            "approved_permissions",
+            "secret_present",
+            "secret_value_stored",
+            "contains_secret_material",
+            "derives_nip44_key",
+            "acknowledges_connect",
+            "opens_relay",
+            "creates_grants",
+            "dispatches_signer",
+            "stores_production_secrets",
+            "persists_session_state",
+            "scope",
+        },
+        errors,
+    )
+    if value.get("format") != "nsealr-nip46-session-lifecycle-v0":
+        errors.append(f"{vector_path}: format mismatch")
+    if value.get("name") != Path(vector_path).stem:
+        errors.append(f"{vector_path}: name mismatch")
+    if value.get("phase") not in NIP46_SESSION_PHASES:
+        errors.append(f"{vector_path}: phase must be approved_pending_ack")
+    if not isinstance(value.get("client_pubkey"), str) or not HEX32_RE.fullmatch(value["client_pubkey"]):
+        errors.append(f"{vector_path}: client_pubkey must be 32-byte lowercase hex")
+    if not isinstance(value.get("remote_signer_pubkey"), str) or not HEX32_RE.fullmatch(value["remote_signer_pubkey"]):
+        errors.append(f"{vector_path}: remote_signer_pubkey must be 32-byte lowercase hex")
+    check_nip46_session_relays(vector_path, value.get("relays"), errors)
+
+    connect_review_vector = value.get("connect_review_vector")
+    connect_source = None
+    if not isinstance(connect_review_vector, str) or not connect_review_vector.startswith("vectors/nip46/"):
+        errors.append(f"{vector_path}: connect_review_vector must point under vectors/nip46/")
+    else:
+        connect_source = load_required_json(connect_review_vector, errors)
+    connect_digest = value.get("connect_digest")
+    if not isinstance(connect_digest, str) or not HEX32_RE.fullmatch(connect_digest):
+        errors.append(f"{vector_path}: connect_digest must be 32-byte lowercase hex")
+    elif isinstance(connect_source, dict):
+        source_digest = connect_source.get("connect_review", {}).get("connect_digest")
+        if connect_digest != source_digest:
+            errors.append(f"{vector_path}: connect_digest must match connect_review_vector")
+        source_intent = connect_source.get("connect_intent", {})
+        if value.get("remote_signer_pubkey") != source_intent.get("remote_signer_pubkey"):
+            errors.append(f"{vector_path}: remote_signer_pubkey must match connect_review_vector")
+        if value.get("requested_permissions") != source_intent.get("requested_permissions"):
+            errors.append(f"{vector_path}: requested_permissions must match connect_review_vector")
+        source_review = connect_source.get("connect_review", {})
+        if value.get("secret_present") != source_review.get("secret_present"):
+            errors.append(f"{vector_path}: secret_present must match connect_review_vector")
+
+    approved_at = value.get("approved_at")
+    expires_at = value.get("expires_at")
+    if type(approved_at) is not int or approved_at < 0 or approved_at > MAX_SAFE_INTEGER:
+        errors.append(f"{vector_path}: approved_at must be a safe non-negative integer")
+    if type(expires_at) is not int or expires_at < 0 or expires_at > MAX_SAFE_INTEGER:
+        errors.append(f"{vector_path}: expires_at must be a safe non-negative integer")
+    elif type(approved_at) is int and expires_at <= approved_at:
+        errors.append(f"{vector_path}: expires_at must be greater than approved_at")
+
+    requested_permissions = check_nip46_session_permissions(
+        vector_path,
+        value.get("requested_permissions"),
+        errors,
+        approved=False,
+    )
+    approved_permissions = check_nip46_session_permissions(
+        vector_path,
+        value.get("approved_permissions"),
+        errors,
+        approved=True,
+    )
+    if not approved_permissions_subset_of_requested(approved_permissions, requested_permissions):
+        errors.append(f"{vector_path}: approved_permissions must be a subset of requested_permissions")
+
+    if not isinstance(value.get("secret_present"), bool):
+        errors.append(f"{vector_path}: secret_present must be boolean")
+    for flag in sorted(NIP46_SESSION_FALSE_FLAGS):
+        if value.get(flag) is not False:
+            errors.append(f"{vector_path}: {flag} must be false")
+
+    scope = value.get("scope")
+    if not isinstance(scope, str) or not scope:
+        errors.append(f"{vector_path}: scope must be a non-empty string")
+    else:
+        for required in ("NIP-44", "relay", "acknowledge", "grant", "signer", "persist", "secret material"):
+            if required not in scope:
+                errors.append(f"{vector_path}: scope must mention {required}")
+    return value
 
 
 def check_nip46_permission_policy(vector_path: str, vector: dict, expected_requirement: dict, errors: list[str]) -> None:
@@ -4937,6 +5149,14 @@ def check_nip46_relay_step_vector(rel: str, errors: list[str]) -> None:
         errors.append(f"{vector_path}: scope must state relay/NIP-44/persistence non-enabling boundary")
 
 
+def check_nip46_session_vector(rel: str, errors: list[str]) -> None:
+    vector_path = f"vectors/nip46-sessions/{rel}.json"
+    vector = load_required_json(vector_path, errors)
+    if vector is None:
+        return
+    check_nip46_session_lifecycle_shape(vector_path, vector, errors)
+
+
 SMARTCARD_APDU_EXPECTATIONS = {
     "get-public-key": {
         "cla": "80",
@@ -5233,6 +5453,9 @@ def main() -> int:
 
     for rel in nip46_relay_step_vector_names():
         check_nip46_relay_step_vector(rel, errors)
+
+    for rel in nip46_session_vector_names():
+        check_nip46_session_vector(rel, errors)
 
     for rel in seedqr_vector_names():
         check_seedqr_vector(rel, errors)

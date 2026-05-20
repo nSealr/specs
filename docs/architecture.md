@@ -118,6 +118,14 @@ signer implementation.
   them. This still happens without opening relays, decrypting content itself,
   acknowledging `connect`, creating grants, dispatching signers, verifying
   signatures, or persisting session state.
+- Publish NIP-46 session lifecycle checkpoint vectors for the boundary after a
+  reviewed `connect` approval and before any active relay session. These
+  vectors bind client/signer pubkeys, relay URLs, reviewed connect digest,
+  approval time, expiry, requested permissions, and approved permission
+  subsets, but must still contain no secret material and must still record no
+  NIP-44 key derivation, no `connect` acknowledgement, no relay I/O, no grant
+  creation, no signer dispatch, no production secret storage, and no session
+  persistence. The v0 phase is `approved_pending_ack`.
 - Publish the JSON schema for that read-only policy-file format so independent
   tools can validate the envelope before applying stricter semantic checks such
   as `sign_event` parameter/event-kind equality.
@@ -207,8 +215,10 @@ signer implementation.
   signs. Serial-frame vectors also include unsupported frame types so transport
   adapters reject them before JSON is treated as a request or response.
   NIP-46 connection URI rejection vectors pin malformed token parsing without
-  starting relay sessions or echoing secrets. They live under
-  `vectors/invalid/` and are discovered automatically by the specs verifier.
+  starting relay sessions or echoing secrets. NIP-46 session lifecycle
+  rejection vectors pin the same no-secret/no-ack/no-NIP-44/no-relay/no-grant
+  boundary before full session work exists. They live under `vectors/invalid/`
+  and are discovered automatically by the specs verifier.
 - Keep schemas and examples usable by independent implementations.
 
 ## Non-Responsibilities
