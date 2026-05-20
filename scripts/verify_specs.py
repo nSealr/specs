@@ -21,6 +21,7 @@ HEX8_RE = re.compile(r"^[0-9a-f]{16}$")
 REQUEST_ID_RE = re.compile(r"^[A-Za-z0-9._:-]{1,128}$")
 POLICY_ID_RE = re.compile(r"^policy-[A-Za-z0-9._:-]{1,121}$")
 GRANT_ID_RE = re.compile(r"^grant-[A-Za-z0-9._:-]{1,122}$")
+PROPOSAL_ID_RE = re.compile(r"^proposal-[A-Za-z0-9._:-]{1,119}$")
 B64URL_RE = re.compile(r"^[A-Za-z0-9_-]+$")
 QR_PREFIX = "nsealr1:"
 ANIMATED_QR_PREFIX = "nsealr1a:"
@@ -942,6 +943,13 @@ def check_grant_id(path: str, field: str, value: object, errors: list[str]) -> b
     return True
 
 
+def check_proposal_id(path: str, field: str, value: object, errors: list[str]) -> bool:
+    if not isinstance(value, str) or not PROPOSAL_ID_RE.fullmatch(value):
+        errors.append(f"{path}: {field} must be a proposal-* stable string id")
+        return False
+    return True
+
+
 def check_known_fields(path: str, label: str, value: dict, allowed: set[str], errors: list[str]) -> None:
     unknown = sorted(set(value) - allowed)
     if unknown:
@@ -1583,9 +1591,18 @@ def check_policy_decision_request_shape(path: str, request: object, errors: list
     if not isinstance(request, dict):
         errors.append(f"{path}: request must be an object")
         return
+    check_known_fields(
+        path,
+        "request",
+        request,
+        {"account_id", "route_type", "client_pubkey", "permission", "now", "grant_ids", "grant_usage", "revoked_grant_ids"},
+        errors,
+    )
     check_string_id(path, "request.account_id", request.get("account_id"), errors)
     if request.get("route_type") not in ROUTE_TYPES:
         errors.append(f"{path}: request.route_type is unknown")
+    elif request.get("route_type") not in {"esp32_usb_nip46", "smartcard", "custom_hardware_wallet", "external_nip46"}:
+        errors.append(f"{path}: request.route_type must be a persistent or external route")
     if not isinstance(request.get("client_pubkey"), str) or not HEX32_RE.fullmatch(request["client_pubkey"]):
         errors.append(f"{path}: request.client_pubkey must be 32-byte lowercase hex")
     check_permission_shape(path, request.get("permission"), errors)
@@ -1627,20 +1644,42 @@ def check_policy_decision_shape(path: str, decision: object, errors: list[str]) 
     if not isinstance(decision, dict):
         errors.append(f"{path}: decision must be an object")
         return
+    check_known_fields(path, "decision", decision, {"format", "decision", "reason", "grant_id", "audit_event"}, errors)
     if decision.get("format") != "nsealr-policy-decision-v0":
         errors.append(f"{path}: decision format mismatch")
     if decision.get("decision") not in POLICY_DECISIONS:
         errors.append(f"{path}: decision is unknown")
     if decision.get("reason") not in POLICY_DECISION_REASONS:
         errors.append(f"{path}: reason is unknown")
+    if "grant_id" in decision:
+        check_grant_id(path, "decision.grant_id", decision.get("grant_id"), errors)
     audit = decision.get("audit_event")
     if not isinstance(audit, dict):
         errors.append(f"{path}: audit_event must be an object")
         return
+    check_known_fields(
+        path,
+        "audit_event",
+        audit,
+        {"format", "occurred_at", "account_id", "route_type", "client_pubkey", "permission", "decision", "reason", "grant_id"},
+        errors,
+    )
     if audit.get("format") != "nsealr-grant-audit-event-v0":
         errors.append(f"{path}: audit_event format mismatch")
+    if type(audit.get("occurred_at")) is not int or audit["occurred_at"] <= 0:
+        errors.append(f"{path}: audit_event.occurred_at must be a positive integer")
+    check_string_id(path, "audit_event.account_id", audit.get("account_id"), errors)
+    if audit.get("route_type") not in {"esp32_usb_nip46", "smartcard", "custom_hardware_wallet", "external_nip46"}:
+        errors.append(f"{path}: audit_event.route_type must be a persistent or external route")
+    if not isinstance(audit.get("client_pubkey"), str) or not HEX32_RE.fullmatch(audit["client_pubkey"]):
+        errors.append(f"{path}: audit_event.client_pubkey must be 32-byte lowercase hex")
+    check_permission_shape(path, audit.get("permission"), errors)
     if audit.get("decision") != decision.get("decision") or audit.get("reason") != decision.get("reason"):
         errors.append(f"{path}: audit_event decision/reason mismatch")
+    if "grant_id" in audit:
+        check_grant_id(path, "audit_event.grant_id", audit.get("grant_id"), errors)
+    if decision.get("grant_id") != audit.get("grant_id"):
+        errors.append(f"{path}: decision/audit_event grant_id mismatch")
 
 
 def check_policy_decision_vector(rel: str, errors: list[str]) -> None:
@@ -1652,6 +1691,13 @@ def check_policy_decision_vector(rel: str, errors: list[str]) -> None:
         errors.append(f"{vector_path}: policy decision vector must be an object")
         return
     check_no_secret_fields(vector_path, vector, errors)
+    check_known_fields(
+        vector_path,
+        "policy decision vector",
+        vector,
+        {"name", "format", "policy_profile_id", "request", "decision"},
+        errors,
+    )
     if vector.get("name") != rel:
         errors.append(f"{vector_path}: name mismatch")
     if vector.get("format") != "nsealr-policy-decision-vector-v0":
@@ -1747,11 +1793,7 @@ def check_policy_change_proposal_shape(path: str, proposal: object, errors: list
         errors.append(f"{path}: proposal has unknown fields {unknown}")
     if proposal.get("format") != "nsealr-policy-change-proposal-v0":
         errors.append(f"{path}: proposal format mismatch")
-    proposal_id = proposal.get("proposal_id")
-    if not isinstance(proposal_id, str) or not proposal_id.startswith("proposal-"):
-        errors.append(f"{path}: proposal_id must start with proposal-")
-    else:
-        check_string_id(path, "proposal_id", proposal_id, errors)
+    check_proposal_id(path, "proposal_id", proposal.get("proposal_id"), errors)
     check_string_id(path, "account_id", proposal.get("account_id"), errors)
     route_type = proposal.get("route_type")
     if route_type not in POLICY_CHANGE_ROUTE_TYPES:
@@ -1851,6 +1893,7 @@ def check_policy_change_review_vector(rel: str, errors: list[str]) -> None:
         errors.append(f"{vector_path}: review format mismatch")
     if proposal is None:
         return
+    check_proposal_id(vector_path, "review.proposal_id", review.get("proposal_id"), errors)
     if review.get("proposal_id") != proposal.get("proposal_id"):
         errors.append(f"{vector_path}: review proposal_id mismatch")
     pages = review.get("pages")

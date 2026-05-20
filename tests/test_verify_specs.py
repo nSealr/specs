@@ -531,6 +531,33 @@ class VerifySpecsTests(unittest.TestCase):
 
             self.assertEqual(errors, [], name)
 
+    def test_policy_decision_vectors_reject_closed_contract_drift(self) -> None:
+        vector = deepcopy(load_json("vectors/policy-decisions/grant-sign-event-kind-1-allowed.json"))
+        vector["unsigned_metadata"] = "not allowed"
+        vector["request"]["route_type"] = "raspberry_qr_vault"
+        vector["request"]["extra"] = "not allowed"
+        vector["decision"]["grant_id"] = "kind-1-session"
+        vector["decision"]["audit_event"]["client_label"] = "not allowed"
+        vector["decision"]["audit_event"]["grant_id"] = "kind-1-session"
+        errors: list[str] = []
+
+        with patch("scripts.verify_specs.load_required_json") as load_mock:
+            def load_mutation(path: str, errors_arg: list[str]) -> dict:
+                if path == "vectors/policy-decisions/mutated-policy-decision-contract.json":
+                    return vector
+                return load_json(path)
+
+            load_mock.side_effect = load_mutation
+            check_policy_decision_vector("mutated-policy-decision-contract", errors)
+
+        joined = "\n".join(errors)
+        self.assertIn("policy decision vector has unknown fields ['unsigned_metadata']", joined)
+        self.assertIn("request has unknown fields ['extra']", joined)
+        self.assertIn("request.route_type must be a persistent or external route", joined)
+        self.assertIn("decision.grant_id must be a grant-* stable string id", joined)
+        self.assertIn("audit_event has unknown fields ['client_label']", joined)
+        self.assertIn("audit_event.grant_id must be a grant-* stable string id", joined)
+
     def test_feature_matrix_vectors_are_discovered_from_directory(self) -> None:
         names = feature_matrix_vector_names()
 
@@ -850,11 +877,33 @@ class VerifySpecsTests(unittest.TestCase):
 
         self.assertIn("companion_authoritative must be false", "\n".join(errors))
 
+    def test_policy_change_review_rejects_loose_ids_and_requester_labels(self) -> None:
+        vector = deepcopy(load_json("vectors/policy-changes/esp32-usb-enable-kind-1-automation.json"))
+        vector["proposal"]["proposal_id"] = f"proposal-{'x' * 120}"
+        vector["review"]["proposal_id"] = vector["proposal"]["proposal_id"]
+        vector["proposal"]["requested_by"]["label"] = 123
+
+        def load_mutation(path: str, errors: list[str]) -> dict:
+            if path == "vectors/policy-changes/esp32-usb-enable-kind-1-automation.json":
+                return vector
+            return load_json(path)
+
+        errors: list[str] = []
+        with patch("scripts.verify_specs.load_required_json", side_effect=load_mutation):
+            check_policy_change_review_vector("esp32-usb-enable-kind-1-automation", errors)
+
+        joined = "\n".join(errors)
+        self.assertIn("proposal_id must be a proposal-* stable string id", joined)
+        self.assertIn("review.proposal_id must be a proposal-* stable string id", joined)
+        self.assertIn("requested_by.label must be a non-empty string", joined)
+
     def test_identity_policy_schemas_declare_required_contracts(self) -> None:
         account_schema = load_json("schemas/account-descriptor-v0.schema.json")
         policy_schema = load_json("schemas/policy-profile-v0.schema.json")
         grant_schema = load_json("schemas/grant-descriptor-v0.schema.json")
         policy_change_schema = load_json("schemas/policy-change-review-v0.schema.json")
+        policy_decision_schema = load_json("schemas/policy-decision-vector-v0.schema.json")
+        route_selection_schema = load_json("schemas/route-selection-vector-v0.schema.json")
 
         self.assertEqual(account_schema["title"], "nSealr Account Descriptor v0")
         self.assertIn("signer_route", account_schema["required"])
@@ -877,6 +926,30 @@ class VerifySpecsTests(unittest.TestCase):
         self.assertEqual(grant_schema["properties"]["grant_id"]["pattern"], "^grant-[A-Za-z0-9._:-]{1,122}$")
         self.assertEqual(policy_change_schema["title"], "nSealr Policy Change Review v0")
         self.assertIn("proposal", policy_change_schema["required"])
+        self.assertEqual(
+            policy_change_schema["properties"]["proposal"]["properties"]["proposal_id"]["pattern"],
+            "^proposal-[A-Za-z0-9._:-]{1,119}$",
+        )
+        self.assertEqual(
+            policy_change_schema["properties"]["proposal"]["properties"]["current_policy_id"]["pattern"],
+            "^policy-[A-Za-z0-9._:-]{1,121}$",
+        )
+        self.assertEqual(
+            policy_change_schema["properties"]["proposal"]["properties"]["proposed_grant_ids"]["items"]["pattern"],
+            "^grant-[A-Za-z0-9._:-]{1,122}$",
+        )
+        self.assertEqual(
+            policy_decision_schema["properties"]["policy_profile_id"]["pattern"],
+            "^policy-[A-Za-z0-9._:-]{1,121}$",
+        )
+        self.assertEqual(
+            policy_decision_schema["properties"]["request"]["properties"]["grant_ids"]["items"]["pattern"],
+            "^grant-[A-Za-z0-9._:-]{1,122}$",
+        )
+        self.assertEqual(
+            route_selection_schema["properties"]["selection"]["properties"]["policy_profile_id"]["pattern"],
+            "^policy-[A-Za-z0-9._:-]{1,121}$",
+        )
 
 
 if __name__ == "__main__":

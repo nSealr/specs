@@ -7,7 +7,7 @@
   "properties": {
     "name": { "type": "string", "pattern": "^[A-Za-z0-9._:-]{1,128}$" },
     "format": { "const": "nsealr-policy-decision-vector-v0" },
-    "policy_profile_id": { "type": "string", "pattern": "^policy-[A-Za-z0-9._:-]+$" },
+    "policy_profile_id": { "type": "string", "pattern": "^policy-[A-Za-z0-9._:-]{1,121}$" },
     "request": {
       "type": "object",
       "required": [
@@ -39,11 +39,11 @@
         "now": { "type": "integer", "minimum": 1 },
         "grant_ids": {
           "type": "array",
-          "items": { "type": "string", "pattern": "^grant-[A-Za-z0-9._:-]+$" }
+          "items": { "type": "string", "pattern": "^grant-[A-Za-z0-9._:-]{1,122}$" }
         },
         "grant_usage": {
           "type": "object",
-          "propertyNames": { "pattern": "^grant-[A-Za-z0-9._:-]+$" },
+          "propertyNames": { "pattern": "^grant-[A-Za-z0-9._:-]{1,122}$" },
           "additionalProperties": {
             "type": "object",
             "required": ["window_started_at", "uses"],
@@ -56,7 +56,7 @@
         },
         "revoked_grant_ids": {
           "type": "array",
-          "items": { "type": "string", "pattern": "^grant-[A-Za-z0-9._:-]+$" }
+          "items": { "type": "string", "pattern": "^grant-[A-Za-z0-9._:-]{1,122}$" }
         }
       },
       "additionalProperties": false
@@ -81,7 +81,7 @@
             "unknown_method_requires_manual_review"
           ]
         },
-        "grant_id": { "type": "string", "pattern": "^grant-[A-Za-z0-9._:-]+$" },
+        "grant_id": { "type": "string", "pattern": "^grant-[A-Za-z0-9._:-]{1,122}$" },
         "audit_event": {
           "type": "object",
           "required": ["format", "occurred_at", "account_id", "route_type", "client_pubkey", "permission", "decision", "reason"],
@@ -105,7 +105,7 @@
             },
             "decision": { "enum": ["allow", "deny", "manual_review"] },
             "reason": { "type": "string", "minLength": 1 },
-            "grant_id": { "type": "string", "pattern": "^grant-[A-Za-z0-9._:-]+$" }
+            "grant_id": { "type": "string", "pattern": "^grant-[A-Za-z0-9._:-]{1,122}$" }
           },
           "additionalProperties": false
         }
