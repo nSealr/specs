@@ -101,7 +101,9 @@ boundary: a decrypted request can be checked against the reviewed
 `approved_pending_ack` checkpoint and relay envelope, but it must still be
 rejected with `connect_ack_pending` and must not use session permissions,
 acknowledge `connect`, open relays, create grants, dispatch signers, store
-production secrets, or persist session state.
+production secrets, or persist session state. Invalid gate vectors now also
+pin sender mismatch, recipient mismatch, pre-approval evaluation, expiry, wrong
+direction, and `connect` refusal.
 
 Status note, 2026-05-11: account descriptors, policy profiles, and grant
 descriptors now exist as shared vectors and schemas. They keep companion

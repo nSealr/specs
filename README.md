@@ -98,7 +98,9 @@ companion implementation must agree on:
   an `approved_pending_ack` checkpoint exists. They bind a decrypted request to
   the reviewed session and relay event, then deterministically reject signer
   dispatch with `connect_ack_pending` until a future acknowledged session
-  contract exists.
+  contract exists. Invalid vectors pin sender/recipient mismatches,
+  pre-approval and expired evaluation timestamps, wrong direction, and
+  attempted `connect` processing.
 - JSON schema for the read-only NIP-46 policy-file format. Approved
   `sign_event` entries must be kind-scoped; broad `sign_event` is only
   requested-permission metadata.

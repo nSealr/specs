@@ -134,6 +134,8 @@ fixtures.
   verification. The verifier checks source-session binding, sender/client and
   recipient/signer pubkey binding, expiry, permission derivation, and the
   deterministic `connect_ack_pending` rejection before any signer dispatch.
+  Invalid gate vectors pin sender mismatch, recipient mismatch, pre-approval
+  evaluation, expiry, wrong direction, and `connect` refusal behavior.
 - SeedQR vector discovery tests ensure every `vectors/seedqr/*.json` file is
   included in conformance verification.
 - NIP-19 `nsec` vector discovery tests ensure every `vectors/nip19/*.json`
