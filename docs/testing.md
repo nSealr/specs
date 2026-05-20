@@ -121,6 +121,12 @@ fixtures.
   descriptors do not echo shared secret values. Invalid hardening vectors also
   cover malformed connection URI schemes, relays, and missing `nostrconnect`
   secrets.
+- NIP-46 auth challenge review vector discovery tests ensure every
+  `vectors/nip46-auth-challenges/*.json` file is included in conformance
+  verification. The verifier checks source relay-step binding, page-visible
+  auth URL review, digest-bound approval, and false side-effect flags for URL
+  opening, relay I/O, `connect` acknowledgement, grant creation, signer
+  dispatch, production secret storage, and session persistence.
 - NIP-46 session lifecycle vector discovery tests ensure every
   `vectors/nip46-sessions/*.json` file is included in conformance
   verification. The verifier checks reviewed connect-digest binding,
@@ -332,7 +338,8 @@ Those checks are directory-driven: new files under `vectors/invalid/`,
 `vectors/grants/`, `vectors/policy-changes/`, `vectors/policy-decisions/`,
 `vectors/route-selections/`, `vectors/access-surfaces/`, `vectors/features/`,
 `vectors/nip46-connection-uris/`, `vectors/nip46-relay-events/`,
-`vectors/nip46-relay-steps/`, `vectors/nip46-session-gates/`,
+`vectors/nip46-relay-steps/`, `vectors/nip46-auth-challenges/`,
+`vectors/nip46-session-gates/`,
 `vectors/seedqr/`, `vectors/nip19/`,
 `vectors/session-import-reviews/`, `vectors/source-public-key-proofs/`,
 `vectors/session-source-backups/`, and the single profile under `vectors/limits/`

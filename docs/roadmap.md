@@ -94,6 +94,13 @@ they expose a safe http(s) auth URL without credentials or fragments for later
 UI, without opening it or treating a generic result/error pair as valid. Both
 still avoid relay I/O, NIP-44 decryption, `connect` acknowledgement, grant
 creation, signer dispatch, signature verification, and session persistence.
+NIP-46 auth challenge review vectors now pin the next manual boundary after
+that response metadata: companion can render deterministic review pages for the
+remote signer, client pubkey, and auth URL, then write a digest-bound local
+approval artifact only when the reviewed auth challenge digest is supplied
+back. This still does not open the URL, acknowledge `connect`, open relays,
+create grants, dispatch signers, store production secrets, or persist session
+state.
 NIP-46 session lifecycle checkpoint vectors now pin the next M5 boundary after
 manual connect approval: a reviewed digest, client/signer pubkeys, relays,
 approval time, expiry, requested permissions, and approved permission subsets

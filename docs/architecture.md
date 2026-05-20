@@ -120,6 +120,12 @@ signer implementation.
   happens without opening relays, decrypting content itself, acknowledging
   `connect`, creating grants, dispatching signers, verifying signatures, or
   persisting session state.
+- Publish NIP-46 auth challenge review vectors for the next manual boundary
+  after an auth challenge response has been normalized. These vectors bind the
+  auth URL, remote signer pubkey, client pubkey, review pages, and manual
+  approval digest while keeping URL opening, relay I/O, `connect`
+  acknowledgement, grant creation, signer dispatch, production secret storage,
+  and session persistence out of scope.
 - Publish NIP-46 session lifecycle checkpoint vectors for the boundary after a
   reviewed `connect` approval and before any active relay session. These
   vectors bind client/signer pubkeys, relay URLs, reviewed connect digest,

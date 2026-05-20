@@ -87,6 +87,11 @@ companion implementation must agree on:
   URL. Both avoid opening relays, decrypting NIP-44 content,
   acknowledging `connect`, creating grants, dispatching signers, verifying
   signatures, or persisting session state.
+- NIP-46 auth challenge review vectors for the step after response metadata
+  normalization. They bind the page-visible auth URL, remote signer pubkey,
+  client pubkey, and manual approval digest while still forbidding automatic
+  URL opening, relay I/O, `connect` acknowledgement, grant creation, signer
+  dispatch, secret storage, or session persistence.
 - NIP-46 session lifecycle checkpoint vectors for the next pre-production
   boundary after manual `connect` approval. These vectors bind client/signer
   pubkeys, relays, reviewed connect digest, approval time, expiry, requested

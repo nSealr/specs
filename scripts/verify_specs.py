@@ -898,6 +898,10 @@ def nip46_relay_step_vector_names() -> list[str]:
     return sorted(path.stem for path in (ROOT / "vectors" / "nip46-relay-steps").glob("*.json"))
 
 
+def nip46_auth_challenge_vector_names() -> list[str]:
+    return sorted(path.stem for path in (ROOT / "vectors" / "nip46-auth-challenges").glob("*.json"))
+
+
 def nip46_session_vector_names() -> list[str]:
     return sorted(path.stem for path in (ROOT / "vectors" / "nip46-sessions").glob("*.json"))
 
@@ -3667,6 +3671,111 @@ def expected_nip46_relay_response_step(vector_path: str, vector: dict, errors: l
     return expected
 
 
+NIP46_AUTH_CHALLENGE_FALSE_FLAGS = {
+    "opens_url",
+    "opens_relay",
+    "acknowledges_connect",
+    "creates_grants",
+    "dispatches_signer",
+    "persists_session_state",
+    "stores_production_secrets",
+    "exposes_secret",
+    "contains_secret_material",
+}
+
+
+def expected_nip46_auth_challenge_review(step: dict) -> dict:
+    review = {
+        "format": "nsealr-nip46-auth-challenge-review-v0",
+        "id": step["message_id"],
+        "remote_signer_pubkey": step["envelope"]["sender_pubkey"],
+        "client_pubkey": step["envelope"]["recipient_pubkey"],
+        "auth_url": step["auth_url"],
+        "pages": [
+            {
+                "title": "Auth Challenge",
+                "page_indicator": "Page 1/2",
+                "body_lines": [
+                    "Remote signer",
+                    step["envelope"]["sender_pubkey"],
+                    "Client",
+                    step["envelope"]["recipient_pubkey"],
+                ],
+            },
+            {
+                "title": "Auth URL",
+                "page_indicator": "Page 2/2",
+                "body_lines": [
+                    step["auth_url"],
+                    "No automatic opening",
+                ],
+            },
+        ],
+        "opens_url": False,
+        "opens_relay": False,
+        "acknowledges_connect": False,
+        "creates_grants": False,
+        "dispatches_signer": False,
+        "persists_session_state": False,
+        "stores_production_secrets": False,
+        "exposes_secret": False,
+        "contains_secret_material": False,
+    }
+    review["auth_challenge_digest"] = nip46_auth_challenge_digest(review)
+    return review
+
+
+def nip46_auth_challenge_digest(review: dict) -> str:
+    review_without_digest = {
+        "format": review.get("format"),
+        "id": review.get("id"),
+        "remote_signer_pubkey": review.get("remote_signer_pubkey"),
+        "client_pubkey": review.get("client_pubkey"),
+        "auth_url": review.get("auth_url"),
+        "pages": review.get("pages"),
+        "opens_url": review.get("opens_url"),
+        "opens_relay": review.get("opens_relay"),
+        "acknowledges_connect": review.get("acknowledges_connect"),
+        "creates_grants": review.get("creates_grants"),
+        "dispatches_signer": review.get("dispatches_signer"),
+        "persists_session_state": review.get("persists_session_state"),
+        "stores_production_secrets": review.get("stores_production_secrets"),
+        "exposes_secret": review.get("exposes_secret"),
+        "contains_secret_material": review.get("contains_secret_material"),
+    }
+    payload = {
+        "format": "nsealr-nip46-auth-challenge-digest-v0",
+        "review": review_without_digest,
+    }
+    return sha256_hex(canonical_json(payload).encode("utf-8"))
+
+
+def expected_nip46_auth_challenge_approval(
+    review: dict,
+    approved_at: object,
+    errors: list[str],
+    vector_path: str,
+) -> dict | None:
+    if type(approved_at) is not int or approved_at < 0 or approved_at > MAX_SAFE_INTEGER:
+        errors.append(f"{vector_path}: auth challenge approval approved_at must be a safe non-negative integer")
+        return None
+    return {
+        "format": "nsealr-nip46-auth-challenge-approval-v0",
+        "id": review["id"],
+        "auth_challenge_digest": review["auth_challenge_digest"],
+        "approved_at": approved_at,
+        "opens_url": False,
+        "opens_relay": False,
+        "acknowledges_connect": False,
+        "creates_grants": False,
+        "dispatches_signer": False,
+        "persists_session_state": False,
+        "stores_production_secrets": False,
+        "exposes_secret": False,
+        "contains_secret_material": False,
+    }
+
+
 def check_invalid_nip46_relay_step(vector_path: str, vector: dict, errors: list[str]) -> None:
     relay_step = vector.get("relay_step")
     if not isinstance(relay_step, dict):
@@ -5527,6 +5636,63 @@ def check_nip46_relay_step_vector(rel: str, errors: list[str]) -> None:
         errors.append(f"{vector_path}: scope must state relay/NIP-44/persistence non-enabling boundary")
 
 
+def check_nip46_auth_challenge_vector(rel: str, errors: list[str]) -> None:
+    vector_path = f"vectors/nip46-auth-challenges/{rel}.json"
+    vector = load_required_json(vector_path, errors)
+    if vector is None:
+        return
+    check_known_fields(
+        vector_path,
+        "NIP-46 auth challenge vector",
+        vector,
+        {"name", "format", "source_relay_step_vector", "review", "approval", "scope"},
+        errors,
+    )
+    if vector.get("name") != rel:
+        errors.append(f"{vector_path}: name mismatch")
+    if vector.get("format") != "nsealr-nip46-auth-challenge-review-vector-v0":
+        errors.append(f"{vector_path}: format mismatch")
+    source = vector.get("source_relay_step_vector")
+    if not isinstance(source, str) or not source.startswith("vectors/nip46-relay-steps/"):
+        errors.append(f"{vector_path}: source_relay_step_vector must point under vectors/nip46-relay-steps/")
+        return
+    source_vector = load_required_json(source, errors)
+    if source_vector is None:
+        return
+    source_step = expected_nip46_relay_response_step(source, source_vector, errors)
+    if source_step is None:
+        return
+    if source_step.get("result_type") != "auth_challenge" or "auth_url" not in source_step:
+        errors.append(f"{vector_path}: source relay step must be an auth_challenge response")
+        return
+    expected_review = expected_nip46_auth_challenge_review(source_step)
+    review = vector.get("review")
+    if review != expected_review:
+        errors.append(f"{vector_path}: review mismatch")
+    elif isinstance(review, dict):
+        for flag in NIP46_AUTH_CHALLENGE_FALSE_FLAGS:
+            if review.get(flag) is not False:
+                errors.append(f"{vector_path}: review {flag} must be false")
+    approval = vector.get("approval")
+    approved_at = approval.get("approved_at") if isinstance(approval, dict) else None
+    expected_approval = expected_nip46_auth_challenge_approval(expected_review, approved_at, errors, vector_path)
+    if expected_approval is not None and approval != expected_approval:
+        errors.append(f"{vector_path}: approval mismatch")
+    elif isinstance(approval, dict):
+        for flag in NIP46_AUTH_CHALLENGE_FALSE_FLAGS:
+            if approval.get(flag) is not False:
+                errors.append(f"{vector_path}: approval {flag} must be false")
+    scope = vector.get("scope")
+    if (
+        not isinstance(scope, str)
+        or "without opening the URL" not in scope
+        or "acknowledging connect" not in scope
+        or "dispatching a signer" not in scope
+        or "persisting session state" not in scope
+    ):
+        errors.append(f"{vector_path}: scope must state URL/ack/signer/persistence non-enabling boundary")
+
+
 def check_nip46_session_vector(rel: str, errors: list[str]) -> None:
     vector_path = f"vectors/nip46-sessions/{rel}.json"
     vector = load_required_json(vector_path, errors)
@@ -5896,6 +6062,9 @@ def main() -> int:
 
     for rel in nip46_relay_step_vector_names():
         check_nip46_relay_step_vector(rel, errors)
+
+    for rel in nip46_auth_challenge_vector_names():
+        check_nip46_auth_challenge_vector(rel, errors)
 
     for rel in nip46_session_vector_names():
         check_nip46_session_vector(rel, errors)
