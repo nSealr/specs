@@ -96,6 +96,12 @@ approval time, expiry, requested permissions, and approved permission subsets
 can be represented without storing secret material, deriving NIP-44 keys,
 acknowledging `connect`, opening relays, creating grants, dispatching signers,
 storing production secrets, or persisting session state.
+NIP-46 pending-session request gate vectors now pin the next non-enabling M5
+boundary: a decrypted request can be checked against the reviewed
+`approved_pending_ack` checkpoint and relay envelope, but it must still be
+rejected with `connect_ack_pending` and must not use session permissions,
+acknowledge `connect`, open relays, create grants, dispatch signers, store
+production secrets, or persist session state.
 
 Status note, 2026-05-11: account descriptors, policy profiles, and grant
 descriptors now exist as shared vectors and schemas. They keep companion
@@ -312,6 +318,9 @@ drift. This gate remains a blocker for ESP32 real signing, browser
 extension/full NIP-46 sessions, persistent grants, production smartcard claims,
 and custom persistent-secret hardware-wallet claims; any new parser boundary
 must add specs vectors before being treated as complete.
+The same rule now applies to pending NIP-46 session gates: request dispatch
+from an approved-but-unacknowledged session remains blocked until a later specs
+contract introduces acknowledged sessions, NIP-44 handling, and grant review.
 
 Status note, 2026-05-11: invalid response vectors now also cover signed-event
 integer safety plus content and tag payloads that exceed the shared v0

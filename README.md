@@ -94,6 +94,11 @@ companion implementation must agree on:
   material, NIP-44 key derivation, relay I/O, `connect` acknowledgement, grant
   creation, signer dispatch, production secret storage, and session
   persistence.
+- NIP-46 pending-session request gate vectors for the follow-on boundary after
+  an `approved_pending_ack` checkpoint exists. They bind a decrypted request to
+  the reviewed session and relay event, then deterministically reject signer
+  dispatch with `connect_ack_pending` until a future acknowledged session
+  contract exists.
 - JSON schema for the read-only NIP-46 policy-file format. Approved
   `sign_event` entries must be kind-scoped; broad `sign_event` is only
   requested-permission metadata.
@@ -140,8 +145,7 @@ companion implementation must agree on:
 - Transport, device, review, review-screen, review-display-frame,
   review-detail-page, review-transcript, NIP-46, NIP-46 policy-file, NIP-46
   connection URI, SeedQR, NIP-19 `nsec`, session-import-review,
-  session-source-backup,
-  NIP-46 session lifecycle,
+  session-source-backup, NIP-46 session lifecycle, NIP-46 session gate,
   account-descriptor, policy-profile, grant-descriptor, policy-change review,
   policy-decision,
   route-selection, access-surface, feature-matrix, invalid-vector,

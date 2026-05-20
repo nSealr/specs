@@ -129,6 +129,11 @@ fixtures.
   side-effect flags for NIP-44 derivation, relay I/O, `connect`
   acknowledgement, grant creation, signer dispatch, production secret storage,
   and session persistence.
+- NIP-46 session request gate discovery tests ensure every
+  `vectors/nip46-session-gates/*.json` file is included in conformance
+  verification. The verifier checks source-session binding, sender/client and
+  recipient/signer pubkey binding, expiry, permission derivation, and the
+  deterministic `connect_ack_pending` rejection before any signer dispatch.
 - SeedQR vector discovery tests ensure every `vectors/seedqr/*.json` file is
   included in conformance verification.
 - NIP-19 `nsec` vector discovery tests ensure every `vectors/nip19/*.json`
@@ -221,8 +226,8 @@ fixtures.
   and consumed by invalid-vector verification.
 - Invalid-vector discovery tests ensure every malicious request, response, QR
   envelope, serial frame, invalid device request metadata, NIP-46 payload,
-  policy-file, connection URI, and session lifecycle vector is included in
-  conformance verification.
+  policy-file, connection URI, session lifecycle, and session gate vector is
+  included in conformance verification.
 - Invalid serial-frame vectors cover oversized frames, checksum mismatch,
   malformed payloads, unsupported frame types, and invalid decoded request
   metadata.
@@ -311,7 +316,8 @@ Those checks are directory-driven: new files under `vectors/invalid/`,
 `vectors/grants/`, `vectors/policy-changes/`, `vectors/policy-decisions/`,
 `vectors/route-selections/`, `vectors/access-surfaces/`, `vectors/features/`,
 `vectors/nip46-connection-uris/`, `vectors/nip46-relay-events/`,
-`vectors/nip46-relay-steps/`, `vectors/seedqr/`, `vectors/nip19/`,
+`vectors/nip46-relay-steps/`, `vectors/nip46-session-gates/`,
+`vectors/seedqr/`, `vectors/nip19/`,
 `vectors/session-import-reviews/`, `vectors/source-public-key-proofs/`,
 `vectors/session-source-backups/`, and the single profile under `vectors/limits/`
 are picked up by tests and

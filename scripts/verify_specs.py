@@ -874,6 +874,10 @@ def nip46_session_vector_names() -> list[str]:
     return sorted(path.stem for path in (ROOT / "vectors" / "nip46-sessions").glob("*.json"))
 
 
+def nip46_session_gate_vector_names() -> list[str]:
+    return sorted(path.stem for path in (ROOT / "vectors" / "nip46-session-gates").glob("*.json"))
+
+
 def seedqr_vector_names() -> list[str]:
     return sorted(path.stem for path in (ROOT / "vectors" / "seedqr").glob("*.json"))
 
@@ -3519,6 +3523,85 @@ def check_invalid_nip46_session(vector_path: str, vector: dict, errors: list[str
     check_nip46_session_lifecycle_shape(vector_path, vector.get("session"), errors)
 
 
+def expected_nip46_session_request_gate(
+    vector_path: str,
+    vector: dict,
+    session: dict,
+    errors: list[str],
+) -> dict | None:
+    if vector.get("format") != "nsealr-nip46-session-request-gate-v0":
+        errors.append(f"{vector_path}: format mismatch")
+        return None
+    evaluated_at = vector.get("evaluated_at")
+    if type(evaluated_at) is not int or evaluated_at < 0 or evaluated_at > MAX_SAFE_INTEGER:
+        errors.append(f"{vector_path}: evaluated_at must be a safe non-negative integer")
+    elif type(session.get("approved_at")) is int and evaluated_at < session["approved_at"]:
+        errors.append(f"{vector_path}: evaluated_at must be greater than or equal to approved_at")
+    elif type(session.get("expires_at")) is int and evaluated_at >= session["expires_at"]:
+        errors.append(f"{vector_path}: evaluated_at must be less than expires_at")
+
+    if vector.get("direction") != "client_to_remote_signer":
+        errors.append(f"{vector_path}: NIP-46 session request gate direction must be client_to_remote_signer")
+        return None
+    envelope = expected_nip46_relay_event_envelope(
+        vector_path,
+        vector.get("event"),
+        vector.get("direction"),
+        errors,
+    )
+    message = check_nip46_request_message(vector_path, vector.get("decrypted_message"), errors)
+    if envelope is None or message is None or type(evaluated_at) is not int:
+        return None
+    if envelope["sender_pubkey"] != session.get("client_pubkey"):
+        errors.append(f"{vector_path}: NIP-46 session request sender does not match session client_pubkey")
+    if envelope["recipient_pubkey"] != session.get("remote_signer_pubkey"):
+        errors.append(f"{vector_path}: NIP-46 session request recipient does not match session remote_signer_pubkey")
+    if message.get("method") == "connect":
+        errors.append(f"{vector_path}: NIP-46 session request gate must not process connect")
+        return None
+    permission_requirement = expected_nip46_permission_requirement(vector_path, message, errors)
+    if permission_requirement is None:
+        return None
+    if errors and any(error.startswith(f"{vector_path}:") for error in errors):
+        return None
+    return {
+        "format": "nsealr-nip46-session-request-gate-v0",
+        "session_name": session["name"],
+        "session_phase": session["phase"],
+        "evaluated_at": evaluated_at,
+        "envelope": envelope,
+        "message_id": message["id"],
+        "permission_requirement": permission_requirement,
+        "blocked_reason": "connect_ack_pending",
+        "response_message": {
+            "id": message["id"],
+            "error": "connect_pending: NIP-46 session is approved but connect is not acknowledged",
+        },
+        "client_pubkey_bound_to_sender": True,
+        "remote_signer_pubkey_bound_to_recipient": True,
+        "session_not_expired": True,
+        "uses_session_permissions": False,
+        "decrypts_content": False,
+        "opens_relay": False,
+        "creates_grants": False,
+        "acknowledges_connect": False,
+        "dispatches_signer": False,
+        "stores_production_secrets": False,
+        "persists_session_state": False,
+    }
+
+
+def check_invalid_nip46_session_gate(vector_path: str, vector: dict, errors: list[str]) -> None:
+    gate = vector.get("session_gate")
+    if not isinstance(gate, dict):
+        errors.append(f"{vector_path}: session_gate must be an object")
+        return
+    session = check_nip46_session_lifecycle_shape(vector_path, gate.get("session"), errors)
+    if session is None:
+        return
+    expected_nip46_session_request_gate(vector_path, gate, session, errors)
+
+
 def check_invalid_vector(rel: str, errors: list[str]) -> None:
     vector_path = f"vectors/invalid/{rel}.json"
     vector = load_required_json(vector_path, errors)
@@ -3553,6 +3636,8 @@ def check_invalid_vector(rel: str, errors: list[str]) -> None:
         check_invalid_nip46_relay_step(vector_path, vector, rejection_errors)
     elif category == "nip46-session":
         check_invalid_nip46_session(vector_path, vector, rejection_errors)
+    elif category == "nip46-session-gate":
+        check_invalid_nip46_session_gate(vector_path, vector, rejection_errors)
     elif category == "nip46-policy-file":
         policy = vector.get("policy_file")
         if not isinstance(policy, dict):
@@ -5200,6 +5285,59 @@ def check_nip46_session_vector(rel: str, errors: list[str]) -> None:
     check_nip46_session_source_binding(vector_path, session, vector.get("source_connect_review_vector"), errors)
 
 
+def check_nip46_session_gate_vector(rel: str, errors: list[str]) -> None:
+    vector_path = f"vectors/nip46-session-gates/{rel}.json"
+    vector = load_required_json(vector_path, errors)
+    if vector is None:
+        return
+    check_known_fields(
+        vector_path,
+        "NIP-46 session request gate vector",
+        vector,
+        {
+            "name",
+            "format",
+            "source_session_vector",
+            "evaluated_at",
+            "direction",
+            "event",
+            "decrypted_message",
+            "expected_gate",
+            "scope",
+        },
+        errors,
+    )
+    if vector.get("name") != rel:
+        errors.append(f"{vector_path}: name mismatch")
+    if vector.get("format") != "nsealr-nip46-session-request-gate-v0":
+        errors.append(f"{vector_path}: format mismatch")
+    source_session_vector = vector.get("source_session_vector")
+    if not isinstance(source_session_vector, str) or not source_session_vector.startswith("vectors/nip46-sessions/"):
+        errors.append(f"{vector_path}: source_session_vector must point under vectors/nip46-sessions/")
+        return
+    source = load_required_json(source_session_vector, errors)
+    if not isinstance(source, dict):
+        return
+    session = check_nip46_session_lifecycle_shape(source_session_vector, source.get("session"), errors)
+    if session is None:
+        return
+    expected = expected_nip46_session_request_gate(vector_path, vector, session, errors)
+    if expected is None:
+        return
+    if vector.get("expected_gate") != expected:
+        errors.append(f"{vector_path}: expected_gate mismatch")
+    scope = vector.get("scope")
+    if (
+        not isinstance(scope, str)
+        or "NIP-44" not in scope
+        or "relay" not in scope
+        or "acknowledg" not in scope
+        or "dispatch" not in scope
+        or "persist" not in scope
+    ):
+        errors.append(f"{vector_path}: scope must state relay/NIP-44/ack/dispatch/persistence non-enabling boundary")
+
+
 SMARTCARD_APDU_EXPECTATIONS = {
     "get-public-key": {
         "cla": "80",
@@ -5499,6 +5637,9 @@ def main() -> int:
 
     for rel in nip46_session_vector_names():
         check_nip46_session_vector(rel, errors)
+
+    for rel in nip46_session_gate_vector_names():
+        check_nip46_session_gate_vector(rel, errors)
 
     for rel in seedqr_vector_names():
         check_seedqr_vector(rel, errors)
