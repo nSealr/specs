@@ -128,6 +128,9 @@ fixtures.
   signer pubkey discovery, and false side-effect flags for relay I/O, NIP-44
   derivation, `connect` acknowledgement, grant creation, signer dispatch,
   production secret storage, and session persistence.
+  Invalid hardening vectors also cover recipient mismatch, explicit response
+  errors, and returned-secret mismatch before any secretless response artifact
+  can be accepted.
 - NIP-46 auth challenge review vector discovery tests ensure every
   `vectors/nip46-auth-challenges/*.json` file is included in conformance
   verification. The verifier checks source relay-step binding, page-visible
@@ -255,8 +258,8 @@ fixtures.
   and consumed by invalid-vector verification.
 - Invalid-vector discovery tests ensure every malicious request, response, QR
   envelope, serial frame, invalid device request metadata, NIP-46 payload,
-  policy-file, connection URI, session lifecycle, and session gate vector is
-  included in conformance verification.
+  policy-file, connection URI, connection token response, session lifecycle,
+  and session gate vector is included in conformance verification.
 - Invalid serial-frame vectors cover oversized frames, checksum mismatch,
   malformed payloads, unsupported frame types, and invalid decoded request
   metadata.

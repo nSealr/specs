@@ -3440,6 +3440,23 @@ def check_invalid_nip46_connection_uri(vector_path: str, vector: dict, errors: l
     expected_nip46_connection_uri_descriptor(vector_path, vector.get("uri"), errors)
 
 
+def check_invalid_nip46_connection_token_response(vector_path: str, vector: dict, errors: list[str]) -> None:
+    token_response = vector.get("connection_token_response")
+    if not isinstance(token_response, dict):
+        errors.append(f"{vector_path}: connection_token_response must be an object")
+        return
+    source_vector = {
+        "uri": token_response.get("connection_uri"),
+        "secret_probe": token_response.get("secret_probe"),
+    }
+    expected_nip46_connection_token_response(
+        vector_path,
+        source_vector,
+        token_response.get("response_step"),
+        errors,
+    )
+
+
 def expected_nip46_relay_event_envelope(
     vector_path: str,
     event: object,
@@ -3734,7 +3751,7 @@ def expected_nip46_connection_token_response(
     if envelope is None or message is None:
         return None
     if envelope["recipient_pubkey"] != descriptor["client_pubkey"]:
-        errors.append(f"{vector_path}: response recipient must match nostrconnect client pubkey")
+        errors.append(f"{vector_path}: NIP-46 connection token response recipient does not match client pubkey")
     if "error" in message:
         errors.append(f"{vector_path}: token response must not contain an error")
     if message.get("result") != secret_probe:
@@ -3979,6 +3996,8 @@ def check_invalid_vector(rel: str, errors: list[str]) -> None:
         check_invalid_nip46_payload(vector_path, vector, rejection_errors)
     elif category == "nip46-connection-uri":
         check_invalid_nip46_connection_uri(vector_path, vector, rejection_errors)
+    elif category == "nip46-connection-token-response":
+        check_invalid_nip46_connection_token_response(vector_path, vector, rejection_errors)
     elif category == "nip46-relay-event":
         check_invalid_nip46_relay_event(vector_path, vector, rejection_errors)
     elif category == "nip46-relay-step":

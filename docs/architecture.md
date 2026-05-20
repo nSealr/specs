@@ -248,10 +248,12 @@ signer implementation.
   signs. Serial-frame vectors also include unsupported frame types so transport
   adapters reject them before JSON is treated as a request or response.
   NIP-46 connection URI rejection vectors pin malformed token parsing without
-  starting relay sessions or echoing secrets. NIP-46 session lifecycle and
-  pending-session gate rejection vectors pin the same no-secret, no-ack,
-  no-NIP-44, no-relay, no-grant, and no-dispatch boundary before full session
-  work exists. They live under `vectors/invalid/` and are discovered
+  starting relay sessions or echoing secrets. NIP-46 connection token response
+  rejection vectors pin recipient binding, explicit response-error rejection,
+  and returned-secret mismatch without output artifacts. NIP-46 session
+  lifecycle and pending-session gate rejection vectors pin the same no-secret,
+  no-ack, no-NIP-44, no-relay, no-grant, and no-dispatch boundary before full
+  session work exists. They live under `vectors/invalid/` and are discovered
   automatically by the specs verifier.
 - Keep schemas and examples usable by independent implementations.
 
