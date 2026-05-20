@@ -247,8 +247,9 @@ signer implementation.
   unsafe timestamps, kinds, oversized content, or tag payloads after a device
   signs. Serial-frame vectors also include unsupported frame types so transport
   adapters reject them before JSON is treated as a request or response.
-  NIP-46 connection URI rejection vectors pin malformed token parsing without
-  starting relay sessions or echoing secrets. NIP-46 connection token response
+  NIP-46 connection URI rejection vectors pin malformed token parsing,
+  duplicate relay/secret refusal, and bunker metadata refusal without starting
+  relay sessions or echoing secrets. NIP-46 connection token response
   rejection vectors pin recipient binding, explicit response-error rejection,
   and returned-secret mismatch without output artifacts. NIP-46 relay-step
   rejection vectors also pin auth challenge URL refusal for credentials,
