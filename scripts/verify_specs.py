@@ -3321,6 +3321,97 @@ def expected_nip46_relay_request_step(vector_path: str, vector: dict, errors: li
     }
 
 
+def check_nip46_relay_response_message(vector_path: str, message: object, errors: list[str]) -> dict | None:
+    if not isinstance(message, dict):
+        errors.append(f"{vector_path}: response_message must be an object")
+        return None
+    if json_utf8_size(message) > implementation_limit_values()["max_nip46_decrypted_message_json_bytes"]:
+        errors.append(f"{vector_path}: NIP-46 decrypted response JSON exceeds max_nip46_decrypted_message_json_bytes")
+    if not isinstance(message.get("id"), str) or not REQUEST_ID_RE.fullmatch(message["id"]):
+        errors.append(f"{vector_path}: response_message id is invalid")
+    unknown = sorted(set(message) - {"id", "result", "error"})
+    if unknown:
+        errors.append(f"{vector_path}: response_message contains unknown fields: {unknown}")
+    has_result = "result" in message
+    has_error = "error" in message
+    if has_result == has_error:
+        errors.append(f"{vector_path}: response_message must contain exactly one of result or error")
+        return message
+    if has_result and not isinstance(message.get("result"), str):
+        errors.append(f"{vector_path}: response_message result must be a string")
+    if has_error and not isinstance(message.get("error"), str):
+        errors.append(f"{vector_path}: response_message error must be a string")
+    return message
+
+
+def expected_nip46_relay_response_result_type(vector_path: str, message: dict, errors: list[str]) -> tuple[str, bool]:
+    if "error" in message:
+        return ("error", False)
+    result = message.get("result")
+    if not isinstance(result, str):
+        return ("unknown_result", False)
+    try:
+        decoded = json.loads(result)
+    except json.JSONDecodeError:
+        if HEX32_RE.fullmatch(result):
+            return ("public_key_result", False)
+        if result == "pong":
+            return ("pong_result", False)
+        errors.append(f"{vector_path}: response_message result is not a supported v0 response shape")
+        return ("unknown_result", False)
+    response_errors: list[str] = []
+    check_response_shape(
+        Path(vector_path),
+        {
+            "version": 1,
+            "request_id": message.get("id"),
+            "ok": True,
+            "result": {
+                "event": decoded,
+            },
+        },
+        response_errors,
+    )
+    if response_errors:
+        errors.extend(response_errors)
+        return ("unknown_result", False)
+    return ("signed_event_result", True)
+
+
+def expected_nip46_relay_response_step(vector_path: str, vector: dict, errors: list[str]) -> dict | None:
+    if vector.get("direction") != "remote_signer_to_client":
+        errors.append(f"{vector_path}: NIP-46 relay response step direction must be remote_signer_to_client")
+        return None
+    envelope = expected_nip46_relay_event_envelope(
+        vector_path,
+        vector.get("event"),
+        vector.get("direction"),
+        errors,
+    )
+    message = check_nip46_relay_response_message(vector_path, vector.get("decrypted_message"), errors)
+    if envelope is None or message is None:
+        return None
+    result_type, signed_event_shape_checked = expected_nip46_relay_response_result_type(vector_path, message, errors)
+    if errors and any(error.startswith(f"{vector_path}:") for error in errors):
+        return None
+    return {
+        "format": "nsealr-nip46-relay-response-step-v0",
+        "envelope": envelope,
+        "message_id": message["id"],
+        "response_message": message,
+        "result_type": result_type,
+        "signed_event_shape_checked": signed_event_shape_checked,
+        "decrypts_content": False,
+        "opens_relay": False,
+        "creates_grants": False,
+        "acknowledges_connect": False,
+        "dispatches_signer": False,
+        "verifies_signature": False,
+        "stores_production_secrets": False,
+        "persists_session_state": False,
+    }
+
+
 def check_invalid_nip46_relay_step(vector_path: str, vector: dict, errors: list[str]) -> None:
     relay_step = vector.get("relay_step")
     if not isinstance(relay_step, dict):
@@ -4778,15 +4869,26 @@ def check_nip46_relay_step_vector(rel: str, errors: list[str]) -> None:
         return
     if vector.get("name") != rel:
         errors.append(f"{vector_path}: name mismatch")
-    if vector.get("format") != "nsealr-nip46-relay-request-step-v0":
+    if vector.get("format") == "nsealr-nip46-relay-request-step-v0":
+        expected = expected_nip46_relay_request_step(vector_path, vector, errors)
+    elif vector.get("format") == "nsealr-nip46-relay-response-step-v0":
+        expected = expected_nip46_relay_response_step(vector_path, vector, errors)
+    else:
         errors.append(f"{vector_path}: format mismatch")
-    expected = expected_nip46_relay_request_step(vector_path, vector, errors)
+        return
     if expected is None:
         return
     if vector.get("expected_step") != expected:
         errors.append(f"{vector_path}: expected_step mismatch")
     scope = vector.get("scope")
-    if not isinstance(scope, str) or "NIP-44" not in scope or "relay" not in scope or "persist" not in scope:
+    scope_requires_signature_boundary = vector.get("format") == "nsealr-nip46-relay-response-step-v0"
+    if (
+        not isinstance(scope, str)
+        or "NIP-44" not in scope
+        or "relay" not in scope
+        or "persist" not in scope
+        or (scope_requires_signature_boundary and "signature" not in scope)
+    ):
         errors.append(f"{vector_path}: scope must state relay/NIP-44/persistence non-enabling boundary")
 
 

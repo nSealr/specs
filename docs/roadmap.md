@@ -77,11 +77,12 @@ NIP-46 relay event envelope vectors now pin the first M5 relay-session boundary:
 `kind:24133` events must expose a valid sender pubkey, exactly one recipient
 `p` tag, and opaque encrypted content before any relay I/O, NIP-44 decryption,
 grant creation, or signer dispatch is implemented.
-NIP-46 relay request-step vectors now pin the second M5 boundary: once a
-plaintext message has been supplied by a future decryption layer, the companion
-must return the same bridge decision it would return for local decrypted
-payloads, while still avoiding relay I/O, NIP-44 decryption, `connect`
-acknowledgement, grant creation, signer dispatch, and session persistence.
+NIP-46 relay step vectors now pin the next M5 boundaries: once a plaintext
+message has been supplied by a future decryption layer, request steps must
+return the same bridge decision they would return for local decrypted payloads,
+and response steps must shape-check plaintext NIP-46 response messages. Both
+still avoid relay I/O, NIP-44 decryption, `connect` acknowledgement, grant
+creation, signer dispatch, signature verification, and session persistence.
 
 Status note, 2026-05-11: account descriptors, policy profiles, and grant
 descriptors now exist as shared vectors and schemas. They keep companion

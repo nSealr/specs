@@ -78,11 +78,12 @@ companion implementation must agree on:
   These validate sender pubkey, exactly one recipient `p` tag, opaque encrypted
   content, and optional signed-event field shapes without opening relays,
   decrypting NIP-44 content, creating grants, or dispatching to signers.
-- NIP-46 relay request-step vectors for deterministic post-decryption bridge
-  decisions. They bind an already validated relay event envelope, an already
-  decrypted NIP-46 message, and reviewed permissions without opening relays,
-  decrypting NIP-44 content, acknowledging `connect`, creating grants,
-  dispatching signers, or persisting session state.
+- NIP-46 relay step vectors for deterministic post-decryption request and
+  response handling. Request steps bind an already validated relay event
+  envelope, an already decrypted NIP-46 message, and reviewed permissions;
+  response steps shape-check plaintext NIP-46 responses. Both avoid opening
+  relays, decrypting NIP-44 content, acknowledging `connect`, creating grants,
+  dispatching signers, verifying signatures, or persisting session state.
 - JSON schema for the read-only NIP-46 policy-file format. Approved
   `sign_event` entries must be kind-scoped; broad `sign_event` is only
   requested-permission metadata.
