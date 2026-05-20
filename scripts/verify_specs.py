@@ -890,6 +890,10 @@ def nip46_connection_uri_vector_names() -> list[str]:
     return sorted(path.stem for path in (ROOT / "vectors" / "nip46-connection-uris").glob("*.json"))
 
 
+def nip46_connection_token_response_vector_names() -> list[str]:
+    return sorted(path.stem for path in (ROOT / "vectors" / "nip46-connection-token-responses").glob("*.json"))
+
+
 def nip46_relay_event_vector_names() -> list[str]:
     return sorted(path.stem for path in (ROOT / "vectors" / "nip46-relay-events").glob("*.json"))
 
@@ -3684,6 +3688,83 @@ NIP46_AUTH_CHALLENGE_FALSE_FLAGS = {
 }
 
 
+NIP46_CONNECTION_TOKEN_RESPONSE_FALSE_FLAGS = {
+    "starts_relay_session",
+    "derives_nip44_key",
+    "acknowledges_connect",
+    "opens_relay",
+    "creates_grants",
+    "dispatches_signer",
+    "stores_production_secrets",
+    "persists_session_state",
+    "exposes_secret",
+    "contains_secret_material",
+}
+
+
+def expected_nip46_connection_token_response(
+    vector_path: str,
+    source_vector: dict,
+    response_step: object,
+    errors: list[str],
+) -> dict | None:
+    descriptor = expected_nip46_connection_uri_descriptor(vector_path, source_vector.get("uri"), errors)
+    if descriptor is None:
+        return None
+    if descriptor.get("kind") != "nostrconnect":
+        errors.append(f"{vector_path}: source connection URI must be nostrconnect")
+        return None
+    secret_probe = source_vector.get("secret_probe")
+    if not isinstance(secret_probe, str) or not secret_probe:
+        errors.append(f"{vector_path}: source connection URI secret_probe must be a non-empty string")
+        return None
+    if not isinstance(response_step, dict):
+        errors.append(f"{vector_path}: response_step must be an object")
+        return None
+    if response_step.get("direction") != "remote_signer_to_client":
+        errors.append(f"{vector_path}: NIP-46 token response step direction must be remote_signer_to_client")
+        return None
+    envelope = expected_nip46_relay_event_envelope(
+        vector_path,
+        response_step.get("event"),
+        response_step.get("direction"),
+        errors,
+    )
+    message = check_nip46_relay_response_message(vector_path, response_step.get("decrypted_message"), errors)
+    if envelope is None or message is None:
+        return None
+    if envelope["recipient_pubkey"] != descriptor["client_pubkey"]:
+        errors.append(f"{vector_path}: response recipient must match nostrconnect client pubkey")
+    if "error" in message:
+        errors.append(f"{vector_path}: token response must not contain an error")
+    if message.get("result") != secret_probe:
+        errors.append(f"{vector_path}: token response secret mismatch")
+    if errors and any(error.startswith(f"{vector_path}:") for error in errors):
+        return None
+    return {
+        "format": "nsealr-nip46-connection-token-response-v0",
+        "kind": "nostrconnect",
+        "client_pubkey": descriptor["client_pubkey"],
+        "remote_signer_pubkey": envelope["sender_pubkey"],
+        "relays": descriptor["relays"],
+        "requested_permissions": descriptor["requested_permissions"],
+        **({"client_metadata": descriptor["client_metadata"]} if "client_metadata" in descriptor else {}),
+        "response_message_id": message["id"],
+        "client_pubkey_bound_to_recipient": True,
+        "secret_matched": True,
+        "starts_relay_session": False,
+        "derives_nip44_key": False,
+        "acknowledges_connect": False,
+        "opens_relay": False,
+        "creates_grants": False,
+        "dispatches_signer": False,
+        "stores_production_secrets": False,
+        "persists_session_state": False,
+        "exposes_secret": False,
+        "contains_secret_material": False,
+    }
+
+
 def expected_nip46_auth_challenge_review(step: dict) -> dict:
     review = {
         "format": "nsealr-nip46-auth-challenge-review-v0",
@@ -4531,6 +4612,10 @@ def check_nip46_connection_uri_vector(rel: str, errors: list[str]) -> None:
     secret_probe = vector.get("secret_probe")
     if not isinstance(secret_probe, str) or not secret_probe:
         errors.append(f"{vector_path}: secret_probe must be a non-empty string")
+    elif not isinstance(vector.get("uri"), str) or secret_probe not in [
+        value for key, value in parse_qsl(urlparse(vector["uri"]).query, keep_blank_values=True) if key == "secret"
+    ]:
+        errors.append(f"{vector_path}: secret_probe must match the decoded uri secret parameter")
     elif secret_probe in json.dumps(vector.get("expected_descriptor"), separators=(",", ":")):
         errors.append(f"{vector_path}: expected_descriptor must not echo secret_probe")
     scope = vector.get("scope")
@@ -5636,6 +5721,57 @@ def check_nip46_relay_step_vector(rel: str, errors: list[str]) -> None:
         errors.append(f"{vector_path}: scope must state relay/NIP-44/persistence non-enabling boundary")
 
 
+def check_nip46_connection_token_response_vector(rel: str, errors: list[str]) -> None:
+    vector_path = f"vectors/nip46-connection-token-responses/{rel}.json"
+    vector = load_required_json(vector_path, errors)
+    if vector is None:
+        return
+    check_known_fields(
+        vector_path,
+        "NIP-46 connection token response vector",
+        vector,
+        {"name", "format", "source_connection_uri_vector", "response_step", "expected_response", "scope"},
+        errors,
+    )
+    if vector.get("name") != rel:
+        errors.append(f"{vector_path}: name mismatch")
+    if vector.get("format") != "nsealr-nip46-connection-token-response-vector-v0":
+        errors.append(f"{vector_path}: format mismatch")
+    source = vector.get("source_connection_uri_vector")
+    if not isinstance(source, str) or not source.startswith("vectors/nip46-connection-uris/"):
+        errors.append(f"{vector_path}: source_connection_uri_vector must point under vectors/nip46-connection-uris/")
+        return
+    source_vector = load_required_json(source, errors)
+    if source_vector is None:
+        return
+    expected = expected_nip46_connection_token_response(vector_path, source_vector, vector.get("response_step"), errors)
+    actual = vector.get("expected_response")
+    if expected is not None and actual != expected:
+        errors.append(f"{vector_path}: expected_response mismatch")
+    elif isinstance(actual, dict):
+        for flag in NIP46_CONNECTION_TOKEN_RESPONSE_FALSE_FLAGS:
+            if actual.get(flag) is not False:
+                errors.append(f"{vector_path}: expected_response {flag} must be false")
+        if actual.get("client_pubkey_bound_to_recipient") is not True:
+            errors.append(f"{vector_path}: expected_response client_pubkey_bound_to_recipient must be true")
+        if actual.get("secret_matched") is not True:
+            errors.append(f"{vector_path}: expected_response secret_matched must be true")
+    secret_probe = source_vector.get("secret_probe")
+    if isinstance(secret_probe, str) and isinstance(actual, dict):
+        if secret_probe in json.dumps(actual, separators=(",", ":")):
+            errors.append(f"{vector_path}: expected_response must not echo secret_probe")
+    scope = vector.get("scope")
+    if (
+        not isinstance(scope, str)
+        or "without storing or exposing" not in scope
+        or "does not open relays" not in scope
+        or "acknowledge connect" not in scope
+        or "dispatch signers" not in scope
+        or "persist session state" not in scope
+    ):
+        errors.append(f"{vector_path}: scope must state secretless non-enabling response boundary")
+
+
 def check_nip46_auth_challenge_vector(rel: str, errors: list[str]) -> None:
     vector_path = f"vectors/nip46-auth-challenges/{rel}.json"
     vector = load_required_json(vector_path, errors)
@@ -6056,6 +6192,9 @@ def main() -> int:
 
     for rel in nip46_connection_uri_vector_names():
         check_nip46_connection_uri_vector(rel, errors)
+
+    for rel in nip46_connection_token_response_vector_names():
+        check_nip46_connection_token_response_vector(rel, errors)
 
     for rel in nip46_relay_event_vector_names():
         check_nip46_relay_event_vector(rel, errors)

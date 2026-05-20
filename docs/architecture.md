@@ -105,6 +105,12 @@ signer implementation.
   permissions, optional client metadata, and secret presence, but they must not
   echo shared secrets or imply relay sessions, NIP-44 session state,
   `connect` acknowledgement, grant creation, or signer dispatch.
+- Publish NIP-46 connection token response vectors for `nostrconnect://`
+  client-initiated flows. These vectors verify the returned secret value
+  against the local token, bind the response recipient to the client pubkey,
+  discover the remote signer pubkey from the response envelope, and must not
+  store or echo the secret, open relays, derive NIP-44 keys, acknowledge
+  `connect`, create grants, dispatch signers, or persist session state.
 - Publish NIP-46 relay event envelope vectors for `kind:24133` request and
   response events before implementing relay transport. These vectors validate
   sender pubkey, exactly one recipient `p` tag, opaque encrypted content, and

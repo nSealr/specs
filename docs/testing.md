@@ -121,6 +121,13 @@ fixtures.
   descriptors do not echo shared secret values. Invalid hardening vectors also
   cover malformed connection URI schemes, relays, and missing `nostrconnect`
   secrets.
+- NIP-46 connection token response discovery tests ensure every
+  `vectors/nip46-connection-token-responses/*.json` file is included in
+  conformance verification. The verifier checks source token binding,
+  recipient/client pubkey binding, secret match without secret echo, remote
+  signer pubkey discovery, and false side-effect flags for relay I/O, NIP-44
+  derivation, `connect` acknowledgement, grant creation, signer dispatch,
+  production secret storage, and session persistence.
 - NIP-46 auth challenge review vector discovery tests ensure every
   `vectors/nip46-auth-challenges/*.json` file is included in conformance
   verification. The verifier checks source relay-step binding, page-visible
@@ -337,7 +344,8 @@ Those checks are directory-driven: new files under `vectors/invalid/`,
 `vectors/review-detail-pages/`, `vectors/accounts/`, `vectors/policies/`,
 `vectors/grants/`, `vectors/policy-changes/`, `vectors/policy-decisions/`,
 `vectors/route-selections/`, `vectors/access-surfaces/`, `vectors/features/`,
-`vectors/nip46-connection-uris/`, `vectors/nip46-relay-events/`,
+`vectors/nip46-connection-uris/`,
+`vectors/nip46-connection-token-responses/`, `vectors/nip46-relay-events/`,
 `vectors/nip46-relay-steps/`, `vectors/nip46-auth-challenges/`,
 `vectors/nip46-session-gates/`,
 `vectors/seedqr/`, `vectors/nip19/`,

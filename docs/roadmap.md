@@ -80,6 +80,13 @@ NIP-46 connection URI vectors now pin descriptor-only parsing of `bunker://`
 and `nostrconnect://` tokens, including relay validation, requested
 permissions, optional client metadata, and proof that parsed descriptors never
 echo shared secret values.
+NIP-46 connection token response vectors now pin the next `nostrconnect://`
+client-token boundary: after an external decryption layer supplies a response
+event, the returned secret can be checked against the local token without
+storing or echoing it. The result discovers the remote signer pubkey from the
+response envelope while still avoiding relay I/O, NIP-44 derivation, `connect`
+acknowledgement, grant creation, signer dispatch, production secret storage,
+and session persistence.
 NIP-46 relay event envelope vectors now pin the first M5 relay-session boundary:
 `kind:24133` events must expose a valid sender pubkey, exactly one recipient
 `p` tag, and opaque encrypted content before any relay I/O, NIP-44 decryption,

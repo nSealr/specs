@@ -74,6 +74,11 @@ companion implementation must agree on:
 - NIP-46 connection URI vectors for descriptor-only `bunker://` and
   `nostrconnect://` token parsing without relay sessions, grant creation, or
   secret echo.
+- NIP-46 connection token response vectors for `nostrconnect://` flows. They
+  verify the returned secret value against the local token without storing or
+  echoing it, discover the remote signer pubkey from the response envelope, and
+  still forbid relay I/O, NIP-44 derivation, `connect` acknowledgement, grant
+  creation, signer dispatch, production secret storage, or session persistence.
 - NIP-46 relay event envelope vectors for `kind:24133` request/response events.
   These validate sender pubkey, exactly one recipient `p` tag, opaque encrypted
   content, and optional signed-event field shapes without opening relays,
