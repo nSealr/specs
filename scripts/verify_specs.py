@@ -3807,7 +3807,6 @@ def check_nip46_session_lifecycle_shape(vector_path: str, value: object, errors:
             "client_pubkey",
             "remote_signer_pubkey",
             "relays",
-            "connect_review_vector",
             "connect_digest",
             "approved_at",
             "expires_at",
@@ -3839,27 +3838,9 @@ def check_nip46_session_lifecycle_shape(vector_path: str, value: object, errors:
         errors.append(f"{vector_path}: remote_signer_pubkey must be 32-byte lowercase hex")
     check_nip46_session_relays(vector_path, value.get("relays"), errors)
 
-    connect_review_vector = value.get("connect_review_vector")
-    connect_source = None
-    if not isinstance(connect_review_vector, str) or not connect_review_vector.startswith("vectors/nip46/"):
-        errors.append(f"{vector_path}: connect_review_vector must point under vectors/nip46/")
-    else:
-        connect_source = load_required_json(connect_review_vector, errors)
     connect_digest = value.get("connect_digest")
     if not isinstance(connect_digest, str) or not HEX32_RE.fullmatch(connect_digest):
         errors.append(f"{vector_path}: connect_digest must be 32-byte lowercase hex")
-    elif isinstance(connect_source, dict):
-        source_digest = connect_source.get("connect_review", {}).get("connect_digest")
-        if connect_digest != source_digest:
-            errors.append(f"{vector_path}: connect_digest must match connect_review_vector")
-        source_intent = connect_source.get("connect_intent", {})
-        if value.get("remote_signer_pubkey") != source_intent.get("remote_signer_pubkey"):
-            errors.append(f"{vector_path}: remote_signer_pubkey must match connect_review_vector")
-        if value.get("requested_permissions") != source_intent.get("requested_permissions"):
-            errors.append(f"{vector_path}: requested_permissions must match connect_review_vector")
-        source_review = connect_source.get("connect_review", {})
-        if value.get("secret_present") != source_review.get("secret_present"):
-            errors.append(f"{vector_path}: secret_present must match connect_review_vector")
 
     approved_at = value.get("approved_at")
     expires_at = value.get("expires_at")
@@ -3899,6 +3880,34 @@ def check_nip46_session_lifecycle_shape(vector_path: str, value: object, errors:
             if required not in scope:
                 errors.append(f"{vector_path}: scope must mention {required}")
     return value
+
+
+def check_nip46_session_source_binding(
+    vector_path: str,
+    session: dict | None,
+    source_connect_review_vector: object,
+    errors: list[str],
+) -> None:
+    if session is None:
+        return
+    connect_source = None
+    if not isinstance(source_connect_review_vector, str) or not source_connect_review_vector.startswith("vectors/nip46/"):
+        errors.append(f"{vector_path}: source_connect_review_vector must point under vectors/nip46/")
+    else:
+        connect_source = load_required_json(source_connect_review_vector, errors)
+    if not isinstance(connect_source, dict):
+        return
+    source_digest = connect_source.get("connect_review", {}).get("connect_digest")
+    if session.get("connect_digest") != source_digest:
+        errors.append(f"{vector_path}: session connect_digest must match source_connect_review_vector")
+    source_intent = connect_source.get("connect_intent", {})
+    if session.get("remote_signer_pubkey") != source_intent.get("remote_signer_pubkey"):
+        errors.append(f"{vector_path}: session remote_signer_pubkey must match source_connect_review_vector")
+    if session.get("requested_permissions") != source_intent.get("requested_permissions"):
+        errors.append(f"{vector_path}: session requested_permissions must match source_connect_review_vector")
+    source_review = connect_source.get("connect_review", {})
+    if session.get("secret_present") != source_review.get("secret_present"):
+        errors.append(f"{vector_path}: session secret_present must match source_connect_review_vector")
 
 
 def check_nip46_permission_policy(vector_path: str, vector: dict, expected_requirement: dict, errors: list[str]) -> None:
@@ -5154,7 +5163,19 @@ def check_nip46_session_vector(rel: str, errors: list[str]) -> None:
     vector = load_required_json(vector_path, errors)
     if vector is None:
         return
-    check_nip46_session_lifecycle_shape(vector_path, vector, errors)
+    check_known_fields(
+        vector_path,
+        "NIP-46 session lifecycle vector",
+        vector,
+        {"name", "format", "source_connect_review_vector", "session"},
+        errors,
+    )
+    if vector.get("format") != "nsealr-nip46-session-lifecycle-vector-v0":
+        errors.append(f"{vector_path}: format mismatch")
+    if vector.get("name") != rel:
+        errors.append(f"{vector_path}: name mismatch")
+    session = check_nip46_session_lifecycle_shape(vector_path, vector.get("session"), errors)
+    check_nip46_session_source_binding(vector_path, session, vector.get("source_connect_review_vector"), errors)
 
 
 SMARTCARD_APDU_EXPECTATIONS = {

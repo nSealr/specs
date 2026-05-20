@@ -23,7 +23,6 @@ Nostr Connect support.
 | `client_pubkey` | Lowercase 32-byte x-only client public key hex. |
 | `remote_signer_pubkey` | Lowercase 32-byte x-only remote signer public key hex. |
 | `relays` | Non-empty normalized unique `wss://` relay URL list. |
-| `connect_review_vector` | Source connect-review vector under `vectors/nip46/`. |
 | `connect_digest` | Lowercase 32-byte digest matching the source connect review. |
 | `approved_at` | Safe non-negative integer timestamp. |
 | `expires_at` | Safe non-negative integer timestamp greater than `approved_at`. |
@@ -35,6 +34,12 @@ Nostr Connect support.
 The checkpoint also carries explicit false side-effect flags. These flags make
 the boundary machine-checkable and prevent future code from silently treating a
 reviewed approval artifact as an active session.
+
+Specs fixtures may wrap a session object with
+`format: nsealr-nip46-session-lifecycle-vector-v0` and
+`source_connect_review_vector` metadata so conformance tests can prove the
+session binds back to the reviewed connect vector. That source path is fixture
+metadata, not a field of the runtime session object.
 
 ## Required Safety Boundary
 
