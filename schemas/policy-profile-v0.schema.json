@@ -61,5 +61,57 @@
       "additionalProperties": { "type": "string", "minLength": 1 }
     }
   },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "route_types": {
+            "contains": {
+              "enum": ["raspberry_qr_vault", "esp32_qr_vault"]
+            }
+          }
+        },
+        "required": ["route_types"]
+      },
+      "then": {
+        "properties": {
+          "mode": { "const": "manual_only" },
+          "grants_allowed": { "const": false }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "route_types": {
+            "contains": { "const": "smartcard" }
+          }
+        },
+        "required": ["route_types"]
+      },
+      "then": {
+        "properties": {
+          "mode": { "const": "manual_only" },
+          "grants_allowed": { "const": false }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "route_types": {
+            "contains": { "const": "external_nip46" }
+          }
+        },
+        "required": ["route_types"]
+      },
+      "then": {
+        "properties": {
+          "mode": { "const": "manual_only" },
+          "grants_allowed": { "const": false }
+        }
+      }
+    }
+  ],
   "additionalProperties": false
 }

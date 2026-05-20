@@ -141,20 +141,24 @@ fixtures.
   ensure every file under `vectors/accounts/`, `vectors/policies/`, and
   `vectors/grants/` is included in conformance verification.
 - Identity/policy semantic tests reject embedded secret fields, QR-vault
-  automation, display-less smartcard automation, wildcard grants, route/policy
-  mismatches, missing or mismatched NIP-06 recovery source vectors, mismatched
-  NIP-06 recovery source fingerprints, and grant targets that point at
-  stateless QR vault routes. They also reject unsupported descriptor, route,
-  recovery, capability, policy-profile, grant-client, grant-permission, and
-  rate-limit fields, malformed `policy-*`/`grant-*` identifiers, and inactive
-  `grant_constraints` on manual-only profiles.
+  automation, display-less smartcard automation, external NIP-46 nSealr
+  automation, wildcard grants, route/policy mismatches, missing or mismatched
+  NIP-06 recovery source vectors, mismatched NIP-06 recovery source
+  fingerprints, and grant targets that point anywhere except ESP32 USB/NIP-46
+  or custom hardware-wallet persistent policy routes. They also reject
+  unsupported descriptor, route, recovery, capability, policy-profile,
+  grant-client, grant-permission, and rate-limit fields, malformed
+  `policy-*`/`grant-*` identifiers, and inactive `grant_constraints` on
+  manual-only profiles.
 - Identity/policy schema tests ensure account descriptors, policy profiles, and
   grant descriptors expose the expected required contract surface, closed
   `additionalProperties: false` boundaries, explicit identifier patterns, and
   no secret-key fields. Account descriptor schema tests also require
   route-type dependent repository, transport, custody, trusted-review,
   policy-support, physical-review, physical-approval, and persistent-grant
-  constraints.
+  constraints. Policy-profile and grant-descriptor schema tests require nSealr
+  scoped grants to stay limited to ESP32 USB/NIP-46 and custom hardware-wallet
+  persistent policy routes.
 - Policy-change review vector discovery tests ensure every file under
   `vectors/policy-changes/` is included in conformance verification.
 - Policy-change review semantic tests pin the persistent-device default

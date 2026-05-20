@@ -68,6 +68,7 @@ ROUTE_REVIEW_MODES = {"device_display", "external_review", "external_policy", "d
 POLICY_SUPPORT_MODES = {"manual_only", "scoped_automation", "external"}
 POLICY_MODES = {"manual_only", "scoped_automation"}
 POLICY_CHANGE_ROUTE_TYPES = {"esp32_usb_nip46", "custom_hardware_wallet"}
+GRANT_ROUTE_TYPES = {"esp32_usb_nip46", "custom_hardware_wallet"}
 GRANT_DECISIONS = {"allow_once", "allow_until_expiry"}
 POLICY_DECISIONS = {"allow", "deny", "manual_review"}
 POLICY_DECISION_REASONS = {
@@ -1330,6 +1331,8 @@ def check_policy_profile_shape(path: str, value: object, errors: list[str]) -> N
         errors.append(f"{path}: QR vault routes must remain manual_only with grants_allowed false")
     if "smartcard" in route_types and (mode != "manual_only" or value.get("grants_allowed") is not False):
         errors.append(f"{path}: display-less smartcard routes must remain manual_only with grants_allowed false")
+    if "external_nip46" in route_types and (mode != "manual_only" or value.get("grants_allowed") is not False):
+        errors.append(f"{path}: external NIP-46 routes must remain external-policy manual without nSealr grants")
     if mode == "manual_only" and value.get("grants_allowed") is True:
         errors.append(f"{path}: manual_only profiles must not allow grants")
     if value.get("grants_allowed") is True:
@@ -1395,8 +1398,8 @@ def check_grant_descriptor_shape(path: str, value: object, errors: list[str]) ->
     route_type = value.get("route_type")
     if route_type not in ROUTE_TYPES:
         errors.append(f"{path}: route_type is unknown")
-    if route_type in QR_ROUTE_TYPES:
-        errors.append(f"{path}: grant route_type must not be a stateless QR vault")
+    elif route_type not in GRANT_ROUTE_TYPES:
+        errors.append(f"{path}: grant route_type must be a nSealr persistent policy route")
     client = value.get("client")
     if not isinstance(client, dict):
         errors.append(f"{path}: client must be an object")

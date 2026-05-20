@@ -77,7 +77,9 @@ companion implementation must agree on:
   policy-decision transcript vectors for secretless companion routing across
   the five signer families, plus an external NIP-46 adapter route. Descriptor
   schemas are closed and pin `policy-*` / `grant-*` identifiers so ignored
-  metadata cannot become later routing or policy semantics.
+  metadata cannot become later routing or policy semantics. nSealr-managed
+  grant descriptors are limited to persistent policy routes with device
+  confirmation: ESP32 USB/NIP-46 and custom hardware wallets.
 - Route-selection vectors that bind each shared account descriptor plus a
   requested method to a secretless selected signer route without dispatching
   signer I/O. NIP-06 account descriptors also bind to the same reviewed source

@@ -787,6 +787,27 @@ class VerifySpecsTests(unittest.TestCase):
 
         self.assertIn("display-less smartcard routes must remain manual_only", "\n".join(errors))
 
+    def test_policy_profiles_reject_automation_for_external_nip46_routes(self) -> None:
+        policy = deepcopy(load_json("vectors/policies/external-signer-manual-route.json"))
+        policy["mode"] = "scoped_automation"
+        policy["grants_allowed"] = True
+        policy["grant_constraints"] = {
+            "expiry_required": True,
+            "rate_limit_required": True,
+            "revocation_required": True,
+            "audit_log_required": True,
+            "device_confirmation_required": True,
+        }
+        errors: list[str] = []
+
+        verify_specs.check_policy_profile_shape(
+            "vectors/policies/mutated-external-nip46-automation.json",
+            policy,
+            errors,
+        )
+
+        self.assertIn("external NIP-46 routes must remain external-policy manual without nSealr grants", "\n".join(errors))
+
     def test_account_descriptors_reject_display_less_smartcard_trusted_review_claims(self) -> None:
         account = deepcopy(load_json("vectors/accounts/smartcard-slot-0.json"))
         account["signer_route"]["trusted_review"] = "device_display"
@@ -833,7 +854,7 @@ class VerifySpecsTests(unittest.TestCase):
 
         self.assertIn("policy_profile_id does not include signer route type smartcard", "\n".join(errors))
 
-    def test_grant_descriptors_reject_wildcard_or_qr_automation(self) -> None:
+    def test_grant_descriptors_reject_wildcard_or_non_persistent_policy_routes(self) -> None:
         grant = deepcopy(load_json("vectors/grants/esp32-usb-kind-1-session.json"))
         grant["permission"]["method"] = "*"
         grant["route_type"] = "esp32_qr_vault"
@@ -846,8 +867,21 @@ class VerifySpecsTests(unittest.TestCase):
         )
 
         joined = "\n".join(errors)
-        self.assertIn("grant route_type must not be a stateless QR vault", joined)
+        self.assertIn("grant route_type must be a nSealr persistent policy route", joined)
         self.assertIn("grant permission must not use wildcards", joined)
+
+        for route_type in ("smartcard", "external_nip46"):
+            grant = deepcopy(load_json("vectors/grants/esp32-usb-kind-1-session.json"))
+            grant["route_type"] = route_type
+            errors = []
+
+            verify_specs.check_grant_descriptor_shape(
+                f"vectors/grants/mutated-{route_type}-grant.json",
+                grant,
+                errors,
+            )
+
+            self.assertIn("grant route_type must be a nSealr persistent policy route", "\n".join(errors))
 
         grant = deepcopy(load_json("vectors/grants/esp32-usb-kind-1-session.json"))
         grant["permission"] = {"method": "nip44_decrypt"}
@@ -995,6 +1029,23 @@ class VerifySpecsTests(unittest.TestCase):
         self.assertFalse(policy_schema["additionalProperties"])
         self.assertFalse(policy_schema["properties"]["grant_constraints"]["additionalProperties"])
         self.assertEqual(policy_schema["properties"]["policy_id"]["pattern"], "^policy-[A-Za-z0-9._:-]{1,121}$")
+        self.assertEqual(len(policy_schema["allOf"]), 3)
+        self.assertIn({
+            "if": {
+                "properties": {
+                    "route_types": {
+                        "contains": {"const": "external_nip46"}
+                    }
+                },
+                "required": ["route_types"],
+            },
+            "then": {
+                "properties": {
+                    "mode": {"const": "manual_only"},
+                    "grants_allowed": {"const": False},
+                }
+            },
+        }, policy_schema["allOf"])
         self.assertEqual(grant_schema["title"], "nSealr Grant Descriptor v0")
         self.assertIn("expires_at", grant_schema["required"])
         self.assertFalse(grant_schema["additionalProperties"])
@@ -1002,6 +1053,7 @@ class VerifySpecsTests(unittest.TestCase):
         self.assertFalse(grant_schema["properties"]["permission"]["additionalProperties"])
         self.assertFalse(grant_schema["properties"]["rate_limit"]["additionalProperties"])
         self.assertEqual(grant_schema["properties"]["grant_id"]["pattern"], "^grant-[A-Za-z0-9._:-]{1,122}$")
+        self.assertEqual(grant_schema["properties"]["route_type"]["enum"], ["esp32_usb_nip46", "custom_hardware_wallet"])
         self.assertEqual(policy_change_schema["title"], "nSealr Policy Change Review v0")
         self.assertIn("proposal", policy_change_schema["required"])
         self.assertEqual(

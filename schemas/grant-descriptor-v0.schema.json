@@ -22,7 +22,7 @@
     "grant_id": { "type": "string", "pattern": "^grant-[A-Za-z0-9._:-]{1,122}$" },
     "account_id": { "type": "string", "pattern": "^[A-Za-z0-9._:-]{1,128}$" },
     "route_type": {
-      "enum": ["esp32_usb_nip46", "smartcard", "custom_hardware_wallet", "external_nip46"]
+      "enum": ["esp32_usb_nip46", "custom_hardware_wallet"]
     },
     "client": {
       "type": "object",
