@@ -3417,6 +3417,9 @@ def check_invalid_nip46_relay_step(vector_path: str, vector: dict, errors: list[
     if not isinstance(relay_step, dict):
         errors.append(f"{vector_path}: relay_step must be an object")
         return
+    if relay_step.get("format") == "nsealr-nip46-relay-response-step-v0":
+        expected_nip46_relay_response_step(vector_path, relay_step, errors)
+        return
     expected_nip46_relay_request_step(vector_path, relay_step, errors)
 
 
