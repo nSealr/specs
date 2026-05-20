@@ -249,9 +249,9 @@ signer implementation.
   adapters reject them before JSON is treated as a request or response.
   NIP-46 connection URI rejection vectors pin malformed token parsing,
   duplicate relay/secret/permission refusal, relay credential/fragment
-  refusal, empty-secret refusal, bunker metadata refusal, and safe client
-  metadata URL parsing without starting relay sessions or echoing secrets.
-  NIP-46 connection token response
+  refusal, unsafe `sign_event` permission-kind refusal, empty-secret refusal,
+  bunker metadata refusal, and safe client metadata URL parsing without
+  starting relay sessions or echoing secrets. NIP-46 connection token response
   rejection vectors pin recipient binding, explicit response-error rejection,
   and returned-secret mismatch without output artifacts. NIP-46 relay-step
   rejection vectors also pin auth challenge URL refusal for credentials,

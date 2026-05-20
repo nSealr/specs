@@ -1138,9 +1138,11 @@ def check_permission_shape(path: str, permission: object, errors: list[str], *, 
         event_kind = permission.get("event_kind")
         if not isinstance(parameter, str) or not parameter.isdigit():
             errors.append(f"{path}: sign_event permission.parameter must be a decimal event kind")
-        if type(event_kind) is not int or event_kind < 0:
-            errors.append(f"{path}: sign_event permission.event_kind must be a non-negative integer")
-        elif isinstance(parameter, str) and parameter.isdigit() and int(parameter) != event_kind:
+        elif int(parameter) > MAX_SAFE_INTEGER:
+            errors.append(f"{path}: sign_event permission.parameter exceeds max_safe_integer")
+        if type(event_kind) is not int or event_kind < 0 or event_kind > MAX_SAFE_INTEGER:
+            errors.append(f"{path}: sign_event permission.event_kind must be a non-negative safe integer")
+        elif isinstance(parameter, str) and parameter.isdigit() and int(parameter) <= MAX_SAFE_INTEGER and int(parameter) != event_kind:
             errors.append(f"{path}: sign_event permission parameter/event_kind mismatch")
         if grant_permission and (parameter != "1" or event_kind not in GRANT_AUTOMATION_EVENT_KINDS):
             errors.append(f"{path}: v0 grants support only sign_event kind 1 automation")
@@ -3076,6 +3078,9 @@ def parse_nip46_permissions(value: str, vector_path: str, errors: list[str]) -> 
                 errors.append(f"{vector_path}: sign_event permission kind must be numeric")
                 continue
             event_kind = int(parameter)
+            if event_kind > MAX_SAFE_INTEGER:
+                errors.append(f"{vector_path}: sign_event permission kind must be a safe non-negative integer")
+                continue
             parsed.append({"method": method, "parameter": parameter, "event_kind": event_kind})
             continue
         if parameter is not None:
@@ -4169,9 +4174,12 @@ def normalized_nip46_permission(vector_path: str, value: object, errors: list[st
             or not isinstance(parameter, str)
             or not parameter.isdigit()
             or not isinstance(event_kind, int)
+            or event_kind < 0
+            or event_kind > MAX_SAFE_INTEGER
+            or int(parameter) > MAX_SAFE_INTEGER
             or event_kind != int(parameter)
         ):
-            errors.append(f"{vector_path}: sign_event permission parameter must match event_kind")
+            errors.append(f"{vector_path}: sign_event permission parameter must match event_kind and be safe")
             return None
         return {"method": method, "parameter": parameter, "event_kind": event_kind}
     if set(value) != {"method"}:
