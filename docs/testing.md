@@ -144,10 +144,14 @@ fixtures.
   automation, display-less smartcard automation, wildcard grants, route/policy
   mismatches, missing or mismatched NIP-06 recovery source vectors, mismatched
   NIP-06 recovery source fingerprints, and grant targets that point at
-  stateless QR vault routes.
+  stateless QR vault routes. They also reject unsupported descriptor, route,
+  recovery, capability, policy-profile, grant-client, grant-permission, and
+  rate-limit fields, malformed `policy-*`/`grant-*` identifiers, and inactive
+  `grant_constraints` on manual-only profiles.
 - Identity/policy schema tests ensure account descriptors, policy profiles, and
-  grant descriptors expose the expected required contract surface without
-  adding secret-key fields.
+  grant descriptors expose the expected required contract surface, closed
+  `additionalProperties: false` boundaries, explicit identifier patterns, and
+  no secret-key fields.
 - Policy-change review vector discovery tests ensure every file under
   `vectors/policy-changes/` is included in conformance verification.
 - Policy-change review semantic tests pin the persistent-device default

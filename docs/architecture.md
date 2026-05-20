@@ -110,7 +110,10 @@ signer implementation.
   manual-only, keep display-less smartcards manual-only with external review
   acknowledgement, reject QR-vault grants, and require expiry, rate limits,
   revocation, audit, and device policy confirmation for ESP32 USB/NIP-46 and
-  custom hardware-wallet automation.
+  custom hardware-wallet automation. The descriptor contracts are
+  closed-schema at every routing/policy layer and require explicit
+  `policy-*`/`grant-*` identifiers so unsigned metadata cannot be silently
+  accepted and reinterpreted later.
 - Publish the current account/custody product model for all signer families:
   policies attach to final signing public keys and routes, QR vaults use a
   RAM-only session keyring with SeedSigner-compatible SeedQR and NIP-19 `nsec`

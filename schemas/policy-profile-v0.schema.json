@@ -16,7 +16,7 @@
   ],
   "properties": {
     "format": { "const": "nsealr-policy-profile-v0" },
-    "policy_id": { "type": "string", "pattern": "^policy-[A-Za-z0-9._:-]+$" },
+    "policy_id": { "type": "string", "pattern": "^policy-[A-Za-z0-9._:-]{1,121}$" },
     "label": { "type": "string", "minLength": 1 },
     "route_types": {
       "type": "array",

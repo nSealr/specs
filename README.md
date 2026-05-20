@@ -75,7 +75,9 @@ companion implementation must agree on:
 - JSON schema for the read-only NIP-46 policy-file format.
 - Identity, recovery, policy, grant descriptor, policy-change review, and
   policy-decision transcript vectors for secretless companion routing across
-  the five signer families, plus an external NIP-46 adapter route.
+  the five signer families, plus an external NIP-46 adapter route. Descriptor
+  schemas are closed and pin `policy-*` / `grant-*` identifiers so ignored
+  metadata cannot become later routing or policy semantics.
 - Route-selection vectors that bind each shared account descriptor plus a
   requested method to a secretless selected signer route without dispatching
   signer I/O. NIP-06 account descriptors also bind to the same reviewed source

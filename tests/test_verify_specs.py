@@ -634,6 +634,78 @@ class VerifySpecsTests(unittest.TestCase):
 
         self.assertIn("must not contain secret field recovery.mnemonic", "\n".join(errors))
 
+    def test_identity_policy_contracts_reject_unsupported_fields(self) -> None:
+        account = deepcopy(load_json("vectors/accounts/esp32-usb-device-slot-0.json"))
+        account["unsigned_metadata"] = "not allowed"
+        account["signer_route"]["display_hint"] = "not allowed"
+        account["capabilities"]["autofill_policy"] = True
+        account["recovery"]["legacy_hint"] = "not allowed"
+        account["policy_profile_id"] = "manual-only"
+        errors: list[str] = []
+
+        verify_specs.check_account_descriptor_shape(
+            "vectors/accounts/mutated-unsupported-fields.json",
+            account,
+            errors,
+        )
+
+        joined = "\n".join(errors)
+        self.assertIn("account descriptor has unknown fields ['unsigned_metadata']", joined)
+        self.assertIn("signer_route has unknown fields ['display_hint']", joined)
+        self.assertIn("capabilities has unknown fields ['autofill_policy']", joined)
+        self.assertIn("device_slot recovery has unknown fields ['legacy_hint']", joined)
+        self.assertIn("policy_profile_id must be a policy-* stable string id", joined)
+
+        policy = deepcopy(load_json("vectors/policies/scoped-automation-daily-use.json"))
+        policy["notes"] = "not allowed"
+        policy["grant_constraints"]["companion_override_allowed"] = False
+        errors = []
+
+        verify_specs.check_policy_profile_shape(
+            "vectors/policies/mutated-unsupported-fields.json",
+            policy,
+            errors,
+        )
+
+        joined = "\n".join(errors)
+        self.assertIn("policy profile has unknown fields ['notes']", joined)
+        self.assertIn("grant_constraints has unknown fields ['companion_override_allowed']", joined)
+
+        manual_policy = deepcopy(load_json("vectors/policies/manual-only-persistent-device.json"))
+        manual_policy["grant_constraints"] = {"expiry_required": True}
+        errors = []
+
+        verify_specs.check_policy_profile_shape(
+            "vectors/policies/mutated-manual-constraints.json",
+            manual_policy,
+            errors,
+        )
+
+        self.assertIn("grant_constraints must be absent when grants are not allowed", "\n".join(errors))
+
+        grant = deepcopy(load_json("vectors/grants/esp32-usb-kind-1-session.json"))
+        grant["unsigned_metadata"] = "not allowed"
+        grant["grant_id"] = "kind-1-session"
+        grant["client"]["origin"] = "https://example.com"
+        grant["client"]["label"] = 123
+        grant["permission"]["reason"] = "not allowed"
+        grant["rate_limit"]["burst"] = 1
+        errors = []
+
+        verify_specs.check_grant_descriptor_shape(
+            "vectors/grants/mutated-unsupported-fields.json",
+            grant,
+            errors,
+        )
+
+        joined = "\n".join(errors)
+        self.assertIn("grant descriptor has unknown fields ['unsigned_metadata']", joined)
+        self.assertIn("grant_id must be a grant-* stable string id", joined)
+        self.assertIn("client has unknown fields ['origin']", joined)
+        self.assertIn("client.label must be a string", joined)
+        self.assertIn("permission has unknown fields ['reason']", joined)
+        self.assertIn("rate_limit has unknown fields ['burst']", joined)
+
     def test_account_descriptors_reject_missing_nip06_source_vector(self) -> None:
         account = deepcopy(load_json("vectors/accounts/esp32-qr-nip06-account-0.json"))
         account["recovery"]["source_vector"] = "vectors/keys/missing-nip06-account.json"
@@ -787,10 +859,22 @@ class VerifySpecsTests(unittest.TestCase):
         self.assertEqual(account_schema["title"], "nSealr Account Descriptor v0")
         self.assertIn("signer_route", account_schema["required"])
         self.assertNotIn("secret_key", account_schema["properties"])
+        self.assertFalse(account_schema["additionalProperties"])
+        self.assertFalse(account_schema["properties"]["signer_route"]["additionalProperties"])
+        self.assertFalse(account_schema["properties"]["capabilities"]["additionalProperties"])
+        self.assertEqual(account_schema["properties"]["policy_profile_id"]["pattern"], "^policy-[A-Za-z0-9._:-]{1,121}$")
         self.assertEqual(policy_schema["title"], "nSealr Policy Profile v0")
         self.assertIn("grants_allowed", policy_schema["required"])
+        self.assertFalse(policy_schema["additionalProperties"])
+        self.assertFalse(policy_schema["properties"]["grant_constraints"]["additionalProperties"])
+        self.assertEqual(policy_schema["properties"]["policy_id"]["pattern"], "^policy-[A-Za-z0-9._:-]{1,121}$")
         self.assertEqual(grant_schema["title"], "nSealr Grant Descriptor v0")
         self.assertIn("expires_at", grant_schema["required"])
+        self.assertFalse(grant_schema["additionalProperties"])
+        self.assertFalse(grant_schema["properties"]["client"]["additionalProperties"])
+        self.assertFalse(grant_schema["properties"]["permission"]["additionalProperties"])
+        self.assertFalse(grant_schema["properties"]["rate_limit"]["additionalProperties"])
+        self.assertEqual(grant_schema["properties"]["grant_id"]["pattern"], "^grant-[A-Za-z0-9._:-]{1,122}$")
         self.assertEqual(policy_change_schema["title"], "nSealr Policy Change Review v0")
         self.assertIn("proposal", policy_change_schema["required"])
 

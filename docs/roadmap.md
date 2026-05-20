@@ -80,6 +80,10 @@ manual-only, keep display-less smartcard routes manual-only with external
 review acknowledgement, and require scoped grants to carry expiry, rate-limit,
 revocation, audit, and device-policy-confirmation constraints for ESP32
 USB/NIP-46 and custom hardware-wallet routes.
+Status note, 2026-05-19: the verifier now mirrors the closed-schema JSON
+contracts for routing and policy descriptors, including nested signer routes,
+recovery records, capabilities, grant clients, grant permissions, rate limits,
+and strict `policy-*` / `grant-*` identifiers.
 
 Status note, 2026-05-19: policy-decision transcript vectors now pin the
 pre-storage automation boundary for persistent routes: valid grants may allow a

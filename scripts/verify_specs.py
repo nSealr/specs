@@ -19,6 +19,8 @@ HEX32_RE = re.compile(r"^[0-9a-f]{64}$")
 HEX64_RE = re.compile(r"^[0-9a-f]{128}$")
 HEX8_RE = re.compile(r"^[0-9a-f]{16}$")
 REQUEST_ID_RE = re.compile(r"^[A-Za-z0-9._:-]{1,128}$")
+POLICY_ID_RE = re.compile(r"^policy-[A-Za-z0-9._:-]{1,121}$")
+GRANT_ID_RE = re.compile(r"^grant-[A-Za-z0-9._:-]{1,122}$")
 B64URL_RE = re.compile(r"^[A-Za-z0-9_-]+$")
 QR_PREFIX = "nsealr1:"
 ANIMATED_QR_PREFIX = "nsealr1a:"
@@ -926,6 +928,26 @@ def check_string_id(path: str, field: str, value: object, errors: list[str]) -> 
         errors.append(f"{path}: {field} must be a stable string id")
 
 
+def check_policy_id(path: str, field: str, value: object, errors: list[str]) -> bool:
+    if not isinstance(value, str) or not POLICY_ID_RE.fullmatch(value):
+        errors.append(f"{path}: {field} must be a policy-* stable string id")
+        return False
+    return True
+
+
+def check_grant_id(path: str, field: str, value: object, errors: list[str]) -> bool:
+    if not isinstance(value, str) or not GRANT_ID_RE.fullmatch(value):
+        errors.append(f"{path}: {field} must be a grant-* stable string id")
+        return False
+    return True
+
+
+def check_known_fields(path: str, label: str, value: dict, allowed: set[str], errors: list[str]) -> None:
+    unknown = sorted(set(value) - allowed)
+    if unknown:
+        errors.append(f"{path}: {label} has unknown fields {unknown}")
+
+
 def client_id_for_identity(client: dict) -> str:
     payload = {
         "surface": client.get("surface"),
@@ -1038,6 +1060,13 @@ def check_account_descriptor_shape(path: str, value: object, errors: list[str]) 
         errors.append(f"{path}: account descriptor must be an object")
         return
     check_no_secret_fields(path, value, errors)
+    check_known_fields(
+        path,
+        "account descriptor",
+        value,
+        {"format", "account_id", "label", "public_key", "signer_route", "recovery", "capabilities", "policy_profile_id"},
+        errors,
+    )
     if value.get("format") != "nsealr-account-descriptor-v0":
         errors.append(f"{path}: format mismatch")
     check_string_id(path, "account_id", value.get("account_id"), errors)
@@ -1050,6 +1079,13 @@ def check_account_descriptor_shape(path: str, value: object, errors: list[str]) 
     if not isinstance(route, dict):
         errors.append(f"{path}: signer_route must be an object")
         return
+    check_known_fields(
+        path,
+        "signer_route",
+        route,
+        {"type", "repository", "transport", "custody", "trusted_review", "policy_support"},
+        errors,
+    )
     route_type = route.get("type")
     if route_type not in ROUTE_TYPES:
         errors.append(f"{path}: signer_route.type is unknown")
@@ -1071,6 +1107,13 @@ def check_account_descriptor_shape(path: str, value: object, errors: list[str]) 
     if not isinstance(capabilities, dict):
         errors.append(f"{path}: capabilities must be an object")
         return
+    check_known_fields(
+        path,
+        "capabilities",
+        capabilities,
+        {"methods", "physical_review", "physical_approval", "persistent_grants"},
+        errors,
+    )
     methods = capabilities.get("methods")
     if not isinstance(methods, list) or not all(isinstance(method, str) for method in methods):
         errors.append(f"{path}: capabilities.methods must be an array of strings")
@@ -1149,6 +1192,13 @@ def check_account_descriptor_shape(path: str, value: object, errors: list[str]) 
         return
     recovery_type = recovery.get("type")
     if recovery_type == "nip06":
+        check_known_fields(
+            path,
+            "NIP-06 recovery",
+            recovery,
+            {"type", "path", "account", "source_vector", "source_fingerprint"},
+            errors,
+        )
         if not isinstance(recovery.get("path"), str) or not recovery["path"].startswith("m/44'/1237'/"):
             errors.append(f"{path}: NIP-06 recovery path must use the Nostr derivation prefix")
         if type(recovery.get("account")) is not int or recovery["account"] < 0:
@@ -1169,11 +1219,13 @@ def check_account_descriptor_shape(path: str, value: object, errors: list[str]) 
             elif expected_fingerprint is not None and source_fingerprint != expected_fingerprint:
                 errors.append(f"{path}: NIP-06 recovery source_fingerprint mismatch")
     elif recovery_type == "device_slot":
+        check_known_fields(path, "device_slot recovery", recovery, {"type", "slot_id", "backup_required"}, errors)
         if not isinstance(recovery.get("slot_id"), str) or not recovery["slot_id"]:
             errors.append(f"{path}: device_slot recovery requires slot_id")
         if not isinstance(recovery.get("backup_required"), bool):
             errors.append(f"{path}: device_slot recovery requires backup_required boolean")
     elif recovery_type == "card_slot":
+        check_known_fields(path, "card_slot recovery", recovery, {"type", "card_id", "slot_id", "backup_required"}, errors)
         if not isinstance(recovery.get("card_id"), str) or not recovery["card_id"]:
             errors.append(f"{path}: card_slot recovery requires card_id")
         if not isinstance(recovery.get("slot_id"), str) or not recovery["slot_id"]:
@@ -1181,6 +1233,13 @@ def check_account_descriptor_shape(path: str, value: object, errors: list[str]) 
         if not isinstance(recovery.get("backup_required"), bool):
             errors.append(f"{path}: card_slot recovery requires backup_required boolean")
     elif recovery_type == "hardware_wallet_slot":
+        check_known_fields(
+            path,
+            "hardware_wallet_slot recovery",
+            recovery,
+            {"type", "device_id", "slot_id", "backup_required"},
+            errors,
+        )
         if not isinstance(recovery.get("device_id"), str) or not recovery["device_id"]:
             errors.append(f"{path}: hardware_wallet_slot recovery requires device_id")
         if not isinstance(recovery.get("slot_id"), str) or not recovery["slot_id"]:
@@ -1188,15 +1247,16 @@ def check_account_descriptor_shape(path: str, value: object, errors: list[str]) 
         if not isinstance(recovery.get("backup_required"), bool):
             errors.append(f"{path}: hardware_wallet_slot recovery requires backup_required boolean")
     elif recovery_type == "external_signer":
+        check_known_fields(path, "external_signer recovery", recovery, {"type", "external_signer_id"}, errors)
         if not isinstance(recovery.get("external_signer_id"), str) or not recovery["external_signer_id"]:
             errors.append(f"{path}: external_signer recovery requires external_signer_id")
     else:
         errors.append(f"{path}: recovery.type is unknown")
 
     policy_profile_id = value.get("policy_profile_id")
-    if not isinstance(policy_profile_id, str) or not policy_profile_id.startswith("policy-"):
-        errors.append(f"{path}: policy_profile_id must reference a policy-* profile")
-    elif not (ROOT / "vectors" / "policies" / f"{policy_profile_id.removeprefix('policy-')}.json").exists():
+    if not check_policy_id(path, "policy_profile_id", policy_profile_id, errors):
+        return
+    if not (ROOT / "vectors" / "policies" / f"{policy_profile_id.removeprefix('policy-')}.json").exists():
         errors.append(f"{path}: policy_profile_id target is missing")
     else:
         policy = load_json(f"vectors/policies/{policy_profile_id.removeprefix('policy-')}.json")
@@ -1209,11 +1269,28 @@ def check_policy_profile_shape(path: str, value: object, errors: list[str]) -> N
         errors.append(f"{path}: policy profile must be an object")
         return
     check_no_secret_fields(path, value, errors)
+    check_known_fields(
+        path,
+        "policy profile",
+        value,
+        {
+            "format",
+            "policy_id",
+            "label",
+            "route_types",
+            "mode",
+            "grants_allowed",
+            "manual_review_required",
+            "forbidden_permissions",
+            "grant_constraints",
+            "risk_tiers",
+        },
+        errors,
+    )
     if value.get("format") != "nsealr-policy-profile-v0":
         errors.append(f"{path}: format mismatch")
     policy_id = value.get("policy_id")
-    if not isinstance(policy_id, str) or not policy_id.startswith("policy-"):
-        errors.append(f"{path}: policy_id must start with policy-")
+    check_policy_id(path, "policy_id", policy_id, errors)
     if not isinstance(value.get("label"), str) or not value["label"]:
         errors.append(f"{path}: label must be a non-empty string")
     route_types = value.get("route_types")
@@ -1250,6 +1327,19 @@ def check_policy_profile_shape(path: str, value: object, errors: list[str]) -> N
         if not isinstance(constraints, dict):
             errors.append(f"{path}: grant_constraints are required when grants_allowed is true")
         else:
+            check_known_fields(
+                path,
+                "grant_constraints",
+                constraints,
+                {
+                    "expiry_required",
+                    "rate_limit_required",
+                    "revocation_required",
+                    "audit_log_required",
+                    "device_confirmation_required",
+                },
+                errors,
+            )
             for field in (
                 "expiry_required",
                 "rate_limit_required",
@@ -1259,6 +1349,8 @@ def check_policy_profile_shape(path: str, value: object, errors: list[str]) -> N
             ):
                 if constraints.get(field) is not True:
                     errors.append(f"{path}: grant_constraints.{field} must be true")
+    elif "grant_constraints" in value:
+        errors.append(f"{path}: grant_constraints must be absent when grants are not allowed")
 
 
 def check_grant_descriptor_shape(path: str, value: object, errors: list[str]) -> None:
@@ -1266,9 +1358,29 @@ def check_grant_descriptor_shape(path: str, value: object, errors: list[str]) ->
         errors.append(f"{path}: grant descriptor must be an object")
         return
     check_no_secret_fields(path, value, errors)
+    check_known_fields(
+        path,
+        "grant descriptor",
+        value,
+        {
+            "format",
+            "grant_id",
+            "account_id",
+            "route_type",
+            "client",
+            "permission",
+            "decision",
+            "expires_at",
+            "rate_limit",
+            "requires_device_policy_confirmation",
+            "revocable",
+            "audit_event_format",
+        },
+        errors,
+    )
     if value.get("format") != "nsealr-grant-descriptor-v0":
         errors.append(f"{path}: format mismatch")
-    check_string_id(path, "grant_id", value.get("grant_id"), errors)
+    check_grant_id(path, "grant_id", value.get("grant_id"), errors)
     check_string_id(path, "account_id", value.get("account_id"), errors)
     route_type = value.get("route_type")
     if route_type not in ROUTE_TYPES:
@@ -1278,8 +1390,12 @@ def check_grant_descriptor_shape(path: str, value: object, errors: list[str]) ->
     client = value.get("client")
     if not isinstance(client, dict):
         errors.append(f"{path}: client must be an object")
-    elif not isinstance(client.get("pubkey"), str) or not HEX32_RE.fullmatch(client["pubkey"]):
-        errors.append(f"{path}: client.pubkey must be 32-byte lowercase hex")
+    else:
+        check_known_fields(path, "client", client, {"pubkey", "label"}, errors)
+        if not isinstance(client.get("pubkey"), str) or not HEX32_RE.fullmatch(client["pubkey"]):
+            errors.append(f"{path}: client.pubkey must be 32-byte lowercase hex")
+        if "label" in client and not isinstance(client["label"], str):
+            errors.append(f"{path}: client.label must be a string")
     check_permission_shape(path, value.get("permission"), errors, grant_permission=True)
     decision = value.get("decision")
     if decision not in GRANT_DECISIONS:
@@ -1290,6 +1406,7 @@ def check_grant_descriptor_shape(path: str, value: object, errors: list[str]) ->
     if not isinstance(rate_limit, dict):
         errors.append(f"{path}: rate_limit must be an object")
     else:
+        check_known_fields(path, "rate_limit", rate_limit, {"max_uses", "window_seconds"}, errors)
         for field in ("max_uses", "window_seconds"):
             if type(rate_limit.get(field)) is not int or rate_limit[field] <= 0:
                 errors.append(f"{path}: rate_limit.{field} must be a positive integer")
@@ -1438,8 +1555,7 @@ def expected_policy_decision(vector_path: str, vector: dict, errors: list[str]) 
 
     revoked = set(request.get("revoked_grant_ids", []))
     for grant_id in request.get("grant_ids", []):
-        if not isinstance(grant_id, str):
-            errors.append(f"{vector_path}: request.grant_ids must contain strings")
+        if not check_grant_id(vector_path, "request.grant_ids item", grant_id, errors):
             continue
         grant = load_required_json(f"vectors/grants/{grant_id.removeprefix('grant-')}.json", errors)
         if grant is None:
@@ -1476,14 +1592,17 @@ def check_policy_decision_request_shape(path: str, request: object, errors: list
     if type(request.get("now")) is not int or request["now"] <= 0:
         errors.append(f"{path}: request.now must be a positive integer")
     grant_ids = request.get("grant_ids")
-    if not isinstance(grant_ids, list) or not all(isinstance(item, str) for item in grant_ids):
+    if not isinstance(grant_ids, list):
         errors.append(f"{path}: request.grant_ids must be an array of strings")
+    else:
+        for grant_id in grant_ids:
+            check_grant_id(path, "request.grant_ids item", grant_id, errors)
     grant_usage = request.get("grant_usage")
     if not isinstance(grant_usage, dict):
         errors.append(f"{path}: request.grant_usage must be an object")
     else:
         for grant_id, usage in grant_usage.items():
-            if not isinstance(grant_id, str) or not grant_id.startswith("grant-"):
+            if not check_grant_id(path, "request.grant_usage key", grant_id, errors):
                 errors.append(f"{path}: request.grant_usage keys must be grant ids")
                 continue
             if not isinstance(usage, dict):
@@ -1497,8 +1616,11 @@ def check_policy_decision_request_shape(path: str, request: object, errors: list
             if type(usage.get("uses")) is not int or usage["uses"] < 0:
                 errors.append(f"{path}: request.grant_usage.{grant_id}.uses must be a non-negative integer")
     revoked_grant_ids = request.get("revoked_grant_ids")
-    if not isinstance(revoked_grant_ids, list) or not all(isinstance(item, str) for item in revoked_grant_ids):
+    if not isinstance(revoked_grant_ids, list):
         errors.append(f"{path}: request.revoked_grant_ids must be an array of strings")
+    else:
+        for grant_id in revoked_grant_ids:
+            check_grant_id(path, "request.revoked_grant_ids item", grant_id, errors)
 
 
 def check_policy_decision_shape(path: str, decision: object, errors: list[str]) -> None:
@@ -1638,8 +1760,7 @@ def check_policy_change_proposal_shape(path: str, proposal: object, errors: list
         errors.append(f"{path}: action must be set_policy")
     for field in ("current_policy_id", "proposed_policy_id"):
         policy_id = proposal.get(field)
-        if not isinstance(policy_id, str) or not policy_id.startswith("policy-"):
-            errors.append(f"{path}: {field} must reference a policy-* profile")
+        if not check_policy_id(path, field, policy_id, errors):
             continue
         policy = load_required_json(f"vectors/policies/{policy_id.removeprefix('policy-')}.json", errors)
         if isinstance(route_type, str) and isinstance(policy, dict) and route_type not in policy.get("route_types", []):
@@ -1658,14 +1779,13 @@ def check_policy_change_proposal_shape(path: str, proposal: object, errors: list
         errors.append(f"{path}: current_policy_id must match the account descriptor default policy")
 
     grants = proposal.get("proposed_grant_ids")
-    if not isinstance(grants, list) or not all(isinstance(grant_id, str) for grant_id in grants):
+    if not isinstance(grants, list):
         errors.append(f"{path}: proposed_grant_ids must be an array of strings")
         grants = []
     elif len(grants) != len(set(grants)):
         errors.append(f"{path}: proposed_grant_ids must be unique")
     for grant_id in grants:
-        if not grant_id.startswith("grant-"):
-            errors.append(f"{path}: proposed_grant_ids must reference grant-* descriptors")
+        if not check_grant_id(path, "proposed_grant_ids item", grant_id, errors):
             continue
         grant = load_required_json(f"vectors/grants/{grant_id.removeprefix('grant-')}.json", errors)
         if not isinstance(grant, dict):

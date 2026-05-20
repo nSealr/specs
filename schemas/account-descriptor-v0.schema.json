@@ -74,7 +74,7 @@
       },
       "additionalProperties": false
     },
-    "policy_profile_id": { "type": "string", "pattern": "^policy-[A-Za-z0-9._:-]+$" }
+    "policy_profile_id": { "type": "string", "pattern": "^policy-[A-Za-z0-9._:-]{1,121}$" }
   },
   "$defs": {
     "recovery": {
