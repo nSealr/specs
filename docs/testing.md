@@ -258,8 +258,9 @@ fixtures.
   and consumed by invalid-vector verification.
 - Invalid-vector discovery tests ensure every malicious request, response, QR
   envelope, serial frame, invalid device request metadata, NIP-46 payload,
-  policy-file, connection URI, connection token response, session lifecycle,
-  and session gate vector is included in conformance verification.
+  policy-file, connection URI, relay-step auth URL, connection token response,
+  session lifecycle, and session gate vector is included in conformance
+  verification.
 - Invalid serial-frame vectors cover oversized frames, checksum mismatch,
   malformed payloads, unsupported frame types, and invalid decoded request
   metadata.

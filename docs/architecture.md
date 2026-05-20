@@ -250,11 +250,13 @@ signer implementation.
   NIP-46 connection URI rejection vectors pin malformed token parsing without
   starting relay sessions or echoing secrets. NIP-46 connection token response
   rejection vectors pin recipient binding, explicit response-error rejection,
-  and returned-secret mismatch without output artifacts. NIP-46 session
-  lifecycle and pending-session gate rejection vectors pin the same no-secret,
-  no-ack, no-NIP-44, no-relay, no-grant, and no-dispatch boundary before full
-  session work exists. They live under `vectors/invalid/` and are discovered
-  automatically by the specs verifier.
+  and returned-secret mismatch without output artifacts. NIP-46 relay-step
+  rejection vectors also pin auth challenge URL refusal for credentials,
+  fragments, and non-http(s) schemes before any URL-opening UX exists.
+  NIP-46 session lifecycle and pending-session gate rejection vectors pin the
+  same no-secret, no-ack, no-NIP-44, no-relay, no-grant, and no-dispatch
+  boundary before full session work exists. They live under `vectors/invalid/`
+  and are discovered automatically by the specs verifier.
 - Keep schemas and examples usable by independent implementations.
 
 ## Non-Responsibilities
