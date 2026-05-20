@@ -190,6 +190,26 @@ FEATURE_IDS = {
     "secure_boot_hardening",
     "response_verification",
 }
+CUSTODY_ALLOWED_STORAGE = {
+    "tropic01_wrapped_secret_blob",
+    "esp32_flash_encrypted_blob",
+}
+CUSTODY_FORBIDDEN_OUTPUTS = {
+    "flash",
+    "logs",
+    "crash_dumps",
+    "usb_reports",
+    "companion_descriptors",
+    "debug_output",
+}
+CUSTODY_WIPE_EVENTS = {
+    "manual_lock",
+    "power_loss",
+    "pin_attempt_exhausted",
+    "session_timeout",
+    "firmware_error",
+    "debug_policy_violation",
+}
 STATELESS_QR_PARITY_FEATURES = {
     "request_validation_v0",
     "nostr_event_review_universal",
@@ -936,6 +956,10 @@ def access_surface_vector_names() -> list[str]:
 
 def feature_matrix_vector_names() -> list[str]:
     return sorted(path.stem for path in (ROOT / "vectors" / "features").glob("*.json"))
+
+
+def custody_contract_vector_names() -> list[str]:
+    return sorted(path.stem for path in (ROOT / "vectors" / "custody").glob("*.json"))
 
 
 def device_security_profile_vector_names() -> list[str]:
@@ -4993,6 +5017,109 @@ def check_feature_matrix_vector(rel: str, errors: list[str]) -> None:
     check_feature_matrix_shape(vector_path, vector, errors)
 
 
+def check_persistent_secret_custody_vector(rel: str, errors: list[str]) -> None:
+    vector_path = f"vectors/custody/{rel}.json"
+    vector = load_required_json(vector_path, errors)
+    if vector is None:
+        return
+    if vector.get("format") != "nsealr-persistent-secret-custody-contract-v0":
+        errors.append(f"{vector_path}: format mismatch")
+    if vector.get("name") != rel:
+        errors.append(f"{vector_path}: name mismatch")
+    if vector.get("contract_id") != "persistent-secret-custody-v0":
+        errors.append(f"{vector_path}: contract_id mismatch")
+    if vector.get("solution") != "custom_hardware_wallet":
+        errors.append(f"{vector_path}: solution must be custom_hardware_wallet")
+    if vector.get("repository") != "hardware":
+        errors.append(f"{vector_path}: repository must be hardware")
+    if vector.get("current_status") != "research":
+        errors.append(f"{vector_path}: current_status must be research")
+    scope = vector.get("scope")
+    if not isinstance(scope, str) or "production secret storage" not in scope:
+        errors.append(f"{vector_path}: scope must describe production secret storage boundary")
+
+    requirements = vector.get("requirements")
+    if not isinstance(requirements, dict):
+        errors.append(f"{vector_path}: requirements must be an object")
+        requirements = {}
+
+    secret_at_rest = requirements.get("secret_at_rest")
+    if not isinstance(secret_at_rest, dict):
+        errors.append(f"{vector_path}: requirements.secret_at_rest must be an object")
+    else:
+        if secret_at_rest.get("plaintext_allowed") is not False:
+            errors.append(f"{vector_path}: plaintext_allowed must be false")
+        if set(secret_at_rest.get("allowed_storage", [])) != CUSTODY_ALLOWED_STORAGE:
+            errors.append(f"{vector_path}: allowed_storage mismatch")
+        if secret_at_rest.get("production_storage_enabled") is not False:
+            errors.append(f"{vector_path}: production_storage_enabled must be false")
+
+    unlock = requirements.get("unlock")
+    if not isinstance(unlock, dict):
+        errors.append(f"{vector_path}: requirements.unlock must be an object")
+    else:
+        if set(unlock.get("plaintext_locations", [])) != {"esp32_s3_ram"}:
+            errors.append(f"{vector_path}: unlock plaintext_locations mismatch")
+        if set(unlock.get("required_unlock_assist", [])) != {"tropic01"}:
+            errors.append(f"{vector_path}: unlock required_unlock_assist mismatch")
+        if unlock.get("requires_local_unlock") is not True:
+            errors.append(f"{vector_path}: unlock requires_local_unlock must be true")
+        if unlock.get("requires_device_review_state") is not True:
+            errors.append(f"{vector_path}: unlock requires_device_review_state must be true")
+
+    persistence = requirements.get("plaintext_persistence")
+    if not isinstance(persistence, dict):
+        errors.append(f"{vector_path}: requirements.plaintext_persistence must be an object")
+    else:
+        if persistence.get("scope") != "unlocked_session_ram_only":
+            errors.append(f"{vector_path}: plaintext_persistence scope mismatch")
+        if set(persistence.get("forbidden_outputs", [])) != CUSTODY_FORBIDDEN_OUTPUTS:
+            errors.append(f"{vector_path}: plaintext_persistence forbidden_outputs mismatch")
+
+    if set(requirements.get("wipe_events", [])) != CUSTODY_WIPE_EVENTS:
+        errors.append(f"{vector_path}: wipe_events mismatch")
+
+    pin_policy = requirements.get("pin_attempt_policy")
+    if not isinstance(pin_policy, dict):
+        errors.append(f"{vector_path}: requirements.pin_attempt_policy must be an object")
+    else:
+        if pin_policy.get("requires_tropic01_mac_and_destroy_or_vendor_equivalent") is not True:
+            errors.append(f"{vector_path}: pin_attempt_policy must require TROPIC01 MAC-and-Destroy")
+        if pin_policy.get("production_required") is not True:
+            errors.append(f"{vector_path}: pin_attempt_policy production_required must be true")
+
+    export_policy = requirements.get("backup_export_policy")
+    if not isinstance(export_policy, dict):
+        errors.append(f"{vector_path}: requirements.backup_export_policy must be an object")
+    else:
+        expected_false = {"enabled_by_default"}
+        expected_true = {
+            "requires_local_device_review",
+            "requires_physical_approval",
+            "requires_danger_zone_copy",
+        }
+        for field in sorted(expected_false):
+            if export_policy.get(field) is not False:
+                errors.append(f"{vector_path}: backup_export_policy.{field} must be false")
+        for field in sorted(expected_true):
+            if export_policy.get(field) is not True:
+                errors.append(f"{vector_path}: backup_export_policy.{field} must be true")
+
+    non_claims = vector.get("non_claims")
+    if not isinstance(non_claims, list) or not all(isinstance(item, str) and item for item in non_claims):
+        errors.append(f"{vector_path}: non_claims must be a non-empty list of strings")
+    else:
+        joined = "\n".join(non_claims).lower()
+        required_non_claims = (
+            "direct tropic01",
+            "production signing",
+            "stateless qr vault",
+        )
+        for required in required_non_claims:
+            if required not in joined:
+                errors.append(f"{vector_path}: non_claims must mention {required}")
+
+
 def check_device_security_profile_vector(rel: str, errors: list[str]) -> None:
     vector_path = f"vectors/devices/{rel}.json"
     vector = load_required_json(vector_path, errors)
@@ -5679,6 +5806,9 @@ def main() -> int:
 
     for rel in feature_matrix_vector_names():
         check_feature_matrix_vector(rel, errors)
+
+    for rel in custody_contract_vector_names():
+        check_persistent_secret_custody_vector(rel, errors)
 
     for rel in device_security_profile_vector_names():
         check_device_security_profile_vector(rel, errors)

@@ -167,6 +167,12 @@ signer implementation.
   `policy-manual-only-persistent-device`; scoped-automation vectors are
   boundary fixtures that require a separate device-reviewed policy-change
   proposal before they can be treated as active account policy.
+- Publish the persistent-secret custody contract for the custom hardware-wallet
+  family. This contract pins no plaintext secret at rest, wrapped/encrypted
+  storage candidates, ESP32-S3 RAM-only unlock after TROPIC01 assistance,
+  required wipe events, MAC-and-Destroy PIN hardening, and
+  disabled-by-default backup/export review gates before any production
+  persistent-secret claim.
 - Publish deterministic policy-decision transcript vectors for persistent-route
   automation boundaries before any grant store or relay session exists. These
   vectors pin valid grant allowance, expired-grant denial, revoked-grant

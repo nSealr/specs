@@ -127,6 +127,11 @@ companion implementation must agree on:
 - Account/custody product model for QR vault session keyrings, persistent
   device vaults, per-public-key policy authority, and SeedSigner-compatible
   SeedQR import vectors without turning policy records into Nostr events.
+- Persistent-secret custody contract for the custom hardware-wallet family.
+  The v0 contract pins no plaintext secrets at rest, wrapped/encrypted storage
+  candidates, ESP32-S3 RAM-only unlock, required wipe events,
+  MAC-and-Destroy PIN hardening, and disabled-by-default backup/export review
+  gates without claiming production storage or direct TROPIC01 BIP-340 support.
 - JSON schemas for account descriptors, policy profiles, grant descriptors,
   policy-change reviews, and policy-decision and route-selection vectors,
   including route-type dependent constraints for account descriptors and
@@ -149,7 +154,7 @@ companion implementation must agree on:
   connection URI, SeedQR, NIP-19 `nsec`, session-import-review,
   session-source-backup, NIP-46 session lifecycle, NIP-46 session gate,
   account-descriptor, policy-profile, grant-descriptor, policy-change review,
-  policy-decision,
+  policy-decision, persistent-secret custody,
   route-selection, access-surface, feature-matrix, invalid-vector,
   limit-profile, and smartcard vectors shared
   by implementation repositories, including APDU success and deterministic

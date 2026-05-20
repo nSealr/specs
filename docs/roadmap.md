@@ -154,6 +154,13 @@ manual-only policy, while the scoped-automation fixtures remain minimal
 conformance vectors that require a separate device-reviewed policy-change
 proposal before they can be active policy.
 
+Status note, 2026-05-20: `persistent-secret-custody-v0` is now a standalone
+machine-readable custody contract under `vectors/custody/` with a matching
+human protocol explainer. It keeps the custom hardware wallet in research
+status while pinning no-plaintext-at-rest, wrapped/encrypted storage,
+TROPIC01-assisted ESP32-S3 RAM unlock, wipe events, MAC-and-Destroy PIN
+hardening, and backup/export review gates.
+
 Status note, 2026-05-19: NIP-06 account descriptors now require their
 `recovery.source_vector` to exist, match the descriptor public key, and expose
 a `recovery.source_fingerprint` matching the same RAM-only import-review

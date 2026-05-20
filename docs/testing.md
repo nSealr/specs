@@ -182,6 +182,14 @@ fixtures.
   Grant descriptor tests also reject the removed `decision` field so v0 cannot
   grow an ambiguous grant-mode switch outside expiry/rate-limit/revocation
   semantics.
+- Persistent-secret custody contract discovery tests ensure every file under
+  `vectors/custody/` is included in conformance verification. The current v0
+  vector pins custom hardware-wallet research status, no plaintext secret at
+  rest, wrapped/encrypted storage candidates, ESP32-S3 RAM-only unlock after
+  TROPIC01 assistance, required wipe events, MAC-and-Destroy PIN hardening,
+  disabled-by-default backup/export review gates, and explicit non-claims for
+  production storage, production signing, stateless QR vaults, and direct
+  TROPIC01 BIP-340 support.
 - Policy-profile tests reject unsupported manual-review requirements,
   forbidden-permission names, risk-tier keys, and risk-tier values. This keeps
   the policy profile a closed contract rather than a free-form rule-engine
