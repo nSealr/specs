@@ -72,6 +72,10 @@ companion implementation must agree on:
 - NIP-46 connection URI vectors for descriptor-only `bunker://` and
   `nostrconnect://` token parsing without relay sessions, grant creation, or
   secret echo.
+- NIP-46 relay event envelope vectors for `kind:24133` request/response events.
+  These validate sender pubkey, exactly one recipient `p` tag, opaque encrypted
+  content, and optional signed-event field shapes without opening relays,
+  decrypting NIP-44 content, creating grants, or dispatching to signers.
 - JSON schema for the read-only NIP-46 policy-file format. Approved
   `sign_event` entries must be kind-scoped; broad `sign_event` is only
   requested-permission metadata.

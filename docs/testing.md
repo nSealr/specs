@@ -293,9 +293,10 @@ Those checks are directory-driven: new files under `vectors/invalid/`,
 `vectors/review-detail-pages/`, `vectors/accounts/`, `vectors/policies/`,
 `vectors/grants/`, `vectors/policy-changes/`, `vectors/policy-decisions/`,
 `vectors/route-selections/`, `vectors/access-surfaces/`, `vectors/features/`,
-`vectors/nip46-connection-uris/`, `vectors/seedqr/`, `vectors/nip19/`,
-`vectors/session-import-reviews/`, `vectors/source-public-key-proofs/`,
-`vectors/session-source-backups/`, and the single profile under `vectors/limits/`
+`vectors/nip46-connection-uris/`, `vectors/nip46-relay-events/`,
+`vectors/seedqr/`, `vectors/nip19/`, `vectors/session-import-reviews/`,
+`vectors/source-public-key-proofs/`, `vectors/session-source-backups/`, and the
+single profile under `vectors/limits/`
 are picked up by tests and
 `scripts/verify_specs.py` without hardcoding individual vector filenames in the
 verifier.

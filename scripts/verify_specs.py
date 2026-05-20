@@ -30,6 +30,7 @@ APDU_HEX_RE = re.compile(r"^[0-9a-f]+$")
 BECH32_CHARSET = "qpzry9x8gf2tvdw0s3jn54khce6mua7l"
 BECH32_CHARSET_REV = {char: index for index, char in enumerate(BECH32_CHARSET)}
 LIMIT_PROFILE = "vectors/limits/nsealr-v0.json"
+MAX_SAFE_INTEGER = 9007199254740991
 DEVICE_METHODS = {"get_capabilities", "get_signing_status", "get_public_key", "sign_event"}
 ROUTE_TYPES = {
     "raspberry_qr_vault",
@@ -840,6 +841,10 @@ def nip46_policy_file_vector_names() -> list[str]:
 
 def nip46_connection_uri_vector_names() -> list[str]:
     return sorted(path.stem for path in (ROOT / "vectors" / "nip46-connection-uris").glob("*.json"))
+
+
+def nip46_relay_event_vector_names() -> list[str]:
+    return sorted(path.stem for path in (ROOT / "vectors" / "nip46-relay-events").glob("*.json"))
 
 
 def seedqr_vector_names() -> list[str]:
@@ -2810,6 +2815,7 @@ NIP46_PERMISSION_METHODS = {
     "switch_relays",
 }
 NIP46_CONNECTION_URI_PARAMS = {"relay", "secret", "perms", "name", "url", "image"}
+NIP46_RELAY_DIRECTIONS = {"client_to_remote_signer", "remote_signer_to_client"}
 
 
 def parse_nip46_permissions(value: str, vector_path: str, errors: list[str]) -> list[dict]:
@@ -3190,6 +3196,80 @@ def check_invalid_nip46_connection_uri(vector_path: str, vector: dict, errors: l
     expected_nip46_connection_uri_descriptor(vector_path, vector.get("uri"), errors)
 
 
+def expected_nip46_relay_event_envelope(
+    vector_path: str,
+    event: object,
+    direction: object,
+    errors: list[str],
+) -> dict | None:
+    if direction not in NIP46_RELAY_DIRECTIONS:
+        errors.append(f"{vector_path}: NIP-46 relay event direction is invalid")
+        return None
+    if not isinstance(event, dict):
+        errors.append(f"{vector_path}: NIP-46 relay event must be an object")
+        return None
+    if event.get("kind") != 24133:
+        errors.append(f"{vector_path}: NIP-46 relay event kind must be 24133")
+    sender = event.get("pubkey")
+    if not isinstance(sender, str) or not HEX32_RE.fullmatch(sender):
+        errors.append(f"{vector_path}: NIP-46 relay event pubkey must be 32-byte lowercase hex")
+    content = event.get("content")
+    if not isinstance(content, str) or content == "":
+        errors.append(f"{vector_path}: NIP-46 relay event content must be a non-empty encrypted string")
+    tags = event.get("tags")
+    if not isinstance(tags, list):
+        errors.append(f"{vector_path}: NIP-46 relay event tags must be an array")
+        p_tags = []
+    else:
+        p_tags = [tag for tag in tags if isinstance(tag, list) and len(tag) >= 1 and tag[0] == "p"]
+    if len(p_tags) != 1:
+        errors.append(f"{vector_path}: NIP-46 relay event must include exactly one p tag")
+        recipient = None
+    else:
+        p_tag = p_tags[0]
+        recipient = p_tag[1] if len(p_tag) >= 2 else None
+        if len(p_tag) != 2:
+            errors.append(f"{vector_path}: NIP-46 relay event p tag must contain only marker and pubkey")
+        if not isinstance(recipient, str) or not HEX32_RE.fullmatch(recipient):
+            errors.append(f"{vector_path}: NIP-46 relay event p tag pubkey must be 32-byte lowercase hex")
+
+    signed_field_names = ("id", "created_at", "sig")
+    present_signed_fields = [name for name in signed_field_names if name in event]
+    if present_signed_fields and len(present_signed_fields) != len(signed_field_names):
+        errors.append(f"{vector_path}: NIP-46 relay event signed fields must be complete when present")
+    if "id" in event and (not isinstance(event.get("id"), str) or not HEX32_RE.fullmatch(event.get("id", ""))):
+        errors.append(f"{vector_path}: NIP-46 relay event id must be 32-byte lowercase hex")
+    created_at = event.get("created_at")
+    if "created_at" in event and (not isinstance(created_at, int) or created_at < 0 or created_at > MAX_SAFE_INTEGER):
+        errors.append(f"{vector_path}: NIP-46 relay event created_at must be a safe non-negative integer")
+    if "sig" in event and (not isinstance(event.get("sig"), str) or not HEX64_RE.fullmatch(event.get("sig", ""))):
+        errors.append(f"{vector_path}: NIP-46 relay event sig must be 64-byte lowercase hex")
+
+    if errors and any(error.startswith(f"{vector_path}: NIP-46 relay event") for error in errors):
+        return None
+    return {
+        "format": "nsealr-nip46-relay-event-envelope-v0",
+        "direction": direction,
+        "sender_pubkey": sender,
+        "recipient_pubkey": recipient,
+        "encrypted_content": content,
+        "has_signed_event_fields": bool(present_signed_fields),
+        "decrypts_content": False,
+        "opens_relay": False,
+        "creates_grants": False,
+        "stores_production_secrets": False,
+    }
+
+
+def check_invalid_nip46_relay_event(vector_path: str, vector: dict, errors: list[str]) -> None:
+    expected_nip46_relay_event_envelope(
+        vector_path,
+        vector.get("relay_event"),
+        vector.get("direction", "client_to_remote_signer"),
+        errors,
+    )
+
+
 def check_invalid_vector(rel: str, errors: list[str]) -> None:
     vector_path = f"vectors/invalid/{rel}.json"
     vector = load_required_json(vector_path, errors)
@@ -3218,6 +3298,8 @@ def check_invalid_vector(rel: str, errors: list[str]) -> None:
         check_invalid_nip46_payload(vector_path, vector, rejection_errors)
     elif category == "nip46-connection-uri":
         check_invalid_nip46_connection_uri(vector_path, vector, rejection_errors)
+    elif category == "nip46-relay-event":
+        check_invalid_nip46_relay_event(vector_path, vector, rejection_errors)
     elif category == "nip46-policy-file":
         policy = vector.get("policy_file")
         if not isinstance(policy, dict):
@@ -4553,6 +4635,30 @@ def check_nip46_vector(rel: str, errors: list[str]) -> None:
             errors.append(f"{vector_path}: signed-event result mismatch")
 
 
+def check_nip46_relay_event_vector(rel: str, errors: list[str]) -> None:
+    vector_path = f"vectors/nip46-relay-events/{rel}.json"
+    vector = load_required_json(vector_path, errors)
+    if vector is None:
+        return
+    if vector.get("name") != rel:
+        errors.append(f"{vector_path}: name mismatch")
+    if vector.get("format") != "nsealr-nip46-relay-event-envelope-v0":
+        errors.append(f"{vector_path}: format mismatch")
+    expected = expected_nip46_relay_event_envelope(
+        vector_path,
+        vector.get("event"),
+        vector.get("direction"),
+        errors,
+    )
+    if expected is None:
+        return
+    if vector.get("expected_envelope") != expected:
+        errors.append(f"{vector_path}: expected_envelope mismatch")
+    scope = vector.get("scope")
+    if not isinstance(scope, str) or "NIP-44" not in scope or "relay" not in scope:
+        errors.append(f"{vector_path}: scope must state relay/NIP-44 non-enabling boundary")
+
+
 SMARTCARD_APDU_EXPECTATIONS = {
     "get-public-key": {
         "cla": "80",
@@ -4843,6 +4949,9 @@ def main() -> int:
 
     for rel in nip46_connection_uri_vector_names():
         check_nip46_connection_uri_vector(rel, errors)
+
+    for rel in nip46_relay_event_vector_names():
+        check_nip46_relay_event_vector(rel, errors)
 
     for rel in seedqr_vector_names():
         check_seedqr_vector(rel, errors)

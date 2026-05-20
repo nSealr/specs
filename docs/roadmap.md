@@ -72,6 +72,10 @@ NIP-46 connection URI vectors now pin descriptor-only parsing of `bunker://`
 and `nostrconnect://` tokens, including relay validation, requested
 permissions, optional client metadata, and proof that parsed descriptors never
 echo shared secret values.
+NIP-46 relay event envelope vectors now pin the first M5 relay-session boundary:
+`kind:24133` events must expose a valid sender pubkey, exactly one recipient
+`p` tag, and opaque encrypted content before any relay I/O, NIP-44 decryption,
+grant creation, or signer dispatch is implemented.
 
 Status note, 2026-05-11: account descriptors, policy profiles, and grant
 descriptors now exist as shared vectors and schemas. They keep companion

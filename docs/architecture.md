@@ -103,6 +103,11 @@ signer implementation.
   permissions, optional client metadata, and secret presence, but they must not
   echo shared secrets or imply relay sessions, NIP-44 session state,
   `connect` acknowledgement, grant creation, or signer dispatch.
+- Publish NIP-46 relay event envelope vectors for `kind:24133` request and
+  response events before implementing relay transport. These vectors validate
+  sender pubkey, exactly one recipient `p` tag, opaque encrypted content, and
+  optional signed-event field shapes while explicitly leaving relay I/O,
+  NIP-44 decryption, grant creation, and signer dispatch out of scope.
 - Publish the JSON schema for that read-only policy-file format so independent
   tools can validate the envelope before applying stricter semantic checks such
   as `sign_event` parameter/event-kind equality.
