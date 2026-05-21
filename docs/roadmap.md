@@ -98,6 +98,8 @@ message has been supplied by a future decryption layer, request steps must
 return the same bridge decision they would return for local decrypted payloads,
 and response steps must shape-check plaintext NIP-46 response messages while
 binding public-key and signed-event result pubkeys to the relay-event sender.
+Signed-event response results must also pass NIP-01 id and BIP-340 signature
+verification before they can be accepted by later session code.
 Connect ack responses are recognized as metadata-only response steps too, but
 they do not activate sessions or change the `approved_pending_ack` gate.
 Switch-relays responses are also normalized as metadata only, including both a

@@ -3634,34 +3634,34 @@ def expected_nip46_relay_response_result_type(
     message: dict,
     sender_pubkey: str,
     errors: list[str],
-) -> tuple[str, bool, bool, object]:
+) -> tuple[str, bool, bool, object, bool, bool]:
     if message.get("result") == "auth_url" and "error" in message:
-        return ("auth_challenge", False, False, ...)
+        return ("auth_challenge", False, False, ..., False, False)
     if "error" in message:
-        return ("error", False, False, ...)
+        return ("error", False, False, ..., False, False)
     result = message.get("result")
     if not isinstance(result, str):
-        return ("unknown_result", False, False, ...)
+        return ("unknown_result", False, False, ..., False, False)
     try:
         decoded = json.loads(result)
     except json.JSONDecodeError:
         if HEX32_RE.fullmatch(result):
             if result != sender_pubkey:
                 errors.append(f"{vector_path}: NIP-46 public-key response does not match relay event sender")
-                return ("public_key_result", False, False, ...)
-            return ("public_key_result", False, True, ...)
+                return ("public_key_result", False, False, ..., False, False)
+            return ("public_key_result", False, True, ..., False, False)
         if result == "ack":
-            return ("connect_ack_result", False, False, ...)
+            return ("connect_ack_result", False, False, ..., False, False)
         if result == "pong":
-            return ("pong_result", False, False, ...)
+            return ("pong_result", False, False, ..., False, False)
         errors.append(f"{vector_path}: response_message result is not a supported v0 response shape")
-        return ("unknown_result", False, False, ...)
+        return ("unknown_result", False, False, ..., False, False)
     if decoded is None:
-        return ("relay_no_change_result", False, False, None)
+        return ("relay_no_change_result", False, False, None, False, False)
     if isinstance(decoded, list):
         if not decoded:
             errors.append(f"{vector_path}: NIP-46 switch_relays response relays must be a non-empty list or null")
-            return ("unknown_result", False, False, ...)
+            return ("unknown_result", False, False, ..., False, False)
         relays = []
         for index, relay in enumerate(decoded):
             if not isinstance(relay, str):
@@ -3679,7 +3679,7 @@ def expected_nip46_relay_response_result_type(
                     errors.append(f"{vector_path}: relay_urls[{index}] must be normalized")
         if len(set(relays)) != len(relays):
             errors.append(f"{vector_path}: NIP-46 switch_relays response relays must be unique")
-        return ("relay_list_result", False, False, relays)
+        return ("relay_list_result", False, False, relays, False, False)
     response_errors: list[str] = []
     check_response_shape(
         Path(vector_path),
@@ -3695,11 +3695,18 @@ def expected_nip46_relay_response_result_type(
     )
     if response_errors:
         errors.extend(response_errors)
-        return ("unknown_result", False, False, ...)
+        return ("unknown_result", False, False, ..., False, False)
     if not isinstance(decoded, dict) or decoded.get("pubkey") != sender_pubkey:
         errors.append(f"{vector_path}: NIP-46 signed-event response pubkey does not match relay event sender")
-        return ("signed_event_result", True, False, ...)
-    return ("signed_event_result", True, True, ...)
+        return ("signed_event_result", True, False, ..., False, False)
+    computed_id = event_id(decoded)
+    if decoded.get("id") != computed_id:
+        errors.append(f"{vector_path}: NIP-46 signed-event response id does not match NIP-01 canonical serialization")
+        return ("signed_event_result", True, True, ..., False, False)
+    if not verify_schnorr(sender_pubkey, computed_id, decoded.get("sig")):
+        errors.append(f"{vector_path}: NIP-46 signed-event response signature is invalid")
+        return ("signed_event_result", True, True, ..., True, False)
+    return ("signed_event_result", True, True, ..., True, True)
 
 
 def expected_nip46_relay_response_step(vector_path: str, vector: dict, errors: list[str]) -> dict | None:
@@ -3715,7 +3722,14 @@ def expected_nip46_relay_response_step(vector_path: str, vector: dict, errors: l
     message = check_nip46_relay_response_message(vector_path, vector.get("decrypted_message"), errors)
     if envelope is None or message is None:
         return None
-    result_type, signed_event_shape_checked, result_pubkey_bound_to_sender, relay_urls = expected_nip46_relay_response_result_type(
+    (
+        result_type,
+        signed_event_shape_checked,
+        result_pubkey_bound_to_sender,
+        relay_urls,
+        signed_event_id_verified,
+        signed_event_signature_verified,
+    ) = expected_nip46_relay_response_result_type(
         vector_path,
         message,
         envelope["sender_pubkey"],
@@ -3730,6 +3744,8 @@ def expected_nip46_relay_response_step(vector_path: str, vector: dict, errors: l
         "response_message": message,
         "result_type": result_type,
         "signed_event_shape_checked": signed_event_shape_checked,
+        "signed_event_id_verified": signed_event_id_verified,
+        "signed_event_signature_verified": signed_event_signature_verified,
         "result_pubkey_bound_to_sender": result_pubkey_bound_to_sender,
         "decrypts_content": False,
         "opens_relay": False,

@@ -123,14 +123,15 @@ signer implementation.
   NIP-44 decryption layer supplies plaintext, companion can validate request
   envelope/message pairs, return deterministic bridge decisions, and
   shape-check response messages. Public-key and signed-event response results
-  must match the relay event sender pubkey before later session code can accept
-  them. Connect ack responses and switch-relays responses are recognized only
-  as response metadata and do not activate sessions, mutate relay state, or
-  open transports. Auth challenge responses expose only a safe http(s) URL
-  string without credentials or fragments for later UX and do not open it. This
-  still happens without opening relays, decrypting content itself,
-  acknowledging `connect`, creating grants, dispatching signers, or persisting
-  session state.
+  must match the relay event sender pubkey, and signed-event response results
+  must have a valid NIP-01 event id and BIP-340 signature before later session
+  code can accept them. Connect ack responses and switch-relays responses are
+  recognized only as response metadata and do not activate sessions, mutate
+  relay state, or open transports. Auth challenge responses expose only a safe
+  http(s) URL string without credentials or fragments for later UX and do not
+  open it. This still happens without opening relays, decrypting content
+  itself, acknowledging `connect`, creating grants, dispatching signers, or
+  persisting session state.
 - Publish NIP-46 auth challenge review vectors for the next manual boundary
   after an auth challenge response has been normalized. These vectors bind the
   auth URL, remote signer pubkey, client pubkey, review pages, and manual
