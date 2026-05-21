@@ -87,10 +87,11 @@ companion implementation must agree on:
   response handling. Request steps bind an already validated relay event
   envelope, an already decrypted NIP-46 message, and reviewed permissions;
   response steps shape-check plaintext signed-event, public-key, connect ack,
-  ping, auth challenge, and error responses. Auth challenges expose only safe
-  http(s) URL metadata without credentials or fragments for later UI and do
-  not open the URL. Connect ack results remain metadata-only and do not
-  activate a session. Both avoid opening relays, decrypting NIP-44 content,
+  switch-relays, ping, auth challenge, and error responses. Auth challenges
+  expose only safe http(s) URL metadata without credentials or fragments for
+  later UI and do not open the URL. Connect ack and switch-relays results
+  remain metadata-only and do not activate or mutate a session. These vectors
+  avoid opening relays, decrypting NIP-44 content,
   acknowledging `connect`, creating grants, dispatching signers, verifying
   signatures, or persisting session state.
 - NIP-46 auth challenge review vectors for the step after response metadata
