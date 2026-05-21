@@ -80,13 +80,14 @@ signer implementation.
   frame checksums, payload chunk limits, frame-count limits, and response-schema
   validation without adding compression or fountain-code recovery.
 - Publish deterministic NIP-46 decrypted payload vectors that bind
-  JSON-RPC-like request messages to nSealr request/response payloads or
-  non-committal `connect` policy-review intents. Non-`connect` request vectors
-  also pin the derived permission requirement and explicit grant/no-grant check
-  decisions. Bridge decision vectors pin whether a payload becomes a signer
-  request, local `ping` response, `connect` review intent, or deterministic
-  permission-denied response, without implying relay, NIP-44, permission grants,
-  or auth flows are complete.
+  JSON-RPC-like request messages to nSealr request/response payloads,
+  non-committal `connect` policy-review intents, or local metadata responses.
+  Non-`connect` request vectors also pin the derived permission requirement and
+  explicit grant/no-grant check decisions. Bridge decision vectors pin whether
+  a payload becomes a signer request, local `ping` response, local
+  `switch_relays` `null` no-change response, `connect` review intent, or
+  deterministic permission-denied response, without implying relay, NIP-44,
+  permission grants, or auth flows are complete.
 - Publish deterministic NIP-46 `connect` review pages for companion and future
   display tests. These pages expose the remote signer pubkey, secret presence,
   and requested permissions, but never echo the secret value and never create an

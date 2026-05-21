@@ -19,7 +19,8 @@
 - NIP-46 permission requirement and permission-check decision vectors for
   explicit policy-matching conformance.
 - NIP-46 bridge decision vectors for permitted signer routing, local `ping`,
-  `connect` review, and deterministic permission-denied responses.
+  local `switch_relays` no-change metadata, `connect` review, and
+  deterministic permission-denied responses.
 - NIP-46 read-only policy-file vectors for explicit approved permissions.
 - NIP-46 connection URI vectors for descriptor-only `bunker://` and
   `nostrconnect://` token parsing.
@@ -64,8 +65,9 @@
 Status: active. The first ESP32-S3 scaffold capability vector,
 display-oriented review-screen, QR review transcript, NIP-46 decrypted payload
 bridge vectors, NIP-46 `connect` policy-review intent vector, explicit
-NIP-46 permission policy vectors, NIP-46 bridge decision vectors, and
-read-only NIP-46 policy-file vector/schema are implemented. The v0
+NIP-46 permission policy vectors, NIP-46 bridge decision vectors including
+`switch_relays` local no-change handling, and read-only NIP-46 policy-file
+vector/schema are implemented. The v0
 implementation limit profile and initial malicious/rejection vectors are now
 part of the shared contract. Initial review detail-page vectors are also
 implemented for T-Display S3 sized constrained-display conformance.

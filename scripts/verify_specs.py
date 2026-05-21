@@ -4467,7 +4467,7 @@ def check_nip46_request_message(vector_path: str, message: object, errors: list[
         errors.append(f"{vector_path}: NIP-46 decrypted message JSON exceeds max_nip46_decrypted_message_json_bytes")
     if not isinstance(message.get("id"), str) or not REQUEST_ID_RE.fullmatch(message["id"]):
         errors.append(f"{vector_path}: request_message id is invalid")
-    if message.get("method") not in {"connect", "get_public_key", "sign_event", "ping"}:
+    if message.get("method") not in {"connect", "get_public_key", "sign_event", "ping", "switch_relays"}:
         errors.append(f"{vector_path}: unsupported NIP-46 method")
     if not isinstance(message.get("params"), list) or not all(isinstance(item, str) for item in message["params"]):
         errors.append(f"{vector_path}: request_message params must be a string array")
@@ -4482,6 +4482,11 @@ def expected_nip46_permission_requirement(vector_path: str, message: dict, error
             errors.append(f"{vector_path}: ping params must be empty")
             return None
         return {"method": "ping"}
+    if method == "switch_relays":
+        if params:
+            errors.append(f"{vector_path}: switch_relays params must be empty")
+            return None
+        return {"method": "switch_relays"}
     if method == "get_public_key":
         if params:
             errors.append(f"{vector_path}: get_public_key params must be empty")
@@ -4597,6 +4602,15 @@ def expected_nip46_bridge_decision(
             "response_message": {
                 "id": request_id,
                 "result": "pong",
+            },
+        }
+    if method == "switch_relays":
+        return {
+            "type": "local_response",
+            "permission_requirement": requirement,
+            "response_message": {
+                "id": request_id,
+                "result": "null",
             },
         }
 
@@ -5658,6 +5672,16 @@ def check_nip46_vector(rel: str, errors: list[str]) -> None:
         if vector.get("local_response_message") != {"id": request_id, "result": "pong"}:
             errors.append(f"{vector_path}: local_response_message mismatch")
         check_nip46_permission_policy(vector_path, vector, {"method": "ping"}, errors)
+        return
+
+    if method == "switch_relays":
+        if params:
+            errors.append(f"{vector_path}: switch_relays params must be empty")
+        if "nsealr_request" in vector or "nsealr_response" in vector:
+            errors.append(f"{vector_path}: switch_relays must not include nSealr request/response")
+        if vector.get("local_response_message") != {"id": request_id, "result": "null"}:
+            errors.append(f"{vector_path}: local_response_message mismatch")
+        check_nip46_permission_policy(vector_path, vector, {"method": "switch_relays"}, errors)
         return
 
     if method == "connect":

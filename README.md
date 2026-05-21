@@ -62,8 +62,9 @@ companion implementation must agree on:
   They cover both simple screen-page traversal and detail-page scroll-window
   navigation for constrained displays.
 - NIP-46 decrypted payload bridge vectors for `get_public_key`, `sign_event`,
-  local `ping`, response mapping, deterministic `connect` review pages, and
-  explicit permission requirement/check/bridge decision outputs. The
+  local `ping`, local `switch_relays` no-change metadata, response mapping,
+  deterministic `connect` review pages, and explicit permission
+  requirement/check/bridge decision outputs. The
   `connect` review contract displays the remote signer pubkey, whether a
   secret was provided, and requested permissions without echoing the secret
   value. It now also carries a digest-bound local approval artifact that proves

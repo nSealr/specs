@@ -97,10 +97,11 @@ fixtures.
 - QR review transcript discovery tests ensure every
   `vectors/review-transcripts/*.json` file is included in conformance
   verification.
-- NIP-46 decrypted payload vectors preserve `get_public_key`, `sign_event`, and
-  local `ping` mapping between NIP-46 JSON-RPC-like messages and nSealr
-  request/response payloads, plus `connect` parsing into policy-review intents
-  and deterministic review pages without `ack` or permission grants. The
+- NIP-46 decrypted payload vectors preserve `get_public_key`, `sign_event`,
+  local `ping`, and local `switch_relays` no-change mapping between NIP-46
+  JSON-RPC-like messages and nSealr request/response or metadata payloads, plus
+  `connect` parsing into policy-review intents and deterministic review pages
+  without `ack` or permission grants. The
   review pages show the remote signer pubkey, secret presence, and requested
   permissions, but do not echo the secret value. The `connect` fixture also
   pins a digest-bound local approval artifact that records only the reviewed
