@@ -115,8 +115,10 @@ signer implementation.
 - Publish NIP-46 relay event envelope vectors for `kind:24133` request and
   response events before implementing relay transport. These vectors validate
   sender pubkey, exactly one recipient `p` tag, opaque encrypted content, and
-  optional signed-event field shapes while explicitly leaving relay I/O,
-  NIP-44 decryption, grant creation, and signer dispatch out of scope.
+  tag arrays made only of strings. When signed fields are present, the contract
+  verifies the NIP-01 event id and BIP-340 relay event signature while
+  explicitly leaving relay I/O, NIP-44 decryption, grant creation, and signer
+  dispatch out of scope.
 - Publish NIP-46 relay step vectors for the next boundary: after an external
   NIP-44 decryption layer supplies plaintext, companion can validate request
   envelope/message pairs, return deterministic bridge decisions, and
@@ -127,8 +129,8 @@ signer implementation.
   open transports. Auth challenge responses expose only a safe http(s) URL
   string without credentials or fragments for later UX and do not open it. This
   still happens without opening relays, decrypting content itself,
-  acknowledging `connect`, creating grants, dispatching signers, verifying
-  signatures, or persisting session state.
+  acknowledging `connect`, creating grants, dispatching signers, or persisting
+  session state.
 - Publish NIP-46 auth challenge review vectors for the next manual boundary
   after an auth challenge response has been normalized. These vectors bind the
   auth URL, remote signer pubkey, client pubkey, review pages, and manual

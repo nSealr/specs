@@ -82,7 +82,9 @@ companion implementation must agree on:
   creation, signer dispatch, production secret storage, or session persistence.
 - NIP-46 relay event envelope vectors for `kind:24133` request/response events.
   These validate sender pubkey, exactly one recipient `p` tag, opaque encrypted
-  content, and optional signed-event field shapes without opening relays,
+  content, tag arrays made only of strings, and optional signed relay-event
+  fields. When signed fields are present, the envelope contract verifies the
+  NIP-01 event id and BIP-340 relay event signature without opening relays,
   decrypting NIP-44 content, creating grants, or dispatching to signers.
 - NIP-46 relay step vectors for deterministic post-decryption request and
   response handling. Request steps bind an already validated relay event
@@ -92,9 +94,9 @@ companion implementation must agree on:
   expose only safe http(s) URL metadata without credentials or fragments for
   later UI and do not open the URL. Connect ack and switch-relays results
   remain metadata-only and do not activate or mutate a session. These vectors
-  avoid opening relays, decrypting NIP-44 content,
-  acknowledging `connect`, creating grants, dispatching signers, verifying
-  signatures, or persisting session state.
+  verify signed relay event envelopes while still avoiding opening relays,
+  decrypting NIP-44 content, acknowledging `connect`, creating grants,
+  dispatching signers, or persisting session state.
 - NIP-46 auth challenge review vectors for the step after response metadata
   normalization. They bind the page-visible auth URL, remote signer pubkey,
   client pubkey, and manual approval digest while still forbidding automatic

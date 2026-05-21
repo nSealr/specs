@@ -3494,6 +3494,12 @@ def expected_nip46_relay_event_envelope(
         errors.append(f"{vector_path}: NIP-46 relay event tags must be an array")
         p_tags = []
     else:
+        for tag in tags:
+            if not isinstance(tag, list):
+                errors.append(f"{vector_path}: NIP-46 relay event tag must be an array")
+                continue
+            if any(not isinstance(field, str) for field in tag):
+                errors.append(f"{vector_path}: NIP-46 relay event tag fields must be strings")
         p_tags = [tag for tag in tags if isinstance(tag, list) and len(tag) >= 1 and tag[0] == "p"]
     if len(p_tags) != 1:
         errors.append(f"{vector_path}: NIP-46 relay event must include exactly one p tag")
@@ -3517,9 +3523,16 @@ def expected_nip46_relay_event_envelope(
         errors.append(f"{vector_path}: NIP-46 relay event created_at must be a safe non-negative integer")
     if "sig" in event and (not isinstance(event.get("sig"), str) or not HEX64_RE.fullmatch(event.get("sig", ""))):
         errors.append(f"{vector_path}: NIP-46 relay event sig must be 64-byte lowercase hex")
+    if len(present_signed_fields) == len(signed_field_names) and isinstance(sender, str) and HEX32_RE.fullmatch(sender):
+        computed_id = event_id(event)
+        if event.get("id") != computed_id:
+            errors.append(f"{vector_path}: NIP-46 relay event id does not match NIP-01 canonical serialization")
+        elif not verify_schnorr(sender, computed_id, event["sig"]):
+            errors.append(f"{vector_path}: NIP-46 relay event signature is invalid")
 
     if errors and any(error.startswith(f"{vector_path}: NIP-46 relay event") for error in errors):
         return None
+    signed_event_verified = bool(present_signed_fields)
     return {
         "format": "nsealr-nip46-relay-event-envelope-v0",
         "direction": direction,
@@ -3527,6 +3540,8 @@ def expected_nip46_relay_event_envelope(
         "recipient_pubkey": recipient,
         "encrypted_content": content,
         "has_signed_event_fields": bool(present_signed_fields),
+        "event_id_verified": signed_event_verified,
+        "event_signature_verified": signed_event_verified,
         "decrypts_content": False,
         "opens_relay": False,
         "creates_grants": False,
@@ -3721,7 +3736,7 @@ def expected_nip46_relay_response_step(vector_path: str, vector: dict, errors: l
         "creates_grants": False,
         "acknowledges_connect": False,
         "dispatches_signer": False,
-        "verifies_signature": False,
+        "verifies_signature": envelope["event_signature_verified"],
         "stores_production_secrets": False,
         "persists_session_state": False,
     }
