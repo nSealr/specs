@@ -96,11 +96,13 @@ message has been supplied by a future decryption layer, request steps must
 return the same bridge decision they would return for local decrypted payloads,
 and response steps must shape-check plaintext NIP-46 response messages while
 binding public-key and signed-event result pubkeys to the relay-event sender.
-Auth challenge responses are now recognized as metadata-only response steps:
-they expose a safe http(s) auth URL without credentials or fragments for later
-UI, without opening it or treating a generic result/error pair as valid. Both
-still avoid relay I/O, NIP-44 decryption, `connect` acknowledgement, grant
-creation, signer dispatch, signature verification, and session persistence.
+Connect ack responses are recognized as metadata-only response steps too, but
+they do not activate sessions or change the `approved_pending_ack` gate. Auth
+challenge responses expose a safe http(s) auth URL without credentials or
+fragments for later UI, without opening it or treating a generic result/error
+pair as valid. Both still avoid relay I/O, NIP-44 decryption, `connect`
+acknowledgement, grant creation, signer dispatch, signature verification, and
+session persistence.
 NIP-46 auth challenge review vectors now pin the next manual boundary after
 that response metadata: companion can render deterministic review pages for the
 remote signer, client pubkey, and auth URL, then write a digest-bound local

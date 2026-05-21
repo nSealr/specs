@@ -121,11 +121,12 @@ signer implementation.
   envelope/message pairs, return deterministic bridge decisions, and
   shape-check response messages. Public-key and signed-event response results
   must match the relay event sender pubkey before later session code can accept
-  them, while auth challenge responses expose only a safe http(s) URL string
-  without credentials or fragments for later UX and do not open it. This still
-  happens without opening relays, decrypting content itself, acknowledging
-  `connect`, creating grants, dispatching signers, verifying signatures, or
-  persisting session state.
+  them. Connect ack responses are recognized only as response metadata and do
+  not activate sessions. Auth challenge responses expose only a safe http(s)
+  URL string without credentials or fragments for later UX and do not open it.
+  This still happens without opening relays, decrypting content itself,
+  acknowledging `connect`, creating grants, dispatching signers, verifying
+  signatures, or persisting session state.
 - Publish NIP-46 auth challenge review vectors for the next manual boundary
   after an auth challenge response has been normalized. These vectors bind the
   auth URL, remote signer pubkey, client pubkey, review pages, and manual

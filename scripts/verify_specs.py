@@ -3630,6 +3630,8 @@ def expected_nip46_relay_response_result_type(
                 errors.append(f"{vector_path}: NIP-46 public-key response does not match relay event sender")
                 return ("public_key_result", False, False)
             return ("public_key_result", False, True)
+        if result == "ack":
+            return ("connect_ack_result", False, False)
         if result == "pong":
             return ("pong_result", False, False)
         errors.append(f"{vector_path}: response_message result is not a supported v0 response shape")
