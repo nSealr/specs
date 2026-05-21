@@ -3752,7 +3752,7 @@ def expected_nip46_relay_response_step(vector_path: str, vector: dict, errors: l
         "creates_grants": False,
         "acknowledges_connect": False,
         "dispatches_signer": False,
-        "verifies_signature": envelope["event_signature_verified"],
+        "relay_event_signature_verified": envelope["event_signature_verified"],
         "stores_production_secrets": False,
         "persists_session_state": False,
     }
