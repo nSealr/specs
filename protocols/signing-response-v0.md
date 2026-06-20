@@ -50,6 +50,7 @@ physical approval gates are implemented.
         "physical_approval_controls",
         "unicode_review_rendering",
         "key_provisioning",
+        "source_public_key_proof",
         "secure_boot",
         "flash_encryption",
         "debug_lock",

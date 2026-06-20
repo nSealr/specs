@@ -6159,6 +6159,20 @@ def main() -> int:
     ):
         load_json(f"schemas/{schema}")
 
+    signing_response_schema = load_json("schemas/signing-response-v0.schema.json")
+    signing_status_props = (
+        signing_response_schema.get("$defs", {})
+        .get("signing_status", {})
+        .get("properties", {})
+    )
+    for gate_field in ("missing_gates", "development_accepted_gates"):
+        schema_gate_enum = signing_status_props.get(gate_field, {}).get("items", {}).get("enum", [])
+        if schema_gate_enum != SIGNING_STATUS_GATES:
+            errors.append(
+                "schemas/signing-response-v0.schema.json: "
+                f"signing_status.{gate_field} enum must match SIGNING_STATUS_GATES"
+            )
+
     check_implementation_limits(errors)
 
     for path in sorted((ROOT / "examples").glob("request-*.json")):
