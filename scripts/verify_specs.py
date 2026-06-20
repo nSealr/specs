@@ -6260,6 +6260,28 @@ def main() -> int:
         if signing_disabled_vector.get("response") != signing_disabled_response:
             errors.append("vectors/devices/esp32-s3-sign-event-disabled.json: response mismatch")
 
+    capabilities_enabled = load_required_json(
+        "examples/response-get-capabilities-esp32-s3-enabled.json", errors
+    )
+    if capabilities_enabled is not None:
+        enabled_caps = capabilities_enabled.get("result", {}).get("capabilities", {})
+        if enabled_caps.get("signing_enabled") is not True:
+            errors.append("examples/response-get-capabilities-esp32-s3-enabled.json: signing must be enabled")
+        if enabled_caps.get("requires_physical_approval") is not True:
+            errors.append("examples/response-get-capabilities-esp32-s3-enabled.json: physical approval must remain required")
+        if "sign_event" not in enabled_caps.get("methods", []):
+            errors.append("examples/response-get-capabilities-esp32-s3-enabled.json: sign_event capability must be declared")
+
+    signing_status_enabled = load_required_json(
+        "examples/response-get-signing-status-esp32-s3-enabled.json", errors
+    )
+    if signing_status_enabled is not None:
+        enabled_status = signing_status_enabled.get("result", {}).get("signing_status", {})
+        if enabled_status.get("signing_enabled") is not True:
+            errors.append("examples/response-get-signing-status-esp32-s3-enabled.json: signing must be enabled")
+        if enabled_status.get("missing_gates") != []:
+            errors.append("examples/response-get-signing-status-esp32-s3-enabled.json: enabled status requires empty missing_gates")
+
     key = load_json("vectors/keys/test-key-1.json")
     if not HEX32_RE.fullmatch(key.get("public_key", "")):
         errors.append("vectors/keys/test-key-1.json: invalid public_key")

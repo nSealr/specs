@@ -87,6 +87,27 @@ production security claim. A gate may appear in both `development_accepted_gates
 and `missing_gates` when the current board has development acceptance evidence
 but production acceptance, provisioning, or hardening is still incomplete.
 
+## Production Signing-Enabled Contract
+
+A device is *production signing-enabled* only when every runtime readiness gate in the
+canonical gate set is satisfied. Concretely:
+
+- `get_signing_status` returns `signing_enabled: true` with an **empty** `missing_gates`
+  array. `signing_enabled: true` together with a non-empty `missing_gates` is a
+  contradiction and hosts must reject it.
+- `get_capabilities` returns `signing_enabled: true` and keeps
+  `requires_physical_approval: true`; no nSealr signer may enable signing without physical
+  approval.
+- `sign_event` returns a verified signed event (see *Successful Event Signing Response*)
+  instead of the `signing_disabled` error.
+
+`development_accepted_gates` stays informational (development evidence) and is never the
+production-ready signal; the authoritative signal is `signing_enabled: true` with an empty
+`missing_gates`. The canonical enabled fixtures are
+`examples/response-get-capabilities-esp32-s3-enabled.json` and
+`examples/response-get-signing-status-esp32-s3-enabled.json`, contrasted with the matching
+`*-esp32-s3-scaffold` disabled fixtures.
+
 ## Successful Public Key Response
 
 ```json
