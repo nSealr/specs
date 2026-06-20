@@ -6282,6 +6282,40 @@ def main() -> int:
         if enabled_status.get("missing_gates") != []:
             errors.append("examples/response-get-signing-status-esp32-s3-enabled.json: enabled status requires empty missing_gates")
 
+    capabilities_enabled_request = load_required_json(
+        "examples/request-get-capabilities-enabled.json", errors
+    )
+    if capabilities_enabled_request is not None and capabilities_enabled_request.get("method") != "get_capabilities":
+        errors.append("examples/request-get-capabilities-enabled.json: method must be get_capabilities")
+    if capabilities_enabled is not None and capabilities_enabled_request is not None:
+        if capabilities_enabled.get("request_id") != capabilities_enabled_request.get("request_id"):
+            errors.append("examples/response-get-capabilities-esp32-s3-enabled.json: request_id mismatch")
+    capabilities_enabled_vector = load_required_json(
+        "vectors/devices/esp32-s3-capabilities-enabled.json", errors
+    )
+    if capabilities_enabled_vector is not None:
+        if capabilities_enabled_vector.get("request") != capabilities_enabled_request:
+            errors.append("vectors/devices/esp32-s3-capabilities-enabled.json: request mismatch")
+        if capabilities_enabled_vector.get("response") != capabilities_enabled:
+            errors.append("vectors/devices/esp32-s3-capabilities-enabled.json: response mismatch")
+
+    signing_status_enabled_request = load_required_json(
+        "examples/request-get-signing-status-enabled.json", errors
+    )
+    if signing_status_enabled_request is not None and signing_status_enabled_request.get("method") != "get_signing_status":
+        errors.append("examples/request-get-signing-status-enabled.json: method must be get_signing_status")
+    if signing_status_enabled is not None and signing_status_enabled_request is not None:
+        if signing_status_enabled.get("request_id") != signing_status_enabled_request.get("request_id"):
+            errors.append("examples/response-get-signing-status-esp32-s3-enabled.json: request_id mismatch")
+    signing_status_enabled_vector = load_required_json(
+        "vectors/devices/esp32-s3-signing-status-enabled.json", errors
+    )
+    if signing_status_enabled_vector is not None:
+        if signing_status_enabled_vector.get("request") != signing_status_enabled_request:
+            errors.append("vectors/devices/esp32-s3-signing-status-enabled.json: request mismatch")
+        if signing_status_enabled_vector.get("response") != signing_status_enabled:
+            errors.append("vectors/devices/esp32-s3-signing-status-enabled.json: response mismatch")
+
     key = load_json("vectors/keys/test-key-1.json")
     if not HEX32_RE.fullmatch(key.get("public_key", "")):
         errors.append("vectors/keys/test-key-1.json: invalid public_key")
