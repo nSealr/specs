@@ -1212,5 +1212,14 @@ class VerifySpecsTests(unittest.TestCase):
         }, route_selection_semantics)
 
 
+    def test_nip46_session_active_vector_names_are_discovered_from_directory(self) -> None:
+        names = verify_specs.nip46_session_active_vector_names()
+        self.assertEqual(names, sorted(names))
+        for name in names:
+            self.assertTrue(
+                (verify_specs.ROOT / "vectors" / "nip46-sessions-active" / f"{name}.json").exists()
+            )
+
+
 if __name__ == "__main__":
     unittest.main()

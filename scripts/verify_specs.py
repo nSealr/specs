@@ -914,6 +914,10 @@ def nip46_session_gate_vector_names() -> list[str]:
     return sorted(path.stem for path in (ROOT / "vectors" / "nip46-session-gates").glob("*.json"))
 
 
+def nip46_session_active_vector_names() -> list[str]:
+    return sorted(path.stem for path in (ROOT / "vectors" / "nip46-sessions-active").glob("*.json"))
+
+
 def seedqr_vector_names() -> list[str]:
     return sorted(path.stem for path in (ROOT / "vectors" / "seedqr").glob("*.json"))
 
