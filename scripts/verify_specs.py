@@ -6069,6 +6069,36 @@ def check_nip46_session_active_shape(vector_path: str, value: object, errors: li
     return value
 
 
+def check_nip46_session_active_vector(rel: str, errors: list[str]) -> None:
+    vector_path = f"vectors/nip46-sessions-active/{rel}.json"
+    vector = load_required_json(vector_path, errors)
+    if vector is None:
+        return
+    check_known_fields(
+        vector_path,
+        "NIP-46 active session vector",
+        vector,
+        {"name", "format", "source_session_vector", "session"},
+        errors,
+    )
+    if vector.get("format") != "nsealr-nip46-session-active-vector-v0":
+        errors.append(f"{vector_path}: format mismatch")
+    if vector.get("name") != rel:
+        errors.append(f"{vector_path}: name mismatch")
+    session = check_nip46_session_active_shape(vector_path, vector.get("session"), errors)
+    source_session_vector = vector.get("source_session_vector")
+    if not isinstance(source_session_vector, str) or not source_session_vector.startswith("vectors/nip46-sessions/"):
+        errors.append(f"{vector_path}: source_session_vector must point under vectors/nip46-sessions/")
+        return
+    source = load_required_json(source_session_vector, errors)
+    if not isinstance(source, dict) or session is None:
+        return
+    source_session = source.get("session", {})
+    for label in ("client_pubkey", "remote_signer_pubkey", "connect_digest", "relays"):
+        if session.get(label) != source_session.get(label):
+            errors.append(f"{vector_path}: session {label} must match source_session_vector checkpoint")
+
+
 def check_nip46_session_gate_vector(rel: str, errors: list[str]) -> None:
     vector_path = f"vectors/nip46-session-gates/{rel}.json"
     vector = load_required_json(vector_path, errors)
@@ -6500,6 +6530,9 @@ def main() -> int:
 
     for rel in nip46_session_gate_vector_names():
         check_nip46_session_gate_vector(rel, errors)
+
+    for rel in nip46_session_active_vector_names():
+        check_nip46_session_active_vector(rel, errors)
 
     for rel in seedqr_vector_names():
         check_seedqr_vector(rel, errors)

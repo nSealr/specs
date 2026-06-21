@@ -1233,6 +1233,13 @@ class VerifySpecsTests(unittest.TestCase):
         )
         self.assertEqual(errors, [])
 
+    def test_nip46_session_active_vectors_validate_and_bind_to_source(self) -> None:
+        errors: list[str] = []
+        for rel in verify_specs.nip46_session_active_vector_names():
+            verify_specs.check_nip46_session_active_vector(rel, errors)
+        self.assertEqual(errors, [])
+        self.assertIn("connect-ack-kind-1", verify_specs.nip46_session_active_vector_names())
+
 
 if __name__ == "__main__":
     unittest.main()
