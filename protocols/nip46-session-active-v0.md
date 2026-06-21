@@ -28,10 +28,10 @@ open, and session state is persisted. It never persists secret material.
 | `relays` | Non-empty normalized unique `wss://` relay URL list. |
 | `connect_digest` | Lowercase 32-byte digest matching the source checkpoint. |
 | `approved_permissions` | Kind-scoped approved permission subset. |
-| `nip44` | `{ event_kind: 24133, payload_encrypted: true, version: 2 }`. |
+| `nip44` | Session encryption-mode descriptor `{ event_kind: 24133, payload_encrypted: true, version: 2 }`. See "NIP-44 Envelope" below. |
 | `persists_session_state` | Exactly `true`. |
 | `persisted_state` | `{ fields: [...], contains_secret_material: false }`. |
-| `secret_present` | Boolean; records presence only. |
+| `secret_present` | Boolean copied from the source connect review. See "secret_present" below. |
 
 ## Required Safety Boundary
 
@@ -42,6 +42,26 @@ open, and session state is persisted. It never persists secret material.
 - `persisted_state.fields` must not include any secret field name
   (`secret`, `shared_secret`, `session_secret`, `nip44_key`, ...).
 - Phase side-effect flags must match the phase table above exactly.
+
+## NIP-44 Envelope
+
+The `nip44` field is a **session-level descriptor only**: it records that this
+session encrypts its NIP-46 traffic as NIP-44 v2 payloads carried in kind-24133
+events. It deliberately does **not** re-specify the relay-event structure (the
+single `p` tag, the encrypted `content`, id/signature) — that envelope is already
+the separate, frozen contract `nsealr-nip46-relay-event-envelope-v0` (see
+`vectors/nip46-relay-events/`). Downstream consumers (T2 companion, T6) validate
+individual relay events against that contract; this session format only declares
+the mode, to avoid duplicating envelope validation in two places.
+
+## secret_present
+
+`secret_present` is copied verbatim from the source connect review and records
+**only** whether the original NIP-46 connect carried a secret token. It is an
+audit-trail bit, not a storage statement: it never implies the secret is held by
+the session. The secretless invariant is enforced independently
+(`secret_value_stored`, `contains_secret_material`, `stores_production_secrets`
+are always false; `persisted_state.fields` carries no secret field name).
 
 ## Source Binding
 

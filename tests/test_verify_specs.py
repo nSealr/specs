@@ -1256,6 +1256,7 @@ class VerifySpecsTests(unittest.TestCase):
             "nip46-session-active-stores-production-secrets",
             "nip46-session-active-connect-ack-dispatches",
             "nip46-session-active-closed-opens-relay",
+            "nip46-session-active-bad-nip44-version",
         ]
         for stem in stems:
             vector_path = f"vectors/invalid/{stem}.json"
