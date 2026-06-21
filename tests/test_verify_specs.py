@@ -1248,6 +1248,26 @@ class VerifySpecsTests(unittest.TestCase):
             verify_specs.check_nip46_session_active_vector(rel, errors)
         self.assertEqual(errors, [])
 
+    def test_nip46_session_active_invalid_vectors_are_rejected(self) -> None:
+        import json
+        stems = [
+            "nip46-session-active-secret-in-persisted-state",
+            "nip46-session-active-unknown-phase",
+            "nip46-session-active-stores-production-secrets",
+            "nip46-session-active-connect-ack-dispatches",
+            "nip46-session-active-closed-opens-relay",
+        ]
+        for stem in stems:
+            vector_path = f"vectors/invalid/{stem}.json"
+            vector = json.loads((verify_specs.ROOT / "vectors" / "invalid" / f"{stem}.json").read_text(encoding="utf-8"))
+            errors: list[str] = []
+            verify_specs.check_nip46_session_active_shape(vector_path, vector["session"], errors)
+            self.assertTrue(errors, f"{stem} should have been rejected by the shape validator")
+            self.assertTrue(
+                any(vector["expected_error"] in e for e in errors),
+                f"{stem}: expected_error {vector['expected_error']!r} not found in {errors}",
+            )
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -4055,6 +4055,10 @@ def check_invalid_nip46_session_gate(vector_path: str, vector: dict, errors: lis
     expected_nip46_session_request_gate(vector_path, gate, session, errors)
 
 
+def check_invalid_nip46_session_active(vector_path: str, vector: dict, errors: list[str]) -> None:
+    check_nip46_session_active_shape(vector_path, vector.get("session"), errors)
+
+
 def check_invalid_vector(rel: str, errors: list[str]) -> None:
     vector_path = f"vectors/invalid/{rel}.json"
     vector = load_required_json(vector_path, errors)
@@ -4093,6 +4097,8 @@ def check_invalid_vector(rel: str, errors: list[str]) -> None:
         check_invalid_nip46_session(vector_path, vector, rejection_errors)
     elif category == "nip46-session-gate":
         check_invalid_nip46_session_gate(vector_path, vector, rejection_errors)
+    elif category == "nip46-session-active":
+        check_invalid_nip46_session_active(vector_path, vector, rejection_errors)
     elif category == "nip46-policy-file":
         policy = vector.get("policy_file")
         if not isinstance(policy, dict):
