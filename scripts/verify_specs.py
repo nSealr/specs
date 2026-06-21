@@ -6295,6 +6295,7 @@ def main() -> int:
         "grant-descriptor-v0.schema.json",
         "policy-decision-vector-v0.schema.json",
         "route-selection-vector-v0.schema.json",
+        "nip46-session-active-v0.schema.json",
     ):
         load_json(f"schemas/{schema}")
 
