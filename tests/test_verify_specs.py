@@ -1212,5 +1212,63 @@ class VerifySpecsTests(unittest.TestCase):
         }, route_selection_semantics)
 
 
+    def test_nip46_session_active_vector_names_are_discovered_from_directory(self) -> None:
+        names = verify_specs.nip46_session_active_vector_names()
+        self.assertEqual(names, sorted(names))
+        for name in names:
+            self.assertTrue(
+                (verify_specs.ROOT / "vectors" / "nip46-sessions-active" / f"{name}.json").exists()
+            )
+
+    def _load_active_session(self, stem: str) -> dict:
+        import json
+        path = verify_specs.ROOT / "vectors" / "nip46-sessions-active" / f"{stem}.json"
+        return json.loads(path.read_text(encoding="utf-8"))["session"]
+
+    def test_nip46_session_active_shape_accepts_connect_ack(self) -> None:
+        errors: list[str] = []
+        value = self._load_active_session("connect-ack-kind-1")
+        verify_specs.check_nip46_session_active_shape(
+            "vectors/nip46-sessions-active/connect-ack-kind-1.json", value, errors
+        )
+        self.assertEqual(errors, [])
+
+    def test_nip46_session_active_vectors_validate_and_bind_to_source(self) -> None:
+        errors: list[str] = []
+        for rel in verify_specs.nip46_session_active_vector_names():
+            verify_specs.check_nip46_session_active_vector(rel, errors)
+        self.assertEqual(errors, [])
+        self.assertIn("connect-ack-kind-1", verify_specs.nip46_session_active_vector_names())
+
+    def test_nip46_session_active_phases_present(self) -> None:
+        names = set(verify_specs.nip46_session_active_vector_names())
+        self.assertTrue({"connect-ack-kind-1", "session-active-kind-1", "session-closed-kind-1"} <= names)
+        errors: list[str] = []
+        for rel in ("session-active-kind-1", "session-closed-kind-1"):
+            verify_specs.check_nip46_session_active_vector(rel, errors)
+        self.assertEqual(errors, [])
+
+    def test_nip46_session_active_invalid_vectors_are_rejected(self) -> None:
+        import json
+        stems = [
+            "nip46-session-active-secret-in-persisted-state",
+            "nip46-session-active-unknown-phase",
+            "nip46-session-active-stores-production-secrets",
+            "nip46-session-active-connect-ack-dispatches",
+            "nip46-session-active-closed-opens-relay",
+            "nip46-session-active-bad-nip44-version",
+        ]
+        for stem in stems:
+            vector_path = f"vectors/invalid/{stem}.json"
+            vector = json.loads((verify_specs.ROOT / "vectors" / "invalid" / f"{stem}.json").read_text(encoding="utf-8"))
+            errors: list[str] = []
+            verify_specs.check_nip46_session_active_shape(vector_path, vector["session"], errors)
+            self.assertTrue(errors, f"{stem} should have been rejected by the shape validator")
+            self.assertTrue(
+                any(vector["expected_error"] in e for e in errors),
+                f"{stem}: expected_error {vector['expected_error']!r} not found in {errors}",
+            )
+
+
 if __name__ == "__main__":
     unittest.main()
