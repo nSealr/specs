@@ -1220,6 +1220,19 @@ class VerifySpecsTests(unittest.TestCase):
                 (verify_specs.ROOT / "vectors" / "nip46-sessions-active" / f"{name}.json").exists()
             )
 
+    def _load_active_session(self, stem: str) -> dict:
+        import json
+        path = verify_specs.ROOT / "vectors" / "nip46-sessions-active" / f"{stem}.json"
+        return json.loads(path.read_text(encoding="utf-8"))["session"]
+
+    def test_nip46_session_active_shape_accepts_connect_ack(self) -> None:
+        errors: list[str] = []
+        value = self._load_active_session("connect-ack-kind-1")
+        verify_specs.check_nip46_session_active_shape(
+            "vectors/nip46-sessions-active/connect-ack-kind-1.json", value, errors
+        )
+        self.assertEqual(errors, [])
+
 
 if __name__ == "__main__":
     unittest.main()

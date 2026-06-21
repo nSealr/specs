@@ -3054,6 +3054,18 @@ NIP46_SESSION_SECRET_FIELD_NAMES = {
     "seed",
     "passphrase",
 }
+NIP46_SESSION_ACTIVE_PHASES = {"connect_ack", "session_active", "session_closed"}
+NIP46_SESSION_ACTIVE_ALWAYS_FALSE = {
+    "secret_value_stored",
+    "contains_secret_material",
+    "stores_production_secrets",
+}
+# Exact expected lifecycle-flag values per phase (machine-checkable).
+NIP46_SESSION_ACTIVE_PHASE_FLAGS = {
+    "connect_ack": {"acknowledges_connect": True, "derives_nip44_key": True, "opens_relay": True, "dispatches_signer": False},
+    "session_active": {"acknowledges_connect": True, "derives_nip44_key": True, "opens_relay": True, "dispatches_signer": True},
+    "session_closed": {"acknowledges_connect": True, "derives_nip44_key": False, "opens_relay": False, "dispatches_signer": False},
+}
 
 
 def parse_nip46_permissions(value: str, vector_path: str, errors: list[str]) -> list[dict]:
@@ -5968,6 +5980,93 @@ def check_nip46_session_vector(rel: str, errors: list[str]) -> None:
         errors.append(f"{vector_path}: name mismatch")
     session = check_nip46_session_lifecycle_shape(vector_path, vector.get("session"), errors)
     check_nip46_session_source_binding(vector_path, session, vector.get("source_connect_review_vector"), errors)
+
+
+def check_nip46_session_active_persisted_state(vector_path: str, value: object, errors: list[str]) -> None:
+    if not isinstance(value, dict):
+        errors.append(f"{vector_path}: persisted_state must be an object")
+        return
+    check_known_fields(vector_path, "persisted_state", value, {"fields", "contains_secret_material"}, errors)
+    fields = value.get("fields")
+    if not isinstance(fields, list) or not fields or not all(isinstance(f, str) and f for f in fields):
+        errors.append(f"{vector_path}: persisted_state.fields must be a non-empty string list")
+    else:
+        for field in fields:
+            if field.lower() in NIP46_SESSION_SECRET_FIELD_NAMES:
+                errors.append(f"{vector_path}: persisted_state.fields must not include secret field {field}")
+    if value.get("contains_secret_material") is not False:
+        errors.append(f"{vector_path}: persisted_state.contains_secret_material must be false")
+
+
+def check_nip46_session_active_nip44(vector_path: str, value: object, errors: list[str]) -> None:
+    if not isinstance(value, dict):
+        errors.append(f"{vector_path}: nip44 must be an object")
+        return
+    check_known_fields(vector_path, "nip44", value, {"event_kind", "payload_encrypted", "version"}, errors)
+    if value.get("event_kind") != 24133:
+        errors.append(f"{vector_path}: nip44.event_kind must be 24133")
+    if value.get("payload_encrypted") is not True:
+        errors.append(f"{vector_path}: nip44.payload_encrypted must be true")
+    if value.get("version") != 2:
+        errors.append(f"{vector_path}: nip44.version must be 2")
+
+
+def check_nip46_session_active_shape(vector_path: str, value: object, errors: list[str]) -> dict | None:
+    if not isinstance(value, dict):
+        errors.append(f"{vector_path}: active session must be an object")
+        return None
+    check_nip46_session_no_secret_material(vector_path, value, errors)
+    check_known_fields(
+        vector_path,
+        "active session",
+        value,
+        {
+            "name", "format", "phase", "client_pubkey", "remote_signer_pubkey",
+            "relays", "connect_digest", "approved_permissions", "nip44",
+            "acknowledges_connect", "derives_nip44_key", "opens_relay",
+            "dispatches_signer", "creates_grants", "persists_session_state",
+            "persisted_state", "secret_present", "secret_value_stored",
+            "contains_secret_material", "stores_production_secrets", "scope",
+        },
+        errors,
+    )
+    if value.get("format") != "nsealr-nip46-session-active-v0":
+        errors.append(f"{vector_path}: format mismatch")
+    if value.get("name") != Path(vector_path).stem:
+        errors.append(f"{vector_path}: name mismatch")
+    phase = value.get("phase")
+    if phase not in NIP46_SESSION_ACTIVE_PHASES:
+        errors.append(f"{vector_path}: phase must be one of {sorted(NIP46_SESSION_ACTIVE_PHASES)}")
+    for label in ("client_pubkey", "remote_signer_pubkey", "connect_digest"):
+        if not isinstance(value.get(label), str) or not HEX32_RE.fullmatch(value.get(label, "")):
+            errors.append(f"{vector_path}: {label} must be 32-byte lowercase hex")
+    check_nip46_session_relays(vector_path, value.get("relays"), errors)
+    check_nip46_session_active_nip44(vector_path, value.get("nip44"), errors)
+    approved = check_nip46_session_permissions(vector_path, value.get("approved_permissions"), errors, approved=True)
+    if not approved:
+        errors.append(f"{vector_path}: approved_permissions must be non-empty")
+    if value.get("persists_session_state") is not True:
+        errors.append(f"{vector_path}: persists_session_state must be true")
+    check_nip46_session_active_persisted_state(vector_path, value.get("persisted_state"), errors)
+    if not isinstance(value.get("secret_present"), bool):
+        errors.append(f"{vector_path}: secret_present must be boolean")
+    for flag in sorted(NIP46_SESSION_ACTIVE_ALWAYS_FALSE):
+        if value.get(flag) is not False:
+            errors.append(f"{vector_path}: {flag} must be false")
+    if phase in NIP46_SESSION_ACTIVE_PHASE_FLAGS:
+        for flag, expected in NIP46_SESSION_ACTIVE_PHASE_FLAGS[phase].items():
+            if value.get(flag) is not expected:
+                errors.append(f"{vector_path}: {flag} must be {str(expected).lower()} in phase {phase}")
+    if not isinstance(value.get("creates_grants"), bool):
+        errors.append(f"{vector_path}: creates_grants must be boolean")
+    scope = value.get("scope")
+    if not isinstance(scope, str) or not scope:
+        errors.append(f"{vector_path}: scope must be a non-empty string")
+    else:
+        for required in ("NIP-44", "relay", "persist", "secret material"):
+            if required not in scope:
+                errors.append(f"{vector_path}: scope must mention {required}")
+    return value
 
 
 def check_nip46_session_gate_vector(rel: str, errors: list[str]) -> None:
