@@ -1240,6 +1240,14 @@ class VerifySpecsTests(unittest.TestCase):
         self.assertEqual(errors, [])
         self.assertIn("connect-ack-kind-1", verify_specs.nip46_session_active_vector_names())
 
+    def test_nip46_session_active_phases_present(self) -> None:
+        names = set(verify_specs.nip46_session_active_vector_names())
+        self.assertTrue({"connect-ack-kind-1", "session-active-kind-1", "session-closed-kind-1"} <= names)
+        errors: list[str] = []
+        for rel in ("session-active-kind-1", "session-closed-kind-1"):
+            verify_specs.check_nip46_session_active_vector(rel, errors)
+        self.assertEqual(errors, [])
+
 
 if __name__ == "__main__":
     unittest.main()
