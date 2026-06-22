@@ -31,7 +31,11 @@ open, and session state is persisted. It never persists secret material.
 | `nip44` | Session encryption-mode descriptor `{ event_kind: 24133, payload_encrypted: true, version: 2 }`. See "NIP-44 Envelope" below. |
 | `persists_session_state` | Exactly `true`. |
 | `persisted_state` | `{ fields: [...], contains_secret_material: false }`. |
+| `acknowledges_connect` / `derives_nip44_key` / `opens_relay` / `dispatches_signer` | Booleans fixed per phase — see the phase table above. |
+| `creates_grants` | Boolean (free; T2 sessions create no grants). |
+| `secret_value_stored` / `contains_secret_material` / `stores_production_secrets` | Always `false`. |
 | `secret_present` | Boolean copied from the source connect review. See "secret_present" below. |
+| `scope` | Non-empty string that MUST mention `NIP-44`, `relay`, `persist`, and `secret material`. |
 
 ## Required Safety Boundary
 
@@ -67,5 +71,14 @@ are always false; `persisted_state.fields` carries no secret field name).
 
 A fixture wraps the session with `format: nsealr-nip46-session-active-vector-v0`
 and `source_session_vector` pointing under `vectors/nip46-sessions/`. The active
-session's `client_pubkey`, `remote_signer_pubkey`, `connect_digest`, and `relays`
-must match that source `approved_pending_ack` checkpoint, proving continuity.
+session's `client_pubkey`, `remote_signer_pubkey`, `connect_digest`, `relays`, and
+`secret_present` must match that source `approved_pending_ack` checkpoint, proving
+continuity.
+
+## Schema vs validators
+
+`schemas/nip46-session-active-v0.schema.json` is a **coarse structural gate**. The
+authoritative rules are the `verify_specs.py` checks (and the companion
+`parseNip46SessionActive`): per-phase flag values, the `scope` substrings, the
+secret-field exclusion in `persisted_state.fields`, relay normalization/uniqueness,
+and source binding are enforced there, not all in the schema.

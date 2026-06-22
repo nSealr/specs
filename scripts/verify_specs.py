@@ -6100,7 +6100,7 @@ def check_nip46_session_active_vector(rel: str, errors: list[str]) -> None:
     if not isinstance(source, dict) or session is None:
         return
     source_session = source.get("session", {})
-    for label in ("client_pubkey", "remote_signer_pubkey", "connect_digest", "relays"):
+    for label in ("client_pubkey", "remote_signer_pubkey", "connect_digest", "relays", "secret_present"):
         if session.get(label) != source_session.get(label):
             errors.append(f"{vector_path}: session {label} must match source_session_vector checkpoint")
 
