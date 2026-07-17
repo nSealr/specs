@@ -1,7 +1,7 @@
 # Persistent Secret Custody V0
 
 `persistent-secret-custody-v0` defines the minimum custody gate for the
-Custom Nostr Hardware Wallet With Persistent Secret family.
+nSealr One (`custom_hardware_wallet`) family.
 
 This is a nSealr product-safety contract, not a Nostr protocol rule. It exists
 so hardware, firmware, companion routing, and lab docs cannot drift into
@@ -14,7 +14,8 @@ testable.
 - Current status is research.
 - Rev A signing remains on the host MCU unless a later public vendor path proves
   non-exportable TROPIC01 secp256k1 Schnorr/BIP-340 signing.
-- The contract does not apply to Raspberry/Pi or ESP32 stateless QR vaults.
+- The contract does not apply to the nSealr Vault editions (the Pi or ESP32
+  stateless QR vaults).
 
 ## Required Lifecycle
 

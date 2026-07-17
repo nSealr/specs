@@ -27,12 +27,11 @@ languages for Raspberry, ESP32, smartcard, companion, or custom hardware.
 
 ## First-Class Signer Families
 
-- `raspberry_qr_vault`: Raspberry/Pi Stateless QR Vault.
-- `esp32_qr_vault`: ESP32 Stateless QR Vault.
-- `esp32_usb_nip46`: ESP32 USB/NIP-46 Signer.
-- `smartcard`: JavaCard/NFC Smartcard Signer.
-- `custom_hardware_wallet`: Custom Nostr Hardware Wallet With Persistent
-  Secret.
+- `raspberry_qr_vault`: nSealr Vault — Pi edition.
+- `esp32_qr_vault`: nSealr Vault — ESP32 edition.
+- `esp32_usb_nip46`: nSealr Key.
+- `smartcard`: nSealr Card.
+- `custom_hardware_wallet`: nSealr One.
 
 Infrastructure repositories such as `companion`, `specs`, `lab`, `hardware`,
 and `website` are not signer families by themselves. They implement, validate,
