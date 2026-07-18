@@ -43,8 +43,8 @@ ROUTE_TYPES = {
 QR_ROUTE_TYPES = {"raspberry_qr_vault", "esp32_qr_vault"}
 ROUTE_REPOSITORIES = {
     "raspberry_qr_vault": "raspberry",
-    "esp32_qr_vault": "esp32",
-    "esp32_usb_nip46": "esp32",
+    "esp32_qr_vault": "firmware",
+    "esp32_usb_nip46": "firmware",
     "smartcard": "smartcard",
     "custom_hardware_wallet": "hardware",
 }
@@ -5591,8 +5591,8 @@ def check_device_security_profile_vector(rel: str, errors: list[str]) -> None:
         errors.append(f"{vector_path}: contract_id mismatch")
     if vector.get("solution") != "esp32_usb_nip46":
         errors.append(f"{vector_path}: solution must be esp32_usb_nip46")
-    if vector.get("repository") != "esp32":
-        errors.append(f"{vector_path}: repository must be esp32")
+    if vector.get("repository") != "firmware":
+        errors.append(f"{vector_path}: repository must be firmware")
     if vector.get("target") != "esp32_s3_usb_signer":
         errors.append(f"{vector_path}: target must be esp32_s3_usb_signer")
     if vector.get("profile") != "development_scaffold":

@@ -1067,7 +1067,7 @@ class VerifySpecsTests(unittest.TestCase):
                     "signer_route": {
                         "required": ["repository"],
                         "properties": {
-                            "repository": {"const": "esp32"},
+                            "repository": {"const": "firmware"},
                             "transport": {"const": "usb"},
                             "custody": {"const": "device_persistent"},
                             "trusted_review": {"const": "device_display"},
@@ -1181,7 +1181,7 @@ class VerifySpecsTests(unittest.TestCase):
             "then": {
                 "required": ["repository"],
                 "properties": {
-                    "repository": {"const": "esp32"},
+                    "repository": {"const": "firmware"},
                     "transport": {"const": "usb"},
                     "custody": {"const": "device_persistent"},
                     "trusted_review": {"const": "device_display"},

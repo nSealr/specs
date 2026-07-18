@@ -79,7 +79,7 @@
           ]
         },
         "repository": {
-          "enum": ["raspberry", "esp32", "smartcard", "hardware"]
+          "enum": ["raspberry", "firmware", "smartcard", "hardware"]
         },
         "transport": {
           "enum": ["qr", "usb", "smartcard", "nfc", "nip46_relay", "embedded"]
@@ -144,7 +144,7 @@
           "then": {
             "required": ["repository"],
             "properties": {
-              "repository": { "const": "esp32" },
+              "repository": { "const": "firmware" },
               "transport": { "const": "qr" },
               "custody": { "const": "stateless_session" },
               "trusted_review": { "const": "device_display" },
@@ -163,7 +163,7 @@
           "then": {
             "required": ["repository"],
             "properties": {
-              "repository": { "const": "esp32" },
+              "repository": { "const": "firmware" },
               "transport": { "const": "usb" },
               "custody": { "const": "device_persistent" },
               "trusted_review": { "const": "device_display" },
