@@ -73,6 +73,24 @@ class ResponseIdentityTests(unittest.TestCase):
         result,errors=self.evaluate(step)
         self.assertIsNone(result);self.assertTrue(errors)
 
+    def test_signed_outer_boolean_timestamp_is_not_an_integer(self):
+        for timestamp in (True, False):
+            with self.subTest(timestamp=timestamp):
+                step = self.step()
+                event = step['event']
+                event['pubkey'] = USER
+                event['created_at'] = timestamp
+                canonical = json.dumps(
+                    [0, USER, timestamp, event['kind'], event['tags'], event['content']],
+                    separators=(',', ':'), ensure_ascii=False,
+                )
+                event['id'] = hashlib.sha256(canonical.encode()).hexdigest()
+                key = secp256k1.PrivateKey(bytes.fromhex('00' * 31 + '02'), raw=True)
+                event['sig'] = key.schnorr_sign(bytes.fromhex(event['id']), '', raw=True).hex()
+                result, errors = self.evaluate(step)
+                self.assertIsNone(result)
+                self.assertTrue(any('created_at must be a safe non-negative integer' in e for e in errors))
+
     def test_same_key_control(self):
         step=json.loads((ROOT/'vectors/nip46-relay-steps/get-public-key-response-step.json').read_text())
         step['format']='nsealr-nip46-relay-response-step-v1'
