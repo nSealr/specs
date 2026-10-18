@@ -16,7 +16,7 @@ Own `scripts/verify_specs.py` response-result/oracle and its direct dispatches, 
 2. Recognize a public-key result before attempting JSON decoding; do not mistake an all-digit hex-shaped string for a JSON number. Metadata shape acceptance is distinct from session curve/authentication validation.
 3. Return user-result identity separately from transport author. Verify a signed inner event under its own author; independently compute ID and retain invalid-signature/id failures. If optional expected user is present, validate its shape and reject any user-bearing mismatch. Missing expected identity yields an unbound flag, never inferred equality.
 4. Emit only response-step-v1 metadata with the exact field contract; auth/error/pong/relay-list results have no user-result identity. Preserve false non-enabling flags. Update invalid fixture dispatch and auth-challenge source consumption together.
-5. Retain strict nested JSON rejection matching the agreed response shape; tests cover meaningful semantic cases rather than documentation text.
+5. Nested raw result JSON is capped at1024 UTF-8 bytes/depth32, rejects duplicate members including escaped aliases, trailing data and nonfinite constants, matching the companion host profile. Structural expected-output comparison preserves array order and exact JSON value types (including bool versus int); object member order is irrelevant. Tests cover behavior, not documentation text.
 
 ## Independent acceptance plan
 
