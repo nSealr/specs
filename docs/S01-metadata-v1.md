@@ -23,3 +23,15 @@ Own `scripts/verify_specs.py` response-result/oracle and its direct dispatches, 
 Before correction, show the pinned baseline rejects a valid different user key and a valid inner event author different from transport. Use published fixture keys and signatures generated/verified by the Python crypto implementation, not the TypeScript evaluator. After correction test distinct identities, supplied expected-user mismatch, no expected identity (unbound), invalid inner signature, changed canonical event ID and invalid expected-key shape. Keep a valid same-key control and outer signature failure.
 
 Run the complete specs verifier/unit suite under isolated pinned Python, then companion's unchanged fixture verifier selecting this specs checkout, and relevant affected cross-repository checks. A shared fixture snapshot must not silently override the tested sibling source. Save commands, versions, exit codes, source pins, hashes and exact candidate. Independent review must assess both the Python oracle and synchronized fixture bytes. No hardware, external client or S01 parent closure is claimed solely by this step.
+
+## Checkout-name validation correction
+
+The actual isolated `specs-s01` worktree exposed an inherited structure-checker
+bug: `scripts/verify_repo.py` inferred repository identity from the directory
+name, expected MIT instead of the actual CC0 license and silently omitted the
+specs required-directory checks. The failed unmodified `make ci` output is
+preserved in `docs/evidence/S01/specs-ci-baseline-failure.log`. Pin this
+repository's identity to `specs`; do not change the license or weaken its marker.
+A disposable renamed checkout must pass with the correct structure/license,
+reject MIT and reject a missing vectors directory. This is a bounded prerequisite
+to executing the same gates from author/reviewer worktrees.

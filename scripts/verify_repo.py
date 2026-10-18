@@ -8,7 +8,7 @@ import sys
 
 
 ROOT = Path(__file__).resolve().parents[1]
-REPO = ROOT.name
+REPO = "specs"  # Repository identity is independent of the checkout directory.
 
 COMMON_FILES = [
     "README.md",

@@ -1,5 +1,4 @@
 """Independent response metadata oracle, using published disposable scalar2."""
-from copy import deepcopy
 import hashlib
 import json
 from pathlib import Path
@@ -55,7 +54,7 @@ class ResponseIdentityTests(unittest.TestCase):
         self.assertEqual(errors,[]);self.assertIs(result['result_pubkey_bound_to_expected_user'],False)
 
     def test_expected_user_mismatch_and_invalid_shape(self):
-        for key in ['f'*64,'not-a-public-key']:
+        for key in ['f'*64,'not-a-public-key',None]:
             with self.subTest(key=key):
                 step=self.step();step['expected_user_pubkey']=key
                 result,errors=self.evaluate(step)
