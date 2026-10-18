@@ -35,3 +35,9 @@ repository's identity to `specs`; do not change the license or weaken its marker
 A disposable renamed checkout must pass with the correct structure/license,
 reject MIT and reject a missing vectors directory. This is a bounded prerequisite
 to executing the same gates from author/reviewer worktrees.
+
+Independent final review found a signed outer event with boolean `created_at`
+passed the inherited Python integer check (`bool` subclasses `int`). Preserve
+the reviewer reproduction and signed red controls; reject booleans explicitly
+while retaining valid integer and signature controls. This restores the outer
+shape check required by the response metadata contract.

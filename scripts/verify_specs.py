@@ -3535,7 +3535,7 @@ def expected_nip46_relay_event_envelope(
     if "id" in event and (not isinstance(event.get("id"), str) or not HEX32_RE.fullmatch(event.get("id", ""))):
         errors.append(f"{vector_path}: NIP-46 relay event id must be 32-byte lowercase hex")
     created_at = event.get("created_at")
-    if "created_at" in event and (not isinstance(created_at, int) or created_at < 0 or created_at > MAX_SAFE_INTEGER):
+    if "created_at" in event and (type(created_at) is not int or created_at < 0 or created_at > MAX_SAFE_INTEGER):
         errors.append(f"{vector_path}: NIP-46 relay event created_at must be a safe non-negative integer")
     if "sig" in event and (not isinstance(event.get("sig"), str) or not HEX64_RE.fullmatch(event.get("sig", ""))):
         errors.append(f"{vector_path}: NIP-46 relay event sig must be 64-byte lowercase hex")
