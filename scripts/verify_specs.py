@@ -3645,124 +3645,153 @@ def check_nip46_relay_response_message(vector_path: str, message: object, errors
     return message
 
 
+def exact_json_equal(left: object, right: object) -> bool:
+    """JSON object order is irrelevant; array order and value types are exact."""
+    if type(left) is not type(right):
+        return False
+    if isinstance(left, dict):
+        return left.keys() == right.keys() and all(exact_json_equal(left[k], right[k]) for k in left)
+    if isinstance(left, list):
+        return len(left) == len(right) and all(exact_json_equal(x, y) for x, y in zip(left, right))
+    return left == right
+
+
+def strict_nip46_result_json(text: str) -> object:
+    if len(text.encode("utf-8")) > implementation_limit_values()["max_nip46_decrypted_message_json_bytes"]:
+        raise ValueError("NIP-46 result exceeds host UTF-8 byte limit")
+    depth = 0
+    quoted = False
+    escaped = False
+    for char in text:
+        if quoted:
+            if escaped:
+                escaped = False
+            elif char == "\\":
+                escaped = True
+            elif char == '"':
+                quoted = False
+        elif char == '"':
+            quoted = True
+        elif char in "[{":
+            depth += 1
+            if depth > 32:
+                raise ValueError("NIP-46 result exceeds host JSON depth limit")
+        elif char in "]}":
+            depth -= 1
+    def unique_object(pairs):
+        result = {}
+        for key, value in pairs:
+            if key in result:
+                raise ValueError("NIP-46 result contains duplicate JSON members")
+            result[key] = value
+        return result
+    def reject_constant(value):
+        raise ValueError("NIP-46 result has a nonfinite JSON constant")
+    return json.loads(text, object_pairs_hook=unique_object, parse_constant=reject_constant)
+
+
 def expected_nip46_relay_response_result_type(
     vector_path: str,
     message: dict,
-    sender_pubkey: str,
     errors: list[str],
-) -> tuple[str, bool, bool, object, bool, bool]:
+) -> tuple[str, bool, str | None, object, bool, bool]:
     if message.get("result") == "auth_url" and "error" in message:
-        return ("auth_challenge", False, False, ..., False, False)
+        return ("auth_challenge", False, None, ..., False, False)
     if "error" in message:
-        return ("error", False, False, ..., False, False)
+        return ("error", False, None, ..., False, False)
     result = message.get("result")
     if not isinstance(result, str):
-        return ("unknown_result", False, False, ..., False, False)
+        return ("unknown_result", False, None, ..., False, False)
+    # Metadata recognizes the shape before JSON decoding (all-digit hex is valid
+    # metadata). This is not curve/session authentication or key discovery.
+    if HEX32_RE.fullmatch(result):
+        return ("public_key_result", False, result, ..., False, False)
+    if result == "ack":
+        return ("connect_ack_result", False, None, ..., False, False)
+    if result == "pong":
+        return ("pong_result", False, None, ..., False, False)
     try:
-        decoded = json.loads(result)
-    except json.JSONDecodeError:
-        if HEX32_RE.fullmatch(result):
-            if result != sender_pubkey:
-                errors.append(f"{vector_path}: NIP-46 public-key response does not match relay event sender")
-                return ("public_key_result", False, False, ..., False, False)
-            return ("public_key_result", False, True, ..., False, False)
-        if result == "ack":
-            return ("connect_ack_result", False, False, ..., False, False)
-        if result == "pong":
-            return ("pong_result", False, False, ..., False, False)
-        errors.append(f"{vector_path}: response_message result is not a supported v0 response shape")
-        return ("unknown_result", False, False, ..., False, False)
+        decoded = strict_nip46_result_json(result)
+    except (ValueError, UnicodeError, RecursionError):
+        errors.append(f"{vector_path}: response_message result is not a supported response shape")
+        return ("unknown_result", False, None, ..., False, False)
     if decoded is None:
-        return ("relay_no_change_result", False, False, None, False, False)
+        return ("relay_no_change_result", False, None, None, False, False)
     if isinstance(decoded, list):
         if not decoded:
             errors.append(f"{vector_path}: NIP-46 switch_relays response relays must be a non-empty list or null")
-            return ("unknown_result", False, False, ..., False, False)
+            return ("unknown_result", False, None, ..., False, False)
         relays = []
         for index, relay in enumerate(decoded):
             if not isinstance(relay, str):
                 errors.append(f"{vector_path}: NIP-46 switch_relays response relays must be strings")
                 continue
-            normalized = normalized_websocket_relay(
-                relay,
-                vector_path,
-                errors,
-                "NIP-46 switch_relays response relay",
-            )
+            normalized = normalized_websocket_relay(relay, vector_path, errors, "NIP-46 switch_relays response relay")
             if normalized is not None:
                 relays.append(normalized)
                 if relay != normalized:
                     errors.append(f"{vector_path}: relay_urls[{index}] must be normalized")
         if len(set(relays)) != len(relays):
             errors.append(f"{vector_path}: NIP-46 switch_relays response relays must be unique")
-        return ("relay_list_result", False, False, relays, False, False)
+        return ("relay_list_result", False, None, relays, False, False)
     response_errors: list[str] = []
     check_response_shape(
         Path(vector_path),
-        {
-            "version": 1,
-            "request_id": message.get("id"),
-            "ok": True,
-            "result": {
-                "event": decoded,
-            },
-        },
+        {"version": 1, "request_id": message.get("id"), "ok": True, "result": {"event": decoded}},
         response_errors,
     )
     if response_errors:
         errors.extend(response_errors)
-        return ("unknown_result", False, False, ..., False, False)
-    if not isinstance(decoded, dict) or decoded.get("pubkey") != sender_pubkey:
-        errors.append(f"{vector_path}: NIP-46 signed-event response pubkey does not match relay event sender")
-        return ("signed_event_result", True, False, ..., False, False)
+        return ("unknown_result", False, None, ..., False, False)
+    author = decoded.get("pubkey")
+    if not isinstance(author, str) or not HEX32_RE.fullmatch(author):
+        errors.append(f"{vector_path}: NIP-46 signed-event response pubkey is invalid")
+        return ("signed_event_result", True, None, ..., False, False)
     computed_id = event_id(decoded)
     if decoded.get("id") != computed_id:
         errors.append(f"{vector_path}: NIP-46 signed-event response id does not match NIP-01 canonical serialization")
-        return ("signed_event_result", True, True, ..., False, False)
-    if not verify_schnorr(sender_pubkey, computed_id, decoded.get("sig")):
+        return ("signed_event_result", True, author, ..., False, False)
+    if not verify_schnorr(author, computed_id, decoded.get("sig")):
         errors.append(f"{vector_path}: NIP-46 signed-event response signature is invalid")
-        return ("signed_event_result", True, True, ..., True, False)
-    return ("signed_event_result", True, True, ..., True, True)
+        return ("signed_event_result", True, author, ..., True, False)
+    return ("signed_event_result", True, author, ..., True, True)
 
 
 def expected_nip46_relay_response_step(vector_path: str, vector: dict, errors: list[str]) -> dict | None:
     if vector.get("direction") != "remote_signer_to_client":
         errors.append(f"{vector_path}: NIP-46 relay response step direction must be remote_signer_to_client")
         return None
-    envelope = expected_nip46_relay_event_envelope(
-        vector_path,
-        vector.get("event"),
-        vector.get("direction"),
-        errors,
-    )
+    envelope = expected_nip46_relay_event_envelope(vector_path, vector.get("event"), vector.get("direction"), errors)
     message = check_nip46_relay_response_message(vector_path, vector.get("decrypted_message"), errors)
     if envelope is None or message is None:
         return None
+    expected_user = vector.get("expected_user_pubkey")
+    if "expected_user_pubkey" in vector and (not isinstance(expected_user, str) or not HEX32_RE.fullmatch(expected_user)):
+        errors.append(f"{vector_path}: expected user pubkey is invalid")
+        return None
     (
         result_type,
-        signed_event_shape_checked,
-        result_pubkey_bound_to_sender,
+        shape_checked,
+        result_pubkey,
         relay_urls,
-        signed_event_id_verified,
-        signed_event_signature_verified,
-    ) = expected_nip46_relay_response_result_type(
-        vector_path,
-        message,
-        envelope["sender_pubkey"],
-        errors,
-    )
+        id_verified,
+        signature_verified,
+    ) = expected_nip46_relay_response_result_type(vector_path, message, errors)
+    bound = result_pubkey is not None and expected_user is not None and result_pubkey == expected_user
+    if result_pubkey is not None and expected_user is not None and not bound:
+        errors.append(f"{vector_path}: NIP-46 result pubkey does not match expected user pubkey")
     if errors and any(error.startswith(f"{vector_path}:") for error in errors):
         return None
     expected = {
-        "format": "nsealr-nip46-relay-response-step-v0",
+        "format": "nsealr-nip46-relay-response-step-v1",
         "envelope": envelope,
         "message_id": message["id"],
         "response_message": message,
         "result_type": result_type,
-        "signed_event_shape_checked": signed_event_shape_checked,
-        "signed_event_id_verified": signed_event_id_verified,
-        "signed_event_signature_verified": signed_event_signature_verified,
-        "result_pubkey_bound_to_sender": result_pubkey_bound_to_sender,
+        "signed_event_shape_checked": shape_checked,
+        "signed_event_id_verified": id_verified,
+        "signed_event_signature_verified": signature_verified,
+        "result_pubkey_bound_to_expected_user": bound,
         "decrypts_content": False,
         "opens_relay": False,
         "creates_grants": False,
@@ -3772,6 +3801,8 @@ def expected_nip46_relay_response_step(vector_path: str, vector: dict, errors: l
         "stores_production_secrets": False,
         "persists_session_state": False,
     }
+    if result_pubkey is not None:
+        expected["result_pubkey"] = result_pubkey
     if result_type == "auth_challenge":
         expected["auth_url"] = message["error"]
     if relay_urls is not ...:
@@ -3966,7 +3997,7 @@ def check_invalid_nip46_relay_step(vector_path: str, vector: dict, errors: list[
     if not isinstance(relay_step, dict):
         errors.append(f"{vector_path}: relay_step must be an object")
         return
-    if relay_step.get("format") == "nsealr-nip46-relay-response-step-v0":
+    if relay_step.get("format") == "nsealr-nip46-relay-response-step-v1":
         expected_nip46_relay_response_step(vector_path, relay_step, errors)
         return
     expected_nip46_relay_request_step(vector_path, relay_step, errors)
@@ -5839,17 +5870,17 @@ def check_nip46_relay_step_vector(rel: str, errors: list[str]) -> None:
         errors.append(f"{vector_path}: name mismatch")
     if vector.get("format") == "nsealr-nip46-relay-request-step-v0":
         expected = expected_nip46_relay_request_step(vector_path, vector, errors)
-    elif vector.get("format") == "nsealr-nip46-relay-response-step-v0":
+    elif vector.get("format") == "nsealr-nip46-relay-response-step-v1":
         expected = expected_nip46_relay_response_step(vector_path, vector, errors)
     else:
         errors.append(f"{vector_path}: format mismatch")
         return
     if expected is None:
         return
-    if vector.get("expected_step") != expected:
+    if not exact_json_equal(vector.get("expected_step"), expected):
         errors.append(f"{vector_path}: expected_step mismatch")
     scope = vector.get("scope")
-    scope_requires_signature_boundary = vector.get("format") == "nsealr-nip46-relay-response-step-v0"
+    scope_requires_signature_boundary = vector.get("format") == "nsealr-nip46-relay-response-step-v1"
     if (
         not isinstance(scope, str)
         or "NIP-44" not in scope
